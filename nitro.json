@@ -1,0 +1,23 @@
+{
+  "cxxNamespace": ["pretext"],
+  "ios": {
+    "iosModuleName": "Pretext"
+  },
+  "android": {
+    "androidNamespace": ["pretext"],
+    "androidCxxLibName": "pretext"
+  },
+  "autolinking": {
+    "Pretext": {
+      "ios": {
+        "language": "swift",
+        "implementationClassName": "Pretext"
+      },
+      "android": {
+        "language": "kotlin",
+        "implementationClassName": "Pretext"
+      }
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}

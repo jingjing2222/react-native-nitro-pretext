@@ -1,0 +1,132 @@
+{
+  "name": "react-native-pretext",
+  "version": "0.1.0",
+  "description": "React Native port of pretext with native text measurement backends for accurate multiline layout",
+  "keywords": [
+    "android",
+    "ios",
+    "react-native"
+  ],
+  "homepage": "https://github.com/jingjing2222/react-native-pretext#readme",
+  "bugs": {
+    "url": "https://github.com/jingjing2222/react-native-pretext/issues"
+  },
+  "license": "MIT",
+  "author": "jingjing2222 <hj.jingjing2222@gmail.com> (https://github.com/jingjing2222)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jingjing2222/react-native-pretext.git"
+  },
+  "workspaces": [
+    "example"
+  ],
+  "files": [
+    "src",
+    "lib",
+    "android",
+    "ios",
+    "cpp",
+    "nitrogen",
+    "nitro.json",
+    "*.podspec",
+    "react-native.config.js",
+    "!ios/build",
+    "!android/build",
+    "!android/gradle",
+    "!android/gradlew",
+    "!android/gradlew.bat",
+    "!android/local.properties",
+    "!**/__tests__",
+    "!**/__fixtures__",
+    "!**/__mocks__",
+    "!**/.*"
+  ],
+  "main": "./lib/module/index.js",
+  "types": "./lib/typescript/src/index.d.ts",
+  "exports": {
+    ".": {
+      "source": "./src/index.tsx",
+      "types": "./lib/typescript/src/index.d.ts",
+      "default": "./lib/module/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "example": "yarn workspace react-native-pretext-example",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
+    "prepare": "bob build",
+    "nitrogen": "nitrogen",
+    "typecheck": "tsc",
+    "test": "jest",
+    "lint": "oxlint",
+    "lint:fix": "oxlint --fix",
+    "fmt": "oxfmt",
+    "fmt:check": "oxfmt --check"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.0.0",
+    "@react-native/babel-preset": "0.85.0",
+    "@react-native/jest-preset": "0.85.0",
+    "@types/react": "^19.2.0",
+    "del-cli": "^7.0.0",
+    "jest": "^30.3.0",
+    "nitrogen": "^0.35.3",
+    "oxfmt": "^0.44.0",
+    "oxlint": "^1.59.0",
+    "react": "19.2.3",
+    "react-native": "0.85.0",
+    "react-native-builder-bob": "^0.41.0",
+    "react-native-nitro-modules": "^0.35.3",
+    "turbo": "^2.8.21",
+    "typescript": "^6.0.2"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-nitro-modules": "^0.35.3"
+  },
+  "jest": {
+    "modulePathIgnorePatterns": [
+      "<rootDir>/example/node_modules",
+      "<rootDir>/lib/"
+    ],
+    "preset": "@react-native/jest-preset"
+  },
+  "packageManager": "yarn@4.11.0",
+  "create-react-native-library": {
+    "type": "nitro-module",
+    "languages": "kotlin-swift",
+    "tools": [
+      "jest"
+    ],
+    "version": "0.61.0"
+  },
+  "react-native-builder-bob": {
+    "source": "src",
+    "output": "lib",
+    "targets": [
+      [
+        "custom",
+        {
+          "script": "nitrogen",
+          "clean": "nitrogen/"
+        }
+      ],
+      [
+        "module",
+        {
+          "esm": true
+        }
+      ],
+      [
+        "typescript",
+        {
+          "project": "tsconfig.build.json"
+        }
+      ]
+    ]
+  }
+}
