@@ -23,7 +23,7 @@
   ],
   "files": [
     "src",
-    "lib",
+    "dist",
     "android",
     "ios",
     "cpp",
@@ -31,6 +31,8 @@
     "nitro.json",
     "*.podspec",
     "react-native.config.js",
+    "!oxfmt.config.ts",
+    "!oxlint.config.ts",
     "!ios/build",
     "!android/build",
     "!android/gradle",
@@ -42,13 +44,13 @@
     "!**/__mocks__",
     "!**/.*"
   ],
-  "main": "./lib/module/index.js",
-  "types": "./lib/typescript/src/index.d.ts",
+  "main": "./dist/module/index.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "source": "./src/index.tsx",
-      "types": "./lib/typescript/src/index.d.ts",
-      "default": "./lib/module/index.js"
+      "source": "./src/index.ts",
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/module/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -57,8 +59,8 @@
   },
   "scripts": {
     "example": "yarn workspace react-native-pretext-example",
-    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
-    "build": "bob build",
+    "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",
+    "build": "del-cli lib dist && bob build && tsc -p tsconfig.build.json",
     "nitrogen": "nitrogen",
     "changeset": "changeset",
     "version-packages": "changeset version",
@@ -96,6 +98,7 @@
   "jest": {
     "modulePathIgnorePatterns": [
       "<rootDir>/example/node_modules",
+      "<rootDir>/dist/",
       "<rootDir>/lib/"
     ],
     "preset": "@react-native/jest-preset"
@@ -111,7 +114,7 @@
   },
   "react-native-builder-bob": {
     "source": "src",
-    "output": "lib",
+    "output": "dist",
     "targets": [
       [
         "custom",
@@ -124,12 +127,6 @@
         "module",
         {
           "esm": true
-        }
-      ],
-      [
-        "typescript",
-        {
-          "project": "tsconfig.build.json"
         }
       ]
     ]
