@@ -19,11 +19,16 @@ class Pretext : HybridPretextSpec() {
     return prepareParagraphsWithStats(texts, style).prepared
   }
 
-  override fun prepareInlineParagraphs(
-    paragraphs: Array<Array<InlineSegment>>,
+  override fun prepareInlineParagraphSegments(
+    segments: Array<InlineSegment>,
+    paragraphSegmentOffsets: DoubleArray,
     style: ParagraphStyle,
   ): PreparedParagraphState {
-    return prepareInlineParagraphsWithStats(paragraphs, style).prepared
+    return prepareInlineParagraphSegmentsWithStats(
+      segments,
+      paragraphSegmentOffsets,
+      style,
+    ).prepared
   }
 
   override fun prepareParagraphsWithStats(
@@ -33,11 +38,15 @@ class Pretext : HybridPretextSpec() {
     return PretextShared.prepareParagraphsWithStats(texts, style)
   }
 
-  override fun prepareInlineParagraphsWithStats(
-    paragraphs: Array<Array<InlineSegment>>,
+  override fun prepareInlineParagraphSegmentsWithStats(
+    segments: Array<InlineSegment>,
+    paragraphSegmentOffsets: DoubleArray,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
-    return PretextShared.prepareInlineParagraphsWithStats(paragraphs, style)
+    return PretextShared.prepareInlineParagraphsWithStats(
+      materializeInlineParagraphs(segments, paragraphSegmentOffsets),
+      style,
+    )
   }
 
   override fun layoutParagraphs(
@@ -100,5 +109,25 @@ class Pretext : HybridPretextSpec() {
 
   override fun releaseParagraphs(preparedId: Double) {
     PretextShared.releaseParagraphs(preparedId)
+  }
+
+  private fun materializeInlineParagraphs(
+    segments: Array<InlineSegment>,
+    paragraphSegmentOffsets: DoubleArray,
+  ): Array<Array<InlineSegment>> {
+    if (paragraphSegmentOffsets.isEmpty()) {
+      return emptyArray()
+    }
+
+    val normalizedOffsets = paragraphSegmentOffsets.map { it.toInt() }
+    val paragraphs = ArrayList<Array<InlineSegment>>(normalizedOffsets.size - 1)
+
+    for (index in 0 until normalizedOffsets.lastIndex) {
+      val start = normalizedOffsets[index].coerceIn(0, segments.size)
+      val end = normalizedOffsets[index + 1].coerceIn(start, segments.size)
+      paragraphs.add(segments.copyOfRange(start, end))
+    }
+
+    return paragraphs.toTypedArray()
   }
 }

@@ -9,14 +9,22 @@ import type {
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
-  PreparedParagraphResult,
   PreparedParagraphState,
+  PreparedParagraphResult,
 } from "./Pretext.nitro";
+import type { Pretext } from "./PublicTypes";
 
 const UNSUPPORTED_PLATFORM_ERROR =
   "'react-native-nitro-pretext' is only supported on iOS and Android.";
 
-export const ParagraphEngine = {
+export const ParagraphEngine: Pretext = {
+  name: "Pretext",
+  equals(_other) {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  dispose() {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
   measure(_text: string, _fontFamily: string, _fontSize: number): number {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },

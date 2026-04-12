@@ -10,14 +10,107 @@ import type {
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
-  Pretext,
+  Pretext as NitroPretext,
   PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
 } from "./Pretext.nitro";
+import type { Pretext } from "./PublicTypes";
+import { flattenInlineParagraphs } from "./inlineParagraphSegments";
 
-export const ParagraphEngine =
-  NitroModules.createHybridObject<Pretext>("Pretext");
+const NativeParagraphEngine =
+  NitroModules.createHybridObject<NitroPretext>("Pretext");
+export const ParagraphEngine: Pretext = {
+  get name() {
+    return NativeParagraphEngine.name;
+  },
+  equals(other) {
+    const candidate =
+      other === ParagraphEngine
+        ? NativeParagraphEngine
+        : (other as NitroPretext);
+
+    return NativeParagraphEngine.equals(candidate);
+  },
+  dispose() {
+    NativeParagraphEngine.dispose();
+  },
+  measure(text, fontFamily, fontSize) {
+    return NativeParagraphEngine.measure(text, fontFamily, fontSize);
+  },
+  measureBatch(texts, fontFamily, fontSize) {
+    return NativeParagraphEngine.measureBatch(texts, fontFamily, fontSize);
+  },
+  prepareParagraphs(texts, style) {
+    return NativeParagraphEngine.prepareParagraphs(texts, style);
+  },
+  prepareInlineParagraphs(paragraphs, style) {
+    const { segments, paragraphSegmentOffsets } =
+      flattenInlineParagraphs(paragraphs);
+
+    return NativeParagraphEngine.prepareInlineParagraphSegments(
+      segments,
+      paragraphSegmentOffsets,
+      style,
+    );
+  },
+  prepareParagraphsWithStats(texts, style) {
+    return NativeParagraphEngine.prepareParagraphsWithStats(texts, style);
+  },
+  prepareInlineParagraphsWithStats(paragraphs, style) {
+    const { segments, paragraphSegmentOffsets } =
+      flattenInlineParagraphs(paragraphs);
+
+    return NativeParagraphEngine.prepareInlineParagraphSegmentsWithStats(
+      segments,
+      paragraphSegmentOffsets,
+      style,
+    );
+  },
+  layoutParagraphs(preparedId, width) {
+    return NativeParagraphEngine.layoutParagraphs(preparedId, width);
+  },
+  layoutParagraphsMetadata(preparedId, width) {
+    return NativeParagraphEngine.layoutParagraphsMetadata(preparedId, width);
+  },
+  layoutParagraphLines(preparedId, width) {
+    return NativeParagraphEngine.layoutParagraphLines(preparedId, width);
+  },
+  layoutParagraphsWithRequest(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphsWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  layoutParagraphsMetadataWithRequest(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphsMetadataWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  layoutParagraphLinesWithRequest(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphLinesWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  createParagraphLineCursor(preparedId, paragraphIndex, request) {
+    return NativeParagraphEngine.createParagraphLineCursor(
+      preparedId,
+      paragraphIndex,
+      request,
+    );
+  },
+  nextParagraphLine(cursorId) {
+    return NativeParagraphEngine.nextParagraphLine(cursorId);
+  },
+  releaseParagraphLineCursor(cursorId) {
+    NativeParagraphEngine.releaseParagraphLineCursor(cursorId);
+  },
+  releaseParagraphs(preparedId) {
+    NativeParagraphEngine.releaseParagraphs(preparedId);
+  },
+};
 export const TextMeasure = ParagraphEngine;
 
 export function measure(

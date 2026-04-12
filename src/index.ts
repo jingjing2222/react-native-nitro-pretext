@@ -40,11 +40,11 @@ export type {
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
-  Pretext,
   PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
 } from "./Pretext.nitro";
+export type { Pretext } from "./PublicTypes";
 export type {
   LaidOutParagraph as LaidOutBenchmarkParagraph,
   PreparedParagraphState as PreparedBenchmarkCorpus,

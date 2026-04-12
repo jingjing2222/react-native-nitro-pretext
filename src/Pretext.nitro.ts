@@ -23,6 +23,11 @@ export interface InlineSegment {
   breakBehavior: string;
 }
 
+export interface InlineParagraphSegments {
+  segments: InlineSegment[];
+  paragraphSegmentOffsets: number[];
+}
+
 export interface PreparedParagraphState {
   id: number;
   paragraphCount: number;
@@ -108,16 +113,18 @@ export interface Pretext extends HybridObject<{
     texts: string[],
     style: ParagraphStyle,
   ): PreparedParagraphState;
-  prepareInlineParagraphs(
-    paragraphs: InlineSegment[][],
+  prepareInlineParagraphSegments(
+    segments: InlineSegment[],
+    paragraphSegmentOffsets: number[],
     style: ParagraphStyle,
   ): PreparedParagraphState;
   prepareParagraphsWithStats(
     texts: string[],
     style: ParagraphStyle,
   ): PreparedParagraphResult;
-  prepareInlineParagraphsWithStats(
-    paragraphs: InlineSegment[][],
+  prepareInlineParagraphSegmentsWithStats(
+    segments: InlineSegment[],
+    paragraphSegmentOffsets: number[],
     style: ParagraphStyle,
   ): PreparedParagraphResult;
   layoutParagraphs(preparedId: number, width: number): LaidOutParagraph[];

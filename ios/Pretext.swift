@@ -16,11 +16,16 @@ class Pretext: HybridPretextSpec {
         try prepareParagraphsWithStats(texts: texts, style: style).prepared
     }
 
-    public func prepareInlineParagraphs(
-        paragraphs: [[InlineSegment]],
+    public func prepareInlineParagraphSegments(
+        segments: [InlineSegment],
+        paragraphSegmentOffsets: [Double],
         style: ParagraphStyle
     ) throws -> PreparedParagraphState {
-        try prepareInlineParagraphsWithStats(paragraphs: paragraphs, style: style).prepared
+        try prepareInlineParagraphSegmentsWithStats(
+            segments: segments,
+            paragraphSegmentOffsets: paragraphSegmentOffsets,
+            style: style
+        ).prepared
     }
 
     public func prepareParagraphsWithStats(
@@ -30,11 +35,18 @@ class Pretext: HybridPretextSpec {
         PretextShared.shared.prepareParagraphsWithStats(texts: texts, style: style)
     }
 
-    public func prepareInlineParagraphsWithStats(
-        paragraphs: [[InlineSegment]],
+    public func prepareInlineParagraphSegmentsWithStats(
+        segments: [InlineSegment],
+        paragraphSegmentOffsets: [Double],
         style: ParagraphStyle
     ) throws -> PreparedParagraphResult {
-        PretextShared.shared.prepareInlineParagraphsWithStats(paragraphs: paragraphs, style: style)
+        PretextShared.shared.prepareInlineParagraphsWithStats(
+            paragraphs: materializeInlineParagraphs(
+                segments: segments,
+                paragraphSegmentOffsets: paragraphSegmentOffsets
+            ),
+            style: style
+        )
     }
 
     public func layoutParagraphs(
@@ -101,5 +113,28 @@ class Pretext: HybridPretextSpec {
 
     public func releaseParagraphs(preparedId: Double) throws {
         PretextShared.shared.releaseParagraphs(preparedId: preparedId)
+    }
+
+    private func materializeInlineParagraphs(
+        segments: [InlineSegment],
+        paragraphSegmentOffsets: [Double]
+    ) -> [[InlineSegment]] {
+        guard !paragraphSegmentOffsets.isEmpty else {
+            return []
+        }
+
+        let normalizedOffsets = paragraphSegmentOffsets.map { offset in
+            min(max(Int(offset), 0), segments.count)
+        }
+        var paragraphs: [[InlineSegment]] = []
+        paragraphs.reserveCapacity(max(normalizedOffsets.count - 1, 0))
+
+        for index in 0..<(normalizedOffsets.count - 1) {
+            let start = normalizedOffsets[index]
+            let end = max(start, normalizedOffsets[index + 1])
+            paragraphs.append(Array(segments[start..<end]))
+        }
+
+        return paragraphs
     }
 }

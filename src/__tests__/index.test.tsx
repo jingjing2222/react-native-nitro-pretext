@@ -1,176 +1,180 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
-jest.mock("react-native-nitro-modules", () => ({
-  NitroModules: {
-    createHybridObject: jest.fn(() => ({
-      measure: jest.fn(() => 42),
-      measureBatch: jest.fn((texts: string[]) =>
-        texts.map((text) => text.length * 10),
-      ),
-      prepareParagraphs: jest.fn(() => ({
+function mockCreateParagraphEngine() {
+  return {
+    measure: jest.fn(() => 42),
+    measureBatch: jest.fn((texts: string[]) =>
+      texts.map((text) => text.length * 10),
+    ),
+    prepareParagraphs: jest.fn(() => ({
+      id: 7,
+      paragraphCount: 2,
+    })),
+    prepareParagraphsWithStats: jest.fn(() => ({
+      prepared: {
         id: 7,
         paragraphCount: 2,
-      })),
-      prepareParagraphsWithStats: jest.fn(() => ({
-        prepared: {
-          id: 7,
-          paragraphCount: 2,
-        },
-        stats: {
-          tokenizeMs: 1.5,
-          measurementMs: 4.25,
-          buildPreparedMs: 0.5,
-          totalMs: 6.25,
-          paragraphCount: 2,
-          totalTokenCount: 14,
-          uniqueTokenCount: 8,
-        },
-      })),
-      prepareInlineParagraphs: jest.fn(() => ({
+      },
+      stats: {
+        tokenizeMs: 1.5,
+        measurementMs: 4.25,
+        buildPreparedMs: 0.5,
+        totalMs: 6.25,
+        paragraphCount: 2,
+        totalTokenCount: 14,
+        uniqueTokenCount: 8,
+      },
+    })),
+    prepareInlineParagraphSegments: jest.fn(() => ({
+      id: 13,
+      paragraphCount: 1,
+    })),
+    prepareInlineParagraphSegmentsWithStats: jest.fn(() => ({
+      prepared: {
         id: 13,
         paragraphCount: 1,
-      })),
-      prepareInlineParagraphsWithStats: jest.fn(() => ({
-        prepared: {
-          id: 13,
-          paragraphCount: 1,
-        },
-        stats: {
-          tokenizeMs: 1.1,
-          measurementMs: 2.2,
-          buildPreparedMs: 0.4,
-          totalMs: 3.7,
-          paragraphCount: 1,
-          totalTokenCount: 5,
-          uniqueTokenCount: 3,
-        },
-      })),
-      layoutParagraphs: jest.fn(() => [
-        {
-          brokenText: "alpha\nbeta",
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-        },
-        {
-          brokenText: "gamma",
-          lineCount: 1,
-          height: 24,
-          maxLineWidth: 92,
-        },
-      ]),
-      layoutParagraphsMetadata: jest.fn(() => [
-        {
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-        },
-        {
-          lineCount: 1,
-          height: 24,
-          maxLineWidth: 92,
-        },
-      ]),
-      layoutParagraphLines: jest.fn(() => [
-        {
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-          lines: [
-            {
-              textStart: 0,
-              textEnd: 5,
-              top: 0,
-              left: 0,
-              width: 92,
-              height: 24,
-              ascent: -18,
-              descent: 6,
-            },
-            {
-              textStart: 6,
-              textEnd: 10,
-              top: 24,
-              left: 0,
-              width: 88,
-              height: 24,
-              ascent: -18,
-              descent: 6,
-            },
-          ],
-        },
-        {
-          lineCount: 1,
-          height: 24,
-          maxLineWidth: 92,
-          lines: [
-            {
-              textStart: 0,
-              textEnd: 5,
-              top: 0,
-              left: 0,
-              width: 92,
-              height: 24,
-              ascent: -18,
-              descent: 6,
-            },
-          ],
-        },
-      ]),
-      layoutParagraphsWithRequest: jest.fn(() => [
-        {
-          brokenText: "alpha\nbeta",
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-        },
-      ]),
-      layoutParagraphsMetadataWithRequest: jest.fn(() => [
-        {
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-        },
-      ]),
-      layoutParagraphLinesWithRequest: jest.fn(() => [
-        {
-          lineCount: 2,
-          height: 48,
-          maxLineWidth: 180,
-          lines: [
-            {
-              textStart: 0,
-              textEnd: 5,
-              top: 0,
-              left: 20,
-              width: 92,
-              height: 24,
-              ascent: -18,
-              descent: 6,
-            },
-          ],
-        },
-      ]),
-      createParagraphLineCursor: jest.fn(() => ({
-        id: 11,
-        paragraphIndex: 0,
+      },
+      stats: {
+        tokenizeMs: 1.1,
+        measurementMs: 2.2,
+        buildPreparedMs: 0.4,
+        totalMs: 3.7,
+        paragraphCount: 1,
+        totalTokenCount: 5,
+        uniqueTokenCount: 3,
+      },
+    })),
+    layoutParagraphs: jest.fn(() => [
+      {
+        brokenText: "alpha\nbeta",
         lineCount: 2,
         height: 48,
-      })),
-      nextParagraphLine: jest.fn(() => ({
-        done: false,
-        textStart: 0,
-        textEnd: 5,
-        top: 0,
-        left: 20,
-        width: 92,
+        maxLineWidth: 180,
+      },
+      {
+        brokenText: "gamma",
+        lineCount: 1,
         height: 24,
-        ascent: -18,
-        descent: 6,
-      })),
-      releaseParagraphLineCursor: jest.fn(),
-      releaseParagraphs: jest.fn(),
+        maxLineWidth: 92,
+      },
+    ]),
+    layoutParagraphsMetadata: jest.fn(() => [
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+      },
+      {
+        lineCount: 1,
+        height: 24,
+        maxLineWidth: 92,
+      },
+    ]),
+    layoutParagraphLines: jest.fn(() => [
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+        lines: [
+          {
+            textStart: 0,
+            textEnd: 5,
+            top: 0,
+            left: 0,
+            width: 92,
+            height: 24,
+            ascent: -18,
+            descent: 6,
+          },
+          {
+            textStart: 6,
+            textEnd: 10,
+            top: 24,
+            left: 0,
+            width: 88,
+            height: 24,
+            ascent: -18,
+            descent: 6,
+          },
+        ],
+      },
+      {
+        lineCount: 1,
+        height: 24,
+        maxLineWidth: 92,
+        lines: [
+          {
+            textStart: 0,
+            textEnd: 5,
+            top: 0,
+            left: 0,
+            width: 92,
+            height: 24,
+            ascent: -18,
+            descent: 6,
+          },
+        ],
+      },
+    ]),
+    layoutParagraphsWithRequest: jest.fn(() => [
+      {
+        brokenText: "alpha\nbeta",
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+      },
+    ]),
+    layoutParagraphsMetadataWithRequest: jest.fn(() => [
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+      },
+    ]),
+    layoutParagraphLinesWithRequest: jest.fn(() => [
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+        lines: [
+          {
+            textStart: 0,
+            textEnd: 5,
+            top: 0,
+            left: 20,
+            width: 92,
+            height: 24,
+            ascent: -18,
+            descent: 6,
+          },
+        ],
+      },
+    ]),
+    createParagraphLineCursor: jest.fn(() => ({
+      id: 11,
+      paragraphIndex: 0,
+      lineCount: 2,
+      height: 48,
     })),
+    nextParagraphLine: jest.fn(() => ({
+      done: false,
+      textStart: 0,
+      textEnd: 5,
+      top: 0,
+      left: 20,
+      width: 92,
+      height: 24,
+      ascent: -18,
+      descent: 6,
+    })),
+    releaseParagraphLineCursor: jest.fn(),
+    releaseParagraphs: jest.fn(),
+  };
+}
+
+jest.mock("react-native-nitro-modules", () => ({
+  NitroModules: {
+    createHybridObject: jest.fn(() => mockCreateParagraphEngine()),
   },
 }));
 
@@ -199,46 +203,49 @@ import {
   releasePreparedBenchmarkCorpus,
 } from "../index";
 
+const nativeParagraphEngineMock = jest.mocked(NitroModules.createHybridObject)
+  .mock.results[0]?.value as ReturnType<typeof mockCreateParagraphEngine>;
+
 describe("react-native-nitro-pretext", () => {
   it("creates the Pretext hybrid object", () => {
     expect(NitroModules.createHybridObject).toHaveBeenCalledWith("Pretext");
   });
 
   it("forwards measure calls to the Nitro hybrid object", () => {
-    const measureMock = jest.mocked(ParagraphEngine.measure);
-
     expect(measure("test", "System", 16)).toBe(42);
     expect(ParagraphEngine.measure("hello", "serif", 18)).toBe(42);
-    expect(measureMock).toHaveBeenNthCalledWith(1, "test", "System", 16);
-    expect(measureMock).toHaveBeenNthCalledWith(2, "hello", "serif", 18);
+    expect(nativeParagraphEngineMock.measure.mock.calls[0]).toEqual([
+      "test",
+      "System",
+      16,
+    ]);
+    expect(nativeParagraphEngineMock.measure.mock.calls[1]).toEqual([
+      "hello",
+      "serif",
+      18,
+    ]);
   });
 
   it("forwards batch measure calls to the Nitro hybrid object", () => {
-    const measureBatchMock = jest.mocked(ParagraphEngine.measureBatch);
-
     expect(measureBatch(["a", "bb", "ccc"], "System", 16)).toEqual([
       10, 20, 30,
     ]);
     expect(ParagraphEngine.measureBatch(["word"], "monospace", 14)).toEqual([
       40,
     ]);
-    expect(measureBatchMock).toHaveBeenNthCalledWith(
-      1,
+    expect(nativeParagraphEngineMock.measureBatch.mock.calls[0]).toEqual([
       ["a", "bb", "ccc"],
       "System",
       16,
-    );
-    expect(measureBatchMock).toHaveBeenNthCalledWith(
-      2,
+    ]);
+    expect(nativeParagraphEngineMock.measureBatch.mock.calls[1]).toEqual([
       ["word"],
       "monospace",
       14,
-    );
+    ]);
   });
 
   it("forwards paragraph prepare calls to the Nitro hybrid object", () => {
-    const prepareMock = jest.mocked(ParagraphEngine.prepareParagraphs);
-
     expect(
       prepareParagraphs(["alpha", "beta"], {
         fontFamily: "System",
@@ -251,36 +258,40 @@ describe("react-native-nitro-pretext", () => {
       id: 7,
       paragraphCount: 2,
     });
-    expect(prepareMock).toHaveBeenCalledWith(["alpha", "beta"], {
-      fontFamily: "System",
-      fontSize: 16,
-      lineHeight: 24,
-      letterSpacing: 0,
-      locale: "ko-KR",
-    });
+    expect(
+      nativeParagraphEngineMock.prepareParagraphs.mock.calls.at(-1),
+    ).toEqual([
+      ["alpha", "beta"],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 24,
+        letterSpacing: 0,
+        locale: "ko-KR",
+      },
+    ]);
   });
 
   it("keeps benchmark prepare as a compatibility alias", () => {
-    const prepareMock = jest.mocked(ParagraphEngine.prepareParagraphs);
-
     expect(prepareBenchmarkCorpus(["alpha", "beta"], "System", 16)).toEqual({
       id: 7,
       paragraphCount: 2,
     });
-    expect(prepareMock).toHaveBeenCalledWith(["alpha", "beta"], {
-      fontFamily: "System",
-      fontSize: 16,
-      lineHeight: 16,
-      letterSpacing: 0,
-      locale: "",
-    });
+    expect(
+      nativeParagraphEngineMock.prepareParagraphs.mock.calls.at(-1),
+    ).toEqual([
+      ["alpha", "beta"],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 16,
+        letterSpacing: 0,
+        locale: "",
+      },
+    ]);
   });
 
   it("returns prepare stats for cold setup cost breakdown", () => {
-    const prepareWithStatsMock = jest.mocked(
-      ParagraphEngine.prepareParagraphsWithStats,
-    );
-
     expect(
       prepareParagraphsWithStats(["alpha", "beta"], {
         fontFamily: "System",
@@ -304,20 +315,21 @@ describe("react-native-nitro-pretext", () => {
         uniqueTokenCount: 8,
       },
     });
-    expect(prepareWithStatsMock).toHaveBeenCalledWith(["alpha", "beta"], {
-      fontFamily: "System",
-      fontSize: 16,
-      lineHeight: 24,
-      letterSpacing: 0,
-      locale: "ko-KR",
-    });
+    expect(
+      nativeParagraphEngineMock.prepareParagraphsWithStats.mock.calls.at(-1),
+    ).toEqual([
+      ["alpha", "beta"],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 24,
+        letterSpacing: 0,
+        locale: "ko-KR",
+      },
+    ]);
   });
 
   it("forwards inline paragraph prepare calls to the Nitro hybrid object", () => {
-    const prepareInlineMock = jest.mocked(
-      ParagraphEngine.prepareInlineParagraphs,
-    );
-
     expect(
       prepareInlineParagraphs(
         [
@@ -338,13 +350,16 @@ describe("react-native-nitro-pretext", () => {
       id: 13,
       paragraphCount: 1,
     });
-    expect(prepareInlineMock).toHaveBeenCalledWith(
+    expect(
+      nativeParagraphEngineMock.prepareInlineParagraphSegments.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([
       [
-        [
-          { text: "@mention", breakBehavior: "never" },
-          { text: " moves with the next word", breakBehavior: "normal" },
-        ],
+        { text: "@mention", breakBehavior: "never" },
+        { text: " moves with the next word", breakBehavior: "normal" },
       ],
+      [0, 2],
       {
         fontFamily: "System",
         fontSize: 16,
@@ -352,14 +367,10 @@ describe("react-native-nitro-pretext", () => {
         letterSpacing: 0,
         locale: "ko-KR",
       },
-    );
+    ]);
   });
 
   it("returns stats for inline paragraph preparation", () => {
-    const prepareInlineWithStatsMock = jest.mocked(
-      ParagraphEngine.prepareInlineParagraphsWithStats,
-    );
-
     expect(
       prepareInlineParagraphsWithStats(
         [[{ text: "@mention", breakBehavior: "never" }]],
@@ -386,8 +397,13 @@ describe("react-native-nitro-pretext", () => {
         uniqueTokenCount: 3,
       },
     });
-    expect(prepareInlineWithStatsMock).toHaveBeenCalledWith(
-      [[{ text: "@mention", breakBehavior: "never" }]],
+    expect(
+      nativeParagraphEngineMock.prepareInlineParagraphSegmentsWithStats.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([
+      [{ text: "@mention", breakBehavior: "never" }],
+      [0, 1],
       {
         fontFamily: "System",
         fontSize: 16,
@@ -395,12 +411,10 @@ describe("react-native-nitro-pretext", () => {
         letterSpacing: 0,
         locale: "ko-KR",
       },
-    );
+    ]);
   });
 
   it("forwards paragraph layout calls to the Nitro hybrid object", () => {
-    const layoutMock = jest.mocked(ParagraphEngine.layoutParagraphs);
-
     expect(layoutParagraphs(7, 320)).toEqual([
       {
         brokenText: "alpha\nbeta",
@@ -415,14 +429,12 @@ describe("react-native-nitro-pretext", () => {
         maxLineWidth: 92,
       },
     ]);
-    expect(layoutMock).toHaveBeenCalledWith(7, 320);
+    expect(
+      nativeParagraphEngineMock.layoutParagraphs.mock.calls.at(-1),
+    ).toEqual([7, 320]);
   });
 
   it("forwards metadata-only layout calls for hot-path benchmarking", () => {
-    const layoutMetadataMock = jest.mocked(
-      ParagraphEngine.layoutParagraphsMetadata,
-    );
-
     expect(layoutParagraphsMetadata(7, 320)).toEqual([
       {
         lineCount: 2,
@@ -435,12 +447,12 @@ describe("react-native-nitro-pretext", () => {
         maxLineWidth: 92,
       },
     ]);
-    expect(layoutMetadataMock).toHaveBeenCalledWith(7, 320);
+    expect(
+      nativeParagraphEngineMock.layoutParagraphsMetadata.mock.calls.at(-1),
+    ).toEqual([7, 320]);
   });
 
   it("forwards line range layout calls for renderer-oriented consumers", () => {
-    const layoutLinesMock = jest.mocked(ParagraphEngine.layoutParagraphLines);
-
     expect(layoutParagraphLines(7, 320)).toEqual([
       {
         lineCount: 2,
@@ -487,7 +499,9 @@ describe("react-native-nitro-pretext", () => {
         ],
       },
     ]);
-    expect(layoutLinesMock).toHaveBeenCalledWith(7, 320);
+    expect(
+      nativeParagraphEngineMock.layoutParagraphLines.mock.calls.at(-1),
+    ).toEqual([7, 320]);
   });
 
   it("builds request objects and forwards request-based relayout calls", () => {
@@ -554,14 +568,18 @@ describe("react-native-nitro-pretext", () => {
       },
     ]);
     expect(
-      jest.mocked(ParagraphEngine.layoutParagraphsWithRequest),
-    ).toHaveBeenCalledWith(7, request);
+      nativeParagraphEngineMock.layoutParagraphsWithRequest.mock.calls.at(-1),
+    ).toEqual([7, request]);
     expect(
-      jest.mocked(ParagraphEngine.layoutParagraphsMetadataWithRequest),
-    ).toHaveBeenCalledWith(7, request);
+      nativeParagraphEngineMock.layoutParagraphsMetadataWithRequest.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([7, request]);
     expect(
-      jest.mocked(ParagraphEngine.layoutParagraphLinesWithRequest),
-    ).toHaveBeenCalledWith(7, request);
+      nativeParagraphEngineMock.layoutParagraphLinesWithRequest.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([7, request]);
   });
 
   it("forwards paragraph line cursor calls", () => {
@@ -596,20 +614,17 @@ describe("react-native-nitro-pretext", () => {
     releaseParagraphLineCursor(11);
 
     expect(
-      jest.mocked(ParagraphEngine.createParagraphLineCursor),
-    ).toHaveBeenCalledWith(7, 0, request);
-    expect(jest.mocked(ParagraphEngine.nextParagraphLine)).toHaveBeenCalledWith(
-      11,
-    );
+      nativeParagraphEngineMock.createParagraphLineCursor.mock.calls.at(-1),
+    ).toEqual([7, 0, request]);
     expect(
-      jest.mocked(ParagraphEngine.releaseParagraphLineCursor),
-    ).toHaveBeenCalledWith(11);
+      nativeParagraphEngineMock.nextParagraphLine.mock.calls.at(-1),
+    ).toEqual([11]);
+    expect(
+      nativeParagraphEngineMock.releaseParagraphLineCursor.mock.calls.at(-1),
+    ).toEqual([11]);
   });
 
   it("keeps benchmark layout and release aliases wired to the paragraph API", () => {
-    const layoutMock = jest.mocked(ParagraphEngine.layoutParagraphs);
-    const releaseMock = jest.mocked(ParagraphEngine.releaseParagraphs);
-
     expect(layoutPreparedBenchmarkCorpus(7, 320)).toEqual([
       {
         brokenText: "alpha\nbeta",
@@ -627,8 +642,14 @@ describe("react-native-nitro-pretext", () => {
     releasePreparedBenchmarkCorpus(7);
     releaseParagraphs(9);
 
-    expect(layoutMock).toHaveBeenCalledWith(7, 320);
-    expect(releaseMock).toHaveBeenCalledWith(7);
-    expect(releaseMock).toHaveBeenCalledWith(9);
+    expect(
+      nativeParagraphEngineMock.layoutParagraphs.mock.calls.at(-1),
+    ).toEqual([7, 320]);
+    expect(
+      nativeParagraphEngineMock.releaseParagraphs.mock.calls,
+    ).toContainEqual([7]);
+    expect(
+      nativeParagraphEngineMock.releaseParagraphs.mock.calls,
+    ).toContainEqual([9]);
   });
 });
