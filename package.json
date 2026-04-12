@@ -65,7 +65,6 @@
     "prepack": "yarn build",
     "nitrogen": "nitrogen",
     "changeset": "changeset",
-    "version-packages": "changeset version",
     "release": "changeset publish",
     "typecheck": "tsc",
     "test": "jest",
