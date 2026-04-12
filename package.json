@@ -58,7 +58,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "example": "yarn workspace react-native-pretext-example",
+    "example:ios": "yarn workspace react-native-pretext-example ios",
+    "example:android": "yarn workspace react-native-pretext-example android",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",
     "build": "del-cli lib dist && bob build && tsc -p tsconfig.build.json",
     "prepack": "yarn build",

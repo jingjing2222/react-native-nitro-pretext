@@ -1,0 +1,4 @@
+app_identifier(ENV.fetch("APP_IDENTIFIER", "pretext.example"))
+
+apple_id(ENV.fetch("FASTLANE_USER", "rlagudwjd1212@icloud.com"))
+team_id(ENV.fetch("APPLE_TEAM_ID", "2YVR9BL7B6"))

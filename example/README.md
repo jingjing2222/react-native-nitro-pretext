@@ -58,6 +58,24 @@ npm run ios
 yarn ios
 ```
 
+If you need device signing, this example also includes a minimal `fastlane match` setup.
+Recommended storage is a separate private git repository dedicated to match assets, not this source repository.
+
+To sync signing locally:
+
+```sh
+yarn ios:signing
+```
+
+The example now reads signing values from `example/.env`.
+Useful commands:
+
+```sh
+yarn ios:signing
+yarn ios:signing:write
+yarn ios:match
+```
+
 If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
 
 This is one way to run your app — you can also build it directly from Android Studio or Xcode.

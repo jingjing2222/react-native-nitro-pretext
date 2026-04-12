@@ -47,6 +47,10 @@ example/ios/Pods
 
 # Ruby
 example/vendor/
+example/fastlane/report.xml
+example/fastlane/README.md
+example/.env
+example/.env.*
 
 # node.js
 #
