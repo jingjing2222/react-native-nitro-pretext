@@ -65,6 +65,8 @@ jest.mock("react-native-nitro-modules", () => ({
               left: 0,
               width: 92,
               height: 24,
+              ascent: -18,
+              descent: 6,
             },
             {
               textStart: 6,
@@ -73,6 +75,8 @@ jest.mock("react-native-nitro-modules", () => ({
               left: 0,
               width: 88,
               height: 24,
+              ascent: -18,
+              descent: 6,
             },
           ],
         },
@@ -88,10 +92,64 @@ jest.mock("react-native-nitro-modules", () => ({
               left: 0,
               width: 92,
               height: 24,
+              ascent: -18,
+              descent: 6,
             },
           ],
         },
       ]),
+      layoutParagraphsWithRequest: jest.fn(() => [
+        {
+          brokenText: "alpha\nbeta",
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+        },
+      ]),
+      layoutParagraphsMetadataWithRequest: jest.fn(() => [
+        {
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+        },
+      ]),
+      layoutParagraphLinesWithRequest: jest.fn(() => [
+        {
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+          lines: [
+            {
+              textStart: 0,
+              textEnd: 5,
+              top: 0,
+              left: 20,
+              width: 92,
+              height: 24,
+              ascent: -18,
+              descent: 6,
+            },
+          ],
+        },
+      ]),
+      createParagraphLineCursor: jest.fn(() => ({
+        id: 11,
+        paragraphIndex: 0,
+        lineCount: 2,
+        height: 48,
+      })),
+      nextParagraphLine: jest.fn(() => ({
+        done: false,
+        textStart: 0,
+        textEnd: 5,
+        top: 0,
+        left: 20,
+        width: 92,
+        height: 24,
+        ascent: -18,
+        descent: 6,
+      })),
+      releaseParagraphLineCursor: jest.fn(),
       releaseParagraphs: jest.fn(),
     })),
   },
@@ -99,16 +157,23 @@ jest.mock("react-native-nitro-modules", () => ({
 
 import { NitroModules } from "react-native-nitro-modules";
 import {
+  createParagraphLayoutRequest,
+  createParagraphLineCursor,
   layoutParagraphLines,
+  layoutParagraphLinesWithRequest,
   layoutParagraphs,
+  layoutParagraphsWithRequest,
   layoutParagraphsMetadata,
+  layoutParagraphsMetadataWithRequest,
   layoutPreparedBenchmarkCorpus,
   measure,
   measureBatch,
+  nextParagraphLine,
   ParagraphEngine,
   prepareParagraphs,
   prepareParagraphsWithStats,
   prepareBenchmarkCorpus,
+  releaseParagraphLineCursor,
   releaseParagraphs,
   releasePreparedBenchmarkCorpus,
 } from "../index";
@@ -159,6 +224,7 @@ describe("react-native-nitro-pretext", () => {
         fontSize: 16,
         lineHeight: 24,
         letterSpacing: 0,
+        locale: "ko-KR",
       }),
     ).toEqual({
       id: 7,
@@ -169,6 +235,7 @@ describe("react-native-nitro-pretext", () => {
       fontSize: 16,
       lineHeight: 24,
       letterSpacing: 0,
+      locale: "ko-KR",
     });
   });
 
@@ -184,6 +251,7 @@ describe("react-native-nitro-pretext", () => {
       fontSize: 16,
       lineHeight: 16,
       letterSpacing: 0,
+      locale: "",
     });
   });
 
@@ -198,6 +266,7 @@ describe("react-native-nitro-pretext", () => {
         fontSize: 16,
         lineHeight: 24,
         letterSpacing: 0,
+        locale: "ko-KR",
       }),
     ).toEqual({
       prepared: {
@@ -219,6 +288,7 @@ describe("react-native-nitro-pretext", () => {
       fontSize: 16,
       lineHeight: 24,
       letterSpacing: 0,
+      locale: "ko-KR",
     });
   });
 
@@ -278,6 +348,8 @@ describe("react-native-nitro-pretext", () => {
             left: 0,
             width: 92,
             height: 24,
+            ascent: -18,
+            descent: 6,
           },
           {
             textStart: 6,
@@ -286,6 +358,8 @@ describe("react-native-nitro-pretext", () => {
             left: 0,
             width: 88,
             height: 24,
+            ascent: -18,
+            descent: 6,
           },
         ],
       },
@@ -301,11 +375,129 @@ describe("react-native-nitro-pretext", () => {
             left: 0,
             width: 92,
             height: 24,
+            ascent: -18,
+            descent: 6,
           },
         ],
       },
     ]);
     expect(layoutLinesMock).toHaveBeenCalledWith(7, 320);
+  });
+
+  it("builds request objects and forwards request-based relayout calls", () => {
+    const request = createParagraphLayoutRequest(280, {
+      left: 20,
+      whiteSpace: "pre",
+      wordBreak: "break-all",
+      shapeSlices: [
+        {
+          top: 0,
+          height: 24,
+          left: 20,
+          width: 180,
+        },
+      ],
+    });
+
+    expect(request).toEqual({
+      width: 280,
+      left: 20,
+      whiteSpace: "pre",
+      wordBreak: "break-all",
+      shapeSlices: [
+        {
+          top: 0,
+          height: 24,
+          left: 20,
+          width: 180,
+        },
+      ],
+    });
+    expect(layoutParagraphsWithRequest(7, request)).toEqual([
+      {
+        brokenText: "alpha\nbeta",
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+      },
+    ]);
+    expect(layoutParagraphsMetadataWithRequest(7, request)).toEqual([
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+      },
+    ]);
+    expect(layoutParagraphLinesWithRequest(7, request)).toEqual([
+      {
+        lineCount: 2,
+        height: 48,
+        maxLineWidth: 180,
+        lines: [
+          {
+            textStart: 0,
+            textEnd: 5,
+            top: 0,
+            left: 20,
+            width: 92,
+            height: 24,
+            ascent: -18,
+            descent: 6,
+          },
+        ],
+      },
+    ]);
+    expect(
+      jest.mocked(ParagraphEngine.layoutParagraphsWithRequest),
+    ).toHaveBeenCalledWith(7, request);
+    expect(
+      jest.mocked(ParagraphEngine.layoutParagraphsMetadataWithRequest),
+    ).toHaveBeenCalledWith(7, request);
+    expect(
+      jest.mocked(ParagraphEngine.layoutParagraphLinesWithRequest),
+    ).toHaveBeenCalledWith(7, request);
+  });
+
+  it("forwards paragraph line cursor calls", () => {
+    const request = createParagraphLayoutRequest(260, {
+      shapeSlices: [
+        {
+          top: 0,
+          height: 24,
+          left: 12,
+          width: 180,
+        },
+      ],
+    });
+
+    expect(createParagraphLineCursor(7, 0, request)).toEqual({
+      id: 11,
+      paragraphIndex: 0,
+      lineCount: 2,
+      height: 48,
+    });
+    expect(nextParagraphLine(11)).toEqual({
+      done: false,
+      textStart: 0,
+      textEnd: 5,
+      top: 0,
+      left: 20,
+      width: 92,
+      height: 24,
+      ascent: -18,
+      descent: 6,
+    });
+    releaseParagraphLineCursor(11);
+
+    expect(
+      jest.mocked(ParagraphEngine.createParagraphLineCursor),
+    ).toHaveBeenCalledWith(7, 0, request);
+    expect(jest.mocked(ParagraphEngine.nextParagraphLine)).toHaveBeenCalledWith(
+      11,
+    );
+    expect(
+      jest.mocked(ParagraphEngine.releaseParagraphLineCursor),
+    ).toHaveBeenCalledWith(11);
   });
 
   it("keeps benchmark layout and release aliases wired to the paragraph API", () => {

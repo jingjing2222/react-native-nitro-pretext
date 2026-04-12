@@ -20,6 +20,7 @@ export const BENCHMARK_STYLE: ParagraphStyle = {
   fontSize: 18,
   lineHeight: 28,
   letterSpacing: 0,
+  locale: "ko-KR",
 };
 
 export type BenchmarkMode = "baseline" | "pretext-render" | "pretext-compute";

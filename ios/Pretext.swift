@@ -44,6 +44,47 @@ class Pretext: HybridPretextSpec {
         try PretextShared.shared.layoutParagraphLines(preparedId: preparedId, width: width)
     }
 
+    public func layoutParagraphsWithRequest(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutParagraph] {
+        try PretextShared.shared.layoutParagraphs(preparedId: preparedId, request: request)
+    }
+
+    public func layoutParagraphsMetadataWithRequest(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutParagraphMetrics] {
+        try PretextShared.shared.layoutParagraphsMetadata(preparedId: preparedId, request: request)
+    }
+
+    public func layoutParagraphLinesWithRequest(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutParagraphLines] {
+        try PretextShared.shared.layoutParagraphLines(preparedId: preparedId, request: request)
+    }
+
+    public func createParagraphLineCursor(
+        preparedId: Double,
+        paragraphIndex: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> ParagraphLineCursorState {
+        try PretextShared.shared.createParagraphLineCursor(
+            preparedId: preparedId,
+            paragraphIndex: paragraphIndex,
+            request: request
+        )
+    }
+
+    public func nextParagraphLine(cursorId: Double) throws -> ParagraphLineCursorStep {
+        PretextShared.shared.nextParagraphLine(cursorId: cursorId)
+    }
+
+    public func releaseParagraphLineCursor(cursorId: Double) throws {
+        PretextShared.shared.releaseParagraphLineCursor(cursorId: cursorId)
+    }
+
     public func releaseParagraphs(preparedId: Double) throws {
         PretextShared.shared.releaseParagraphs(preparedId: preparedId)
     }

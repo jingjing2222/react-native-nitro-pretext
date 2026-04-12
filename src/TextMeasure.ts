@@ -1,8 +1,12 @@
 import type {
+  ParagraphLineCursorState,
+  ParagraphLineCursorStep,
+  ParagraphLayoutRequest,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,
   ParagraphLineRange,
+  ParagraphShapeSlice,
   ParagraphStyle,
   PreparedParagraphResult,
   PreparedParagraphState,
@@ -49,11 +53,55 @@ export const ParagraphEngine = {
   ): LaidOutParagraphLines[] {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },
+  layoutParagraphsWithRequest(
+    _preparedId: number,
+    _request: ParagraphLayoutRequest,
+  ): LaidOutParagraph[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  layoutParagraphsMetadataWithRequest(
+    _preparedId: number,
+    _request: ParagraphLayoutRequest,
+  ): LaidOutParagraphMetrics[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  layoutParagraphLinesWithRequest(
+    _preparedId: number,
+    _request: ParagraphLayoutRequest,
+  ): LaidOutParagraphLines[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  createParagraphLineCursor(
+    _preparedId: number,
+    _paragraphIndex: number,
+    _request: ParagraphLayoutRequest,
+  ): ParagraphLineCursorState {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  nextParagraphLine(_cursorId: number): ParagraphLineCursorStep {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  releaseParagraphLineCursor(_cursorId: number): void {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
   releaseParagraphs(_preparedId: number): void {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },
 };
 export const TextMeasure = ParagraphEngine;
+
+export function createParagraphLayoutRequest(
+  width: number,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): ParagraphLayoutRequest {
+  return {
+    width,
+    left: overrides.left ?? 0,
+    whiteSpace: overrides.whiteSpace ?? "normal",
+    wordBreak: overrides.wordBreak ?? "normal",
+    shapeSlices: overrides.shapeSlices ?? [],
+  };
+}
 
 export function measure(
   text: string,
@@ -106,6 +154,50 @@ export function layoutParagraphLines(
   return ParagraphEngine.layoutParagraphLines(preparedId, width);
 }
 
+export function layoutParagraphsWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraph[] {
+  return ParagraphEngine.layoutParagraphsWithRequest(preparedId, request);
+}
+
+export function layoutParagraphsMetadataWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphMetrics[] {
+  return ParagraphEngine.layoutParagraphsMetadataWithRequest(
+    preparedId,
+    request,
+  );
+}
+
+export function layoutParagraphLinesWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphLines[] {
+  return ParagraphEngine.layoutParagraphLinesWithRequest(preparedId, request);
+}
+
+export function createParagraphLineCursor(
+  preparedId: number,
+  paragraphIndex: number,
+  request: ParagraphLayoutRequest,
+): ParagraphLineCursorState {
+  return ParagraphEngine.createParagraphLineCursor(
+    preparedId,
+    paragraphIndex,
+    request,
+  );
+}
+
+export function nextParagraphLine(cursorId: number): ParagraphLineCursorStep {
+  return ParagraphEngine.nextParagraphLine(cursorId);
+}
+
+export function releaseParagraphLineCursor(cursorId: number): void {
+  ParagraphEngine.releaseParagraphLineCursor(cursorId);
+}
+
 export function releaseParagraphs(preparedId: number): void {
   ParagraphEngine.releaseParagraphs(preparedId);
 }
@@ -120,6 +212,7 @@ export function prepareBenchmarkCorpus(
     fontSize,
     lineHeight: fontSize,
     letterSpacing: 0,
+    locale: "",
   });
 }
 
@@ -136,4 +229,11 @@ export function releasePreparedBenchmarkCorpus(preparedId: number): void {
 
 export default ParagraphEngine;
 
-export type { LaidOutParagraphLines, ParagraphLineRange };
+export type {
+  LaidOutParagraphLines,
+  ParagraphLayoutRequest,
+  ParagraphLineCursorState,
+  ParagraphLineCursorStep,
+  ParagraphLineRange,
+  ParagraphShapeSlice,
+};

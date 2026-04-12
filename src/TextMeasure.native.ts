@@ -1,9 +1,13 @@
 import { NitroModules } from "react-native-nitro-modules";
 import type {
+  ParagraphLineCursorState,
+  ParagraphLineCursorStep,
+  ParagraphLayoutRequest,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,
   ParagraphLineRange,
+  ParagraphShapeSlice,
   ParagraphStyle,
   Pretext,
   PrepareParagraphStats,
@@ -66,6 +70,63 @@ export function layoutParagraphLines(
   return ParagraphEngine.layoutParagraphLines(preparedId, width);
 }
 
+export function layoutParagraphsWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraph[] {
+  return ParagraphEngine.layoutParagraphsWithRequest(preparedId, request);
+}
+
+export function layoutParagraphsMetadataWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphMetrics[] {
+  return ParagraphEngine.layoutParagraphsMetadataWithRequest(
+    preparedId,
+    request,
+  );
+}
+
+export function layoutParagraphLinesWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphLines[] {
+  return ParagraphEngine.layoutParagraphLinesWithRequest(preparedId, request);
+}
+
+export function createParagraphLayoutRequest(
+  width: number,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): ParagraphLayoutRequest {
+  return {
+    width,
+    left: overrides.left ?? 0,
+    whiteSpace: overrides.whiteSpace ?? "normal",
+    wordBreak: overrides.wordBreak ?? "normal",
+    shapeSlices: overrides.shapeSlices ?? [],
+  };
+}
+
+export function createParagraphLineCursor(
+  preparedId: number,
+  paragraphIndex: number,
+  request: ParagraphLayoutRequest,
+): ParagraphLineCursorState {
+  return ParagraphEngine.createParagraphLineCursor(
+    preparedId,
+    paragraphIndex,
+    request,
+  );
+}
+
+export function nextParagraphLine(cursorId: number): ParagraphLineCursorStep {
+  return ParagraphEngine.nextParagraphLine(cursorId);
+}
+
+export function releaseParagraphLineCursor(cursorId: number): void {
+  ParagraphEngine.releaseParagraphLineCursor(cursorId);
+}
+
 export function releaseParagraphs(preparedId: number): void {
   ParagraphEngine.releaseParagraphs(preparedId);
 }
@@ -80,6 +141,7 @@ export function prepareBenchmarkCorpus(
     fontSize,
     lineHeight: fontSize,
     letterSpacing: 0,
+    locale: "",
   });
 }
 
@@ -95,6 +157,10 @@ export type {
   LaidOutParagraph,
   LaidOutParagraphMetrics,
   ParagraphLineRange,
+  ParagraphLineCursorState,
+  ParagraphLineCursorStep,
+  ParagraphLayoutRequest,
+  ParagraphShapeSlice,
   ParagraphStyle,
   PrepareParagraphStats,
   PreparedParagraphResult,

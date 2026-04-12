@@ -15,6 +15,8 @@ Implemented today:
 - native `measure()` and `measureBatch()`
 - `prepareParagraphs()` and `prepareParagraphsWithStats()`
 - repeated relayout with `layoutParagraphs()`, `layoutParagraphsMetadata()`, and `layoutParagraphLines()`
+- request-based relayout with `whiteSpace`, `wordBreak`, `shapeSlices`, and `left`
+- cursor-style streaming with `createParagraphLineCursor()` and `nextParagraphLine()`
 - `PreparedParagraphView`, a native paragraph surface that consumes `preparedId + paragraphIndex + width` directly
 - split benchmark app with separate `BaseText` and `Prepared View` pages
 
@@ -26,9 +28,6 @@ Platform backends:
 Not implemented yet:
 
 - rich inline segments like mentions/chips/images
-- cursor-based streaming APIs like `layoutNextLineRange()`
-- locale and line-break policy controls such as `whiteSpace` and `wordBreak`
-- shape-aware text flow
 - renderer integrations beyond the current native paragraph view prototype
 
 ## Installation
@@ -55,7 +54,11 @@ The library is organized around three steps:
 ```ts
 import {
   PreparedParagraphView,
+  createParagraphLayoutRequest,
+  createParagraphLineCursor,
   layoutParagraphsMetadata,
+  layoutParagraphLinesWithRequest,
+  nextParagraphLine,
   prepareParagraphsWithStats,
   type ParagraphStyle,
 } from "react-native-nitro-pretext";
@@ -65,6 +68,7 @@ const style: ParagraphStyle = {
   fontSize: 18,
   lineHeight: 28,
   letterSpacing: 0,
+  locale: "ko-KR",
 };
 
 const { prepared, stats } = prepareParagraphsWithStats(
@@ -93,7 +97,25 @@ function Example() {
 }
 ```
 
-If you are building your own renderer, `layoutParagraphLines()` exposes explicit line ranges with `textStart`, `textEnd`, `top`, `width`, and `height`.
+If you are building your own renderer, `layoutParagraphLines()` exposes explicit line ranges with `textStart`, `textEnd`, `top`, `left`, `width`, `height`, `ascent`, and `descent`.
+
+For shaped relayout or policy control, use a request object:
+
+```ts
+const request = createParagraphLayoutRequest(280, {
+  left: 12,
+  whiteSpace: "normal",
+  wordBreak: "break-all",
+  shapeSlices: [
+    { top: 0, height: 28, left: 12, width: 240 },
+    { top: 28, height: 56, left: 48, width: 204 },
+  ],
+});
+
+const [paragraph] = layoutParagraphLinesWithRequest(prepared.id, request);
+const cursor = createParagraphLineCursor(prepared.id, 0, request);
+const firstLine = nextParagraphLine(cursor.id);
+```
 
 ## Public API
 
@@ -104,6 +126,13 @@ If you are building your own renderer, `layoutParagraphLines()` exposes explicit
 - `layoutParagraphs(preparedId, width)`
 - `layoutParagraphsMetadata(preparedId, width)`
 - `layoutParagraphLines(preparedId, width)`
+- `createParagraphLayoutRequest(width, overrides)`
+- `layoutParagraphsWithRequest(preparedId, request)`
+- `layoutParagraphsMetadataWithRequest(preparedId, request)`
+- `layoutParagraphLinesWithRequest(preparedId, request)`
+- `createParagraphLineCursor(preparedId, paragraphIndex, request)`
+- `nextParagraphLine(cursorId)`
+- `releaseParagraphLineCursor(cursorId)`
 - `releaseParagraphs(preparedId)`
 - `PreparedParagraphView`
 
@@ -156,6 +185,8 @@ This project is currently similar to `pretext` in one specific area:
 
 - `prepare once + layout many`
 - expose line layout output from prepared state
+- expose a cursor-style line streaming path for custom renderers
+- support simple shape-aware relayout and line-break policy overrides
 - amortize cold preparation over repeated relayouts
 
 It is not yet equivalent to `pretext` as a full feature set. The current implementation is closer to a React Native native paragraph engine prototype than a full `pretext` clone.

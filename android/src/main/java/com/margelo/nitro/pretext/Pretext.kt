@@ -47,6 +47,43 @@ class Pretext : HybridPretextSpec() {
     return PretextShared.layoutParagraphLines(preparedId, width)
   }
 
+  override fun layoutParagraphsWithRequest(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraph> {
+    return PretextShared.layoutParagraphsWithRequest(preparedId, request)
+  }
+
+  override fun layoutParagraphsMetadataWithRequest(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphMetrics> {
+    return PretextShared.layoutParagraphsMetadataWithRequest(preparedId, request)
+  }
+
+  override fun layoutParagraphLinesWithRequest(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphLines> {
+    return PretextShared.layoutParagraphLinesWithRequest(preparedId, request)
+  }
+
+  override fun createParagraphLineCursor(
+    preparedId: Double,
+    paragraphIndex: Double,
+    request: ParagraphLayoutRequest,
+  ): ParagraphLineCursorState {
+    return PretextShared.createParagraphLineCursor(preparedId, paragraphIndex, request)
+  }
+
+  override fun nextParagraphLine(cursorId: Double): ParagraphLineCursorStep {
+    return PretextShared.nextParagraphLine(cursorId)
+  }
+
+  override fun releaseParagraphLineCursor(cursorId: Double) {
+    PretextShared.releaseParagraphLineCursor(cursorId)
+  }
+
   override fun releaseParagraphs(preparedId: Double) {
     PretextShared.releaseParagraphs(preparedId)
   }

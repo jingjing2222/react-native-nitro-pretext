@@ -5,6 +5,7 @@ export interface ParagraphStyle {
   fontSize: number;
   lineHeight: number;
   letterSpacing: number;
+  locale: string;
 }
 
 export interface PrepareParagraphStats {
@@ -34,6 +35,23 @@ export interface ParagraphLineRange {
   left: number;
   width: number;
   height: number;
+  ascent: number;
+  descent: number;
+}
+
+export interface ParagraphShapeSlice {
+  top: number;
+  height: number;
+  left: number;
+  width: number;
+}
+
+export interface ParagraphLayoutRequest {
+  width: number;
+  left: number;
+  whiteSpace: string;
+  wordBreak: string;
+  shapeSlices: ParagraphShapeSlice[];
 }
 
 export interface LaidOutParagraph {
@@ -54,6 +72,25 @@ export interface LaidOutParagraphLines {
   height: number;
   maxLineWidth: number;
   lines: ParagraphLineRange[];
+}
+
+export interface ParagraphLineCursorState {
+  id: number;
+  paragraphIndex: number;
+  lineCount: number;
+  height: number;
+}
+
+export interface ParagraphLineCursorStep {
+  done: boolean;
+  textStart: number;
+  textEnd: number;
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+  ascent: number;
+  descent: number;
 }
 
 export interface Pretext extends HybridObject<{
@@ -79,5 +116,24 @@ export interface Pretext extends HybridObject<{
     preparedId: number,
     width: number,
   ): LaidOutParagraphLines[];
+  layoutParagraphsWithRequest(
+    preparedId: number,
+    request: ParagraphLayoutRequest,
+  ): LaidOutParagraph[];
+  layoutParagraphsMetadataWithRequest(
+    preparedId: number,
+    request: ParagraphLayoutRequest,
+  ): LaidOutParagraphMetrics[];
+  layoutParagraphLinesWithRequest(
+    preparedId: number,
+    request: ParagraphLayoutRequest,
+  ): LaidOutParagraphLines[];
+  createParagraphLineCursor(
+    preparedId: number,
+    paragraphIndex: number,
+    request: ParagraphLayoutRequest,
+  ): ParagraphLineCursorState;
+  nextParagraphLine(cursorId: number): ParagraphLineCursorStep;
+  releaseParagraphLineCursor(cursorId: number): void;
   releaseParagraphs(preparedId: number): void;
 }
