@@ -2,12 +2,18 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  createAutomationStatusLine,
+  createPreparedViewAutomationReport,
+  serializeAutomationReport,
+} from "../../benchmark/automation";
+import {
   formatMilliseconds,
   MODE_DESCRIPTIONS,
   styles,
 } from "../../benchmark/constants";
 import { usePreparedViewBenchmarkHarness } from "../../benchmark/usePreparedViewBenchmarkHarness";
 import {
+  HeroAutomationPanel,
   MetricPill,
   PreparedParagraphSurfaceCard,
   PrimaryButton,
@@ -49,6 +55,33 @@ export function PreparedParagraphViewBenchmarkScreen() {
     baselineResults.summary === null
       ? "Run benchmark/base-text once so this page can compare against the RN Text oracle."
       : "BaseText calibration is loaded. Prepared view runs can compare parity and amortization.";
+  const automationStatus = isPreparing
+    ? "preparing"
+    : benchmark.isRunning
+      ? "running"
+      : benchmark.lastCompletedAt !== null
+        ? "completed"
+        : preparedParagraphs === null
+          ? "idle"
+          : "ready";
+  const automationStatusLine = createAutomationStatusLine(
+    "benchmark/prepared-view",
+    automationStatus,
+    benchmark.runStatus,
+  );
+  const automationReportLine = serializeAutomationReport(
+    "benchmark/prepared-view",
+    createPreparedViewAutomationReport({
+      completedAt: benchmark.lastCompletedAt,
+      computeSummary: benchmark.summaries["pretext-compute"],
+      prepareMs,
+      prepareState: prepareStats,
+      renderSummary: benchmark.summaries["pretext-render"],
+      status: automationStatus,
+      totalRuns: benchmark.totalRuns,
+      widthSequence: benchmark.widthSequence,
+    }),
+  );
 
   return (
     <View style={styles.appShell}>
@@ -108,6 +141,14 @@ export function PreparedParagraphViewBenchmarkScreen() {
               void benchmark.runBenchmarkSuite();
             }}
             showSpinner={isPreparing}
+            testID="benchmark.prepared-view.run"
+          />
+
+          <HeroAutomationPanel
+            reportLine={automationReportLine}
+            reportTestID="benchmark.prepared-view.report"
+            statusLine={automationStatusLine}
+            statusTestID="benchmark.prepared-view.status"
           />
 
           <Text style={styles.note}>{comparisonNote}</Text>

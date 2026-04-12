@@ -69,6 +69,7 @@ export function HomeScreen({ navigation }: Props) {
 
         <CatalogCard
           buttonLabel="Open benchmark/*"
+          buttonTestID="home.open-benchmark"
           description="Run BaseText and Prepared Native View as dedicated benchmark screens under screens/benchmark/*."
           onPress={() => navigation.navigate("BenchmarkIndex")}
           title="Benchmarks"
@@ -76,6 +77,7 @@ export function HomeScreen({ navigation }: Props) {
 
         <CatalogCard
           buttonLabel="Open examples/*"
+          buttonTestID="home.open-examples"
           description="Browse PreparedParagraphView, PreparedParagraphText, Inline Segments, and Line Cursor as dedicated example screens under screens/examples/*."
           onPress={() => navigation.navigate("ExampleIndex")}
           title="Examples"

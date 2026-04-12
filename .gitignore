@@ -89,3 +89,6 @@ android/generated
 
 # React Native Nitro Modules
 nitrogen/
+
+# Maestro
+.maestro-artifacts/

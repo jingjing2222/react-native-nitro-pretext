@@ -5,11 +5,15 @@ import android.graphics.Typeface
 import android.graphics.text.LineBreaker
 import android.graphics.text.MeasuredText
 import android.os.Build
+import android.text.Layout
+import android.text.StaticLayout
 import android.text.TextDirectionHeuristics
+import android.text.TextPaint
 import java.text.BreakIterator
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.ceil
 import kotlin.math.max
 
 internal object PretextShared {
@@ -139,6 +143,7 @@ internal object PretextShared {
     val prepared = NativePreparedCorpus(
       paragraphs = preparedParagraphs,
       lineHeight = lineHeight,
+      textPaint = paint,
       lineBreaker = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
         Api29LineLayout.createLineBreaker()
       } else {
@@ -439,8 +444,8 @@ internal object PretextShared {
     return lineLayouts.lastOrNull()?.let { it.top + it.height } ?: 0.0
   }
 
-  private fun createPaint(style: ParagraphStyle): Paint {
-    return Paint(Paint.ANTI_ALIAS_FLAG).apply {
+  private fun createPaint(style: ParagraphStyle): TextPaint {
+    return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
       textSize = style.fontSize.toFloat()
       typeface = resolveTypeface(style.fontFamily)
       if (style.fontSize > 0 && style.letterSpacing != 0.0) {
@@ -659,6 +664,22 @@ internal object PretextShared {
     corpus: NativePreparedCorpus,
     request: NativeLayoutRequest,
   ): List<NativeLineLayout> {
+    val canUseStaticLayout =
+      request.shapeSlices.isEmpty() &&
+        request.whiteSpace == WHITE_SPACE_NORMAL &&
+        request.wordBreak == WORD_BREAK_NORMAL &&
+        !prepared.forceTokenLayout
+
+    if (canUseStaticLayout) {
+      return StaticLayoutLineLayout.layoutLineLayouts(
+        text = prepared.text,
+        textPaint = corpus.textPaint,
+        width = request.width,
+        left = request.left,
+        defaultLineHeight = corpus.lineHeight,
+      )
+    }
+
     val lineBreaker = corpus.lineBreaker
     val measuredText = prepared.measuredText
     val canUsePlatformLineBreaker =
@@ -1029,6 +1050,75 @@ private object Api29LineLayout {
   }
 }
 
+private object StaticLayoutLineLayout {
+  fun layoutLineLayouts(
+    text: String,
+    textPaint: TextPaint,
+    width: Double,
+    left: Double,
+    defaultLineHeight: Double,
+  ): List<NativeLineLayout> {
+    val layout =
+      StaticLayout.Builder.obtain(
+        text,
+        0,
+        text.length,
+        textPaint,
+        max(1, ceil(width).toInt()),
+      )
+        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+        .setLineSpacing(0f, 1f)
+        .setIncludePad(true)
+        .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+        .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+        .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+        .apply {
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            setUseLineSpacingFromFallbacks(true)
+          }
+        }
+        .build()
+
+    if (layout.lineCount == 0) {
+      return listOf(
+        NativeLineLayout(
+          textStart = 0,
+          textEnd = 0,
+          width = 0.0,
+          left = left,
+          top = 0.0,
+          height = defaultLineHeight,
+          ascent = 0.0,
+          descent = defaultLineHeight,
+        ),
+      )
+    }
+
+    val lines = ArrayList<NativeLineLayout>(layout.lineCount)
+    var top = 0.0
+
+    for (lineIndex in 0 until layout.lineCount) {
+      val start = layout.getLineStart(lineIndex)
+      val end = layout.getLineVisibleEnd(lineIndex)
+      val actualHeight = max(0.0, (layout.getLineBottom(lineIndex) - layout.getLineTop(lineIndex)).toDouble())
+      val lineHeight = max(defaultLineHeight, actualHeight)
+      lines += NativeLineLayout(
+        textStart = start,
+        textEnd = end,
+        width = layout.getLineWidth(lineIndex).toDouble(),
+        left = left,
+        top = top,
+        height = lineHeight,
+        ascent = 0.0,
+        descent = lineHeight,
+      )
+      top += lineHeight
+    }
+
+    return lines
+  }
+}
+
 internal data class NativePreparedParagraphSeed(
   val text: String,
   val tokens: List<NativeTokenDescriptor>,
@@ -1061,6 +1151,7 @@ internal data class NativePreparedParagraph(
 internal data class NativePreparedCorpus(
   val paragraphs: List<NativePreparedParagraph>,
   val lineHeight: Double,
+  val textPaint: TextPaint,
   val lineBreaker: Any?,
 )
 

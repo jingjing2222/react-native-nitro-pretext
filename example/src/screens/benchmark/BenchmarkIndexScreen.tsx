@@ -3,12 +3,17 @@ import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
+  createCombinedBenchmarkAutomationReport,
+  serializeAutomationReport,
+} from "../../benchmark/automation";
+import {
   differenceText,
   formatMilliseconds,
   styles,
 } from "../../benchmark/constants";
 import type { AppStackParamList } from "../../benchmark/types";
 import {
+  HeroAutomationPanel,
   NavigationCard,
   SummaryMetric,
 } from "../../components/BenchmarkComponents";
@@ -19,6 +24,13 @@ type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkIndex">;
 export function BenchmarkIndexScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { baselineResults, preparedViewResults } = useBenchmarkResults();
+  const automationReport = serializeAutomationReport(
+    "benchmark/index",
+    createCombinedBenchmarkAutomationReport({
+      baselineResults,
+      preparedViewResults,
+    }),
+  );
   const comparisonMedianDelta = differenceText(
     preparedViewResults.renderSummary?.interactionMedianMs ?? null,
     baselineResults.summary?.interactionMedianMs ?? null,
@@ -47,10 +59,18 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
             `benchmark/prepared-view` owns the prepared-state render and compute
             measurements.
           </Text>
+
+          <HeroAutomationPanel
+            reportLine={automationReport}
+            reportTestID="benchmark.index.report"
+            statusLine="AUTOMATION_STATUS::benchmark/index::visible"
+            statusTestID="benchmark.index.status"
+          />
         </View>
 
         <NavigationCard
           buttonLabel="Open benchmark/base-text"
+          buttonTestID="benchmark.index.open-base-text"
           description="Plain React Native <Text> baseline. This page also records the line-count oracle used by the prepared renderer page."
           lastCompletedAt={baselineResults.completedAt}
           onPress={() => navigation.navigate("BenchmarkBaseText")}
@@ -60,6 +80,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
 
         <NavigationCard
           buttonLabel="Open benchmark/prepared-view"
+          buttonTestID="benchmark.index.open-prepared-view"
           description="Prepared paragraph state benchmark. One native paragraph surface reflows from prepared state directly."
           footer={
             preparedViewResults.prepareStats === null

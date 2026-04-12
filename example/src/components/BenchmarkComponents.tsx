@@ -28,11 +28,13 @@ export function PrimaryButton({
   label,
   onPress,
   showSpinner = false,
+  testID,
 }: {
   disabled: boolean;
   label: string;
   onPress: () => void;
   showSpinner?: boolean;
+  testID?: string;
 }) {
   return (
     <Pressable
@@ -44,6 +46,7 @@ export function PrimaryButton({
         disabled && styles.runButtonDisabled,
         pressed && styles.runButtonPressed,
       ]}
+      testID={testID}
     >
       {showSpinner ? <ActivityIndicator color="#f5efe4" /> : null}
       <Text style={styles.runButtonText}>{label}</Text>
@@ -60,8 +63,10 @@ export function NavigationCard({
   secondarySummary,
   summary,
   title,
+  buttonTestID,
 }: {
   buttonLabel: string;
+  buttonTestID?: string;
   description: string;
   footer?: string;
   lastCompletedAt: string | null;
@@ -96,7 +101,12 @@ export function NavigationCard({
         <SummaryMetric label="Last completed" value={lastCompletedAt ?? "—"} />
       </View>
       {footer ? <Text style={styles.noteMuted}>{footer}</Text> : null}
-      <PrimaryButton disabled={false} label={buttonLabel} onPress={onPress} />
+      <PrimaryButton
+        disabled={false}
+        label={buttonLabel}
+        onPress={onPress}
+        testID={buttonTestID}
+      />
     </View>
   );
 }
@@ -106,8 +116,10 @@ export function CatalogCard({
   description,
   onPress,
   title,
+  buttonTestID,
 }: {
   buttonLabel: string;
+  buttonTestID?: string;
   description: string;
   onPress: () => void;
   title: string;
@@ -116,7 +128,91 @@ export function CatalogCard({
     <View style={styles.summaryCard}>
       <Text style={styles.summaryLabel}>{title}</Text>
       <Text style={styles.summaryDescription}>{description}</Text>
-      <PrimaryButton disabled={false} label={buttonLabel} onPress={onPress} />
+      <PrimaryButton
+        disabled={false}
+        label={buttonLabel}
+        onPress={onPress}
+        testID={buttonTestID}
+      />
+    </View>
+  );
+}
+
+export function AutomationReportCard({
+  description,
+  label,
+  reportLine,
+  reportTestID,
+  statusLine,
+  statusTestID,
+}: {
+  description: string;
+  label: string;
+  reportLine: string;
+  reportTestID: string;
+  statusLine: string;
+  statusTestID: string;
+}) {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryDescription}>{description}</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {}}
+        style={styles.codeList}
+        testID={statusTestID}
+      >
+        <Text selectable style={styles.codeRow}>
+          {statusLine}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {}}
+        style={styles.codeList}
+        testID={reportTestID}
+      >
+        <Text selectable style={styles.codeRow}>
+          {reportLine}
+        </Text>
+      </Pressable>
+    </View>
+  );
+}
+
+export function HeroAutomationPanel({
+  reportLine,
+  reportTestID,
+  statusLine,
+  statusTestID,
+}: {
+  reportLine: string;
+  reportTestID: string;
+  statusLine: string;
+  statusTestID: string;
+}) {
+  return (
+    <View style={styles.heroAutomationPanel}>
+      <Text style={styles.heroAutomationLabel}>Automation Export</Text>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {}}
+        testID={statusTestID}
+      >
+        <Text selectable style={styles.heroAutomationText}>
+          {statusLine}
+        </Text>
+      </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        onPress={() => {}}
+        testID={reportTestID}
+      >
+        <Text selectable style={styles.heroAutomationText}>
+          {reportLine}
+        </Text>
+      </Pressable>
     </View>
   );
 }

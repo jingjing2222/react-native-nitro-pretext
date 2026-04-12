@@ -58,6 +58,25 @@ export const styles = StyleSheet.create({
     backgroundColor: "#1d2b2a",
     gap: 16,
   },
+  heroAutomationPanel: {
+    padding: 12,
+    borderRadius: 18,
+    backgroundColor: "#243735",
+    gap: 8,
+  },
+  heroAutomationLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#89bbb0",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+  },
+  heroAutomationText: {
+    fontSize: 11,
+    lineHeight: 16,
+    color: "#f7f2e9",
+    fontFamily: "Menlo",
+  },
   metricPill: {
     minWidth: 132,
     paddingHorizontal: 14,

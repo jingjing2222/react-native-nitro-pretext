@@ -22,6 +22,7 @@ Implemented in the repository:
 - `PreparedParagraphText`, a React Native `<Text>` renderer that materializes prepared paragraph breaks on demand
 - benchmark corpus helpers: `prepareBenchmarkCorpus()`, `layoutPreparedBenchmarkCorpus()`, and `releasePreparedBenchmarkCorpus()`
 - split example app into dedicated `screens/benchmark/*` and `screens/examples/*` pages with React Navigation
+- machine-readable benchmark exports plus Maestro flows/scripts for `benchmark/base-text`, `benchmark/prepared-view`, and the combined benchmark suite
 
 Platform backends:
 
@@ -210,21 +211,58 @@ For the current benchmark flow:
 
 The benchmark focuses on repeated width relayout, not first mount only.
 
+## Benchmark Automation
+
+The benchmark pages expose machine-readable status/report lines so Maestro can run the scenario and print the measured numbers without parsing the visual summary cards by hand.
+
+Platform-specific wrappers:
+
+```sh
+yarn benchmark:maestro:ios:base-text
+yarn benchmark:maestro:ios:prepared-view
+yarn benchmark:maestro:ios:suite
+
+yarn benchmark:maestro:android:base-text
+yarn benchmark:maestro:android:prepared-view
+yarn benchmark:maestro:android:suite
+```
+
+Run both platforms in sequence:
+
+```sh
+yarn benchmark:maestro:suite
+```
+
+What the wrappers do:
+
+- iOS: runs the corresponding Maestro flow against the configured simulator device id
+- Android: installs the embedded Maestro driver APKs if needed, starts the instrumentation server, forces IPv4 gRPC, and then runs the Maestro flow
+- both wrappers: store debug artifacts under `.maestro-artifacts/<platform>-<flow>/` and extract the latest `BENCHMARK_REPORT::...` / `BENCHMARK_SUMMARY::...` lines into `.maestro-artifacts/<platform>-<flow>/latest-summary.txt`
+
+Environment overrides:
+
+```sh
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:maestro:ios:suite
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial> yarn benchmark:maestro:android:suite
+```
+
+If Maestro reports `iOS driver not ready in time`, restart the simulator and rerun the command. The benchmark flows themselves are machine-readable and were validated successfully on the release app; the flaky part is the local XCTest runner bootstrap.
+
 ## Latest Local Benchmark Snapshot
 
-Latest checked local release snapshots on `2026-04-13`:
+Latest Maestro-driven release snapshots on `2026-04-13`:
 
-| Platform | Device / build                 | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Render layout-only median | Compute-only median | Cold prepare | Line parity         |
-| -------- | ------------------------------ | --------------- | ------------ | -------------------- | ----------------- | ------------------------- | ------------------- | ------------ | ------------------- |
-| Android  | Pixel 9 Pro emulator / Release | `23.17 ms`      | `26.03 ms`   | `19.45 ms`           | `20.66 ms`        | `1.89 ms`                 | `1.33 ms`           | `43.56 ms`   | `80 / 240 mismatch` |
-| iOS      | iPhone 16 simulator / Release  | `154.58 ms`     | `310.06 ms`  | `92.63 ms`           | `137.20 ms`       | `13.92 ms`                | `13.56 ms`          | `340.88 ms`  | `35 / 240 mismatch` |
+| Platform | Device / build                 | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Layout-only median | Cold prepare | Native measure | Median delta |
+| -------- | ------------------------------ | --------------- | ------------ | -------------------- | ----------------- | ------------------ | ------------ | -------------- | ------------ |
+| Android  | Pixel 9 Pro emulator / Release | `32.20 ms`      | `38.76 ms`   | `21.81 ms`           | `23.62 ms`        | `3.81 ms`          | `21.06 ms`   | `15.54 ms`     | `-10.39 ms`  |
+| iOS      | iPhone 16 simulator / Release  | `179.23 ms`     | `346.82 ms`  | `95.13 ms`           | `143.17 ms`       | `13.95 ms`         | `308.06 ms`  | `307.59 ms`    | `-84.10 ms`  |
 
 Current reading of the numbers:
 
 - the prepared native view path is already faster than plain RN `<Text>` in the repeated-relayout benchmark on both local release runs
 - most cold cost is still in native measurement during `prepare*()`, not in JS object construction
 - the renderer-oriented path is where the architecture currently pays off; `PreparedParagraphText` exists as a compatibility helper, but the main performance win comes from consuming prepared state directly from native
-- line parity is not perfect yet, so these numbers show structural value, not final quality parity
+- the automated suite now measures exactly the relayout question we care about: BaseText vs prepared-native-view across the same width sequence, plus the hot-path layout-only cost
 
 Do not treat these numbers as universal. Compare on the same device, same build type, same font, and same corpus.
 

@@ -1,9 +1,15 @@
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import {
+  createAutomationStatusLine,
+  createBaseTextAutomationReport,
+  serializeAutomationReport,
+} from "../../benchmark/automation";
 import { MODE_DESCRIPTIONS, styles } from "../../benchmark/constants";
 import { useBenchmarkHarness } from "../../benchmark/useBenchmarkHarness";
 import {
+  HeroAutomationPanel,
   MetricPill,
   PrimaryButton,
   SummaryCard,
@@ -30,6 +36,26 @@ export function BaseTextBenchmarkScreen() {
     prepareMs: null,
     preparedParagraphs: null,
   });
+  const automationStatus = benchmark.isRunning
+    ? "running"
+    : benchmark.lastCompletedAt === null
+      ? "idle"
+      : "completed";
+  const automationStatusLine = createAutomationStatusLine(
+    "benchmark/base-text",
+    automationStatus,
+    benchmark.runStatus,
+  );
+  const automationReportLine = serializeAutomationReport(
+    "benchmark/base-text",
+    createBaseTextAutomationReport({
+      completedAt: benchmark.lastCompletedAt,
+      status: automationStatus,
+      summary: benchmark.summaries.baseline,
+      totalRuns: benchmark.totalRuns,
+      widthSequence: benchmark.widthSequence,
+    }),
+  );
 
   return (
     <View style={styles.appShell}>
@@ -76,6 +102,14 @@ export function BaseTextBenchmarkScreen() {
             onPress={() => {
               void benchmark.runBenchmarkSuite();
             }}
+            testID="benchmark.base-text.run"
+          />
+
+          <HeroAutomationPanel
+            reportLine={automationReportLine}
+            reportTestID="benchmark.base-text.report"
+            statusLine={automationStatusLine}
+            statusTestID="benchmark.base-text.status"
           />
         </View>
 

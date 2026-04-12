@@ -181,7 +181,7 @@ internal final class PretextShared {
 
         let measurementStartedAt = nowMs()
         let paragraphs = analyzedParagraphs.map { paragraph in
-            NativePreparedParagraph(
+            return NativePreparedParagraph(
                 text: paragraph.text,
                 typesetter: paragraph.forceTokenLayout ? nil : createTypesetter(
                     text: paragraph.text,
@@ -477,11 +477,11 @@ internal final class PretextShared {
         locale: String
     ) -> CTTypesetter {
         var attributes: [NSAttributedString.Key: Any] = [
-            NSAttributedString.Key(rawValue: kCTFontAttributeName as String): font
+            .font: font
         ]
 
         if letterSpacing != 0 {
-            attributes[NSAttributedString.Key(rawValue: kCTKernAttributeName as String)] = CGFloat(letterSpacing)
+            attributes[.kern] = CGFloat(letterSpacing)
         }
 
         if !locale.isEmpty {
