@@ -215,35 +215,25 @@ The benchmark focuses on repeated width relayout, not first mount only.
 
 The benchmark pages expose machine-readable status/report lines so Maestro can run the scenario and print the measured numbers without parsing the visual summary cards by hand.
 
-Platform-specific wrappers:
+Top-level wrappers:
 
 ```sh
-yarn benchmark:maestro:ios:base-text
-yarn benchmark:maestro:ios:prepared-view
-yarn benchmark:maestro:ios:suite
-
-yarn benchmark:maestro:android:base-text
-yarn benchmark:maestro:android:prepared-view
-yarn benchmark:maestro:android:suite
-```
-
-Run both platforms in sequence:
-
-```sh
-yarn benchmark:maestro:suite
+yarn benchmark:ios
+yarn benchmark:android
 ```
 
 What the wrappers do:
 
-- iOS: runs the corresponding Maestro flow against the configured simulator device id
-- Android: installs the embedded Maestro driver APKs if needed, starts the instrumentation server, forces IPv4 gRPC, and then runs the Maestro flow
-- both wrappers: store debug artifacts under `.maestro-artifacts/<platform>-<flow>/` and extract the latest `BENCHMARK_REPORT::...` / `BENCHMARK_SUMMARY::...` lines into `.maestro-artifacts/<platform>-<flow>/latest-summary.txt`
+- root `package.json` delegates to `example/package.json`, so the benchmark entrypoint lives with the example app instead of forking script ownership
+- iOS: runs the benchmark suite flow against the configured simulator device id
+- Android: installs the embedded Maestro driver APKs if needed, starts the instrumentation server, forces IPv4 gRPC, and then runs the benchmark suite flow
+- both wrappers: store debug artifacts under `.maestro-artifacts/<platform>-suite/`, parse the latest benchmark `JsConsole` events from `maestro.log`, and write a human-readable summary to `.maestro-artifacts/<platform>-suite/latest-summary.txt`
 
 Environment overrides:
 
 ```sh
-MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:maestro:ios:suite
-MAESTRO_ANDROID_DEVICE_ID=<adb-serial> yarn benchmark:maestro:android:suite
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial> yarn benchmark:android
 ```
 
 If Maestro reports `iOS driver not ready in time`, restart the simulator and rerun the command. The benchmark flows themselves are machine-readable and were validated successfully on the release app; the flaky part is the local XCTest runner bootstrap.
