@@ -7,8 +7,14 @@ import type {
 
 export type AppStackParamList = {
   Home: undefined;
-  BaseText: undefined;
-  PreparedView: undefined;
+  BenchmarkIndex: undefined;
+  BenchmarkBaseText: undefined;
+  BenchmarkPreparedView: undefined;
+  ExampleIndex: undefined;
+  ExamplePreparedView: undefined;
+  ExamplePreparedText: undefined;
+  ExampleInlineSegments: undefined;
+  ExampleLineCursor: undefined;
 };
 
 export type PreparedParagraph = ImportedPreparedParagraph;

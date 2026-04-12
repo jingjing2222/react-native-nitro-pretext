@@ -866,7 +866,7 @@ internal final class PretextShared {
             }
 
             let nextMode: TokenMode = segment.unicodeScalars.allSatisfy {
-                CharacterSet.whitespacesAndNewlines.contains($0) && !$0.properties.isNewline
+                CharacterSet.whitespacesAndNewlines.contains($0) && !isUnicodeNewline($0)
             } ? .whitespace : .text
 
             if mode == nextMode {
@@ -1066,7 +1066,11 @@ internal final class PretextShared {
         }
 
         return token.unicodeScalars.allSatisfy {
-            CharacterSet.whitespaces.contains($0) && !$0.properties.isNewline
+            CharacterSet.whitespaces.contains($0) && !isUnicodeNewline($0)
         }
+    }
+
+    private func isUnicodeNewline(_ scalar: Unicode.Scalar) -> Bool {
+        CharacterSet.newlines.contains(scalar)
     }
 }

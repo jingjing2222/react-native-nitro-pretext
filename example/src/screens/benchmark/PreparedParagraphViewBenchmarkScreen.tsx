@@ -1,4 +1,3 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -6,22 +5,19 @@ import {
   formatMilliseconds,
   MODE_DESCRIPTIONS,
   styles,
-} from "../benchmark/constants";
-import type { AppStackParamList } from "../benchmark/types";
+} from "../../benchmark/constants";
+import { usePreparedViewBenchmarkHarness } from "../../benchmark/usePreparedViewBenchmarkHarness";
 import {
   MetricPill,
   PreparedParagraphSurfaceCard,
   PrimaryButton,
-  SummaryMetric,
   SummaryCard,
-} from "../components/BenchmarkComponents";
-import { useBenchmarkResults } from "../context/BenchmarkResultsContext";
-import { usePreparedParagraphs } from "../benchmark/usePreparedParagraphs";
-import { usePreparedViewBenchmarkHarness } from "../benchmark/usePreparedViewBenchmarkHarness";
+  SummaryMetric,
+} from "../../components/BenchmarkComponents";
+import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
+import { usePreparedParagraphs } from "../../benchmark/usePreparedParagraphs";
 
-type Props = NativeStackScreenProps<AppStackParamList, "PreparedView">;
-
-export function PreparedParagraphViewBenchmarkScreen(_: Props) {
+export function PreparedParagraphViewBenchmarkScreen() {
   const insets = useSafeAreaInsets();
   const { baselineResults, preparedViewResults, setPreparedViewResults } =
     useBenchmarkResults();
@@ -51,8 +47,8 @@ export function PreparedParagraphViewBenchmarkScreen(_: Props) {
 
   const comparisonNote =
     baselineResults.summary === null
-      ? "Run BaseText once so the prepared view page can compare against the RN Text oracle."
-      : "BaseText calibration is loaded. Prepared view runs can now compare parity and amortization.";
+      ? "Run benchmark/base-text once so this page can compare against the RN Text oracle."
+      : "BaseText calibration is loaded. Prepared view runs can compare parity and amortization.";
 
   return (
     <View style={styles.appShell}>
@@ -64,13 +60,14 @@ export function PreparedParagraphViewBenchmarkScreen(_: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>Prepared Native View</Text>
+          <Text style={styles.eyebrow}>benchmark/prepared-view</Text>
           <Text style={styles.title}>
-            Feed prepared paragraph state directly into a single native paragraph surface.
+            Feed prepared paragraph state directly into a native paragraph surface.
           </Text>
           <Text style={styles.subtitle}>
-            This page benchmarks the renderer-oriented path: prepared paragraph
-            state, native self-relayout, and one native paragraph view per block.
+            This screen benchmarks the renderer-oriented path: prepared
+            paragraph state, native self-relayout, and one native paragraph
+            view per block.
           </Text>
 
           <View style={styles.metricRow}>

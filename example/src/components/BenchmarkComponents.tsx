@@ -101,6 +101,26 @@ export function NavigationCard({
   );
 }
 
+export function CatalogCard({
+  buttonLabel,
+  description,
+  onPress,
+  title,
+}: {
+  buttonLabel: string;
+  description: string;
+  onPress: () => void;
+  title: string;
+}) {
+  return (
+    <View style={styles.summaryCard}>
+      <Text style={styles.summaryLabel}>{title}</Text>
+      <Text style={styles.summaryDescription}>{description}</Text>
+      <PrimaryButton disabled={false} label={buttonLabel} onPress={onPress} />
+    </View>
+  );
+}
+
 export function SummaryCard({
   description,
   label,

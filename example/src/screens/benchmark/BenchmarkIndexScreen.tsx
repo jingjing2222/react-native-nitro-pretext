@@ -6,23 +6,17 @@ import {
   differenceText,
   formatMilliseconds,
   styles,
-} from "../benchmark/constants";
-import type { AppStackParamList } from "../benchmark/types";
+} from "../../benchmark/constants";
+import type { AppStackParamList } from "../../benchmark/types";
 import {
-  BENCHMARK_MEASURED_RUNS,
-  BENCHMARK_PARAGRAPH_COUNT,
-  BENCHMARK_WARMUP_RUNS,
-} from "../relayoutBenchmark";
-import {
-  CatalogCard,
-  MetricPill,
+  NavigationCard,
   SummaryMetric,
-} from "../components/BenchmarkComponents";
-import { useBenchmarkResults } from "../context/BenchmarkResultsContext";
+} from "../../components/BenchmarkComponents";
+import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
 
-type Props = NativeStackScreenProps<AppStackParamList, "Home">;
+type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkIndex">;
 
-export function HomeScreen({ navigation }: Props) {
+export function BenchmarkIndexScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { baselineResults, preparedViewResults } = useBenchmarkResults();
   const comparisonMedianDelta = differenceText(
@@ -44,51 +38,50 @@ export function HomeScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>Prepared Paragraph Lab</Text>
+          <Text style={styles.eyebrow}>screens/benchmark</Text>
           <Text style={styles.title}>
-            Keep benchmark pages and example pages physically separate.
+            Benchmark routes stay isolated from API examples.
           </Text>
           <Text style={styles.subtitle}>
-            Benchmarks measure relayout cost. Examples show how the prepared
-            paragraph APIs map onto renderer paths and inline segment use cases
-            without mixing them into the benchmark flow.
+            `benchmark/base-text` owns the RN Text baseline. `benchmark/prepared-view`
+            owns the prepared-state render and compute measurements.
           </Text>
-
-          <View style={styles.metricRow}>
-            <MetricPill
-              label="Corpus"
-              value={`${BENCHMARK_PARAGRAPH_COUNT} paragraphs`}
-            />
-            <MetricPill
-              label="Routes"
-              value="benchmark/* / examples/*"
-            />
-            <MetricPill
-              label="Runs"
-              value={`${BENCHMARK_WARMUP_RUNS} warmup + ${BENCHMARK_MEASURED_RUNS} measured`}
-            />
-          </View>
         </View>
 
-        <CatalogCard
-          buttonLabel="Open benchmark/*"
-          description="Run BaseText and Prepared Native View as dedicated benchmark screens under screens/benchmark/*."
-          onPress={() => navigation.navigate("BenchmarkIndex")}
-          title="Benchmarks"
+        <NavigationCard
+          buttonLabel="Open benchmark/base-text"
+          description="Plain React Native <Text> baseline. This page also records the line-count oracle used by the prepared renderer page."
+          lastCompletedAt={baselineResults.completedAt}
+          onPress={() => navigation.navigate("BenchmarkBaseText")}
+          summary={baselineResults.summary}
+          title="benchmark/base-text"
         />
 
-        <CatalogCard
-          buttonLabel="Open examples/*"
-          description="Browse PreparedParagraphView, PreparedParagraphText, Inline Segments, and Line Cursor as dedicated example screens under screens/examples/*."
-          onPress={() => navigation.navigate("ExampleIndex")}
-          title="Examples"
+        <NavigationCard
+          buttonLabel="Open benchmark/prepared-view"
+          description="Prepared paragraph state benchmark. One native paragraph surface reflows from prepared state directly."
+          footer={
+            preparedViewResults.prepareStats === null
+              ? "Prepare has not been recorded yet."
+              : `Latest prepare: ${formatMilliseconds(
+                  preparedViewResults.prepareStats.totalMs,
+                )} · build measured ${formatMilliseconds(
+                  preparedViewResults.prepareStats.measurementMs,
+                )} · analyze ${formatMilliseconds(
+                  preparedViewResults.prepareStats.tokenizeMs,
+                )}`
+          }
+          lastCompletedAt={preparedViewResults.completedAt}
+          onPress={() => navigation.navigate("BenchmarkPreparedView")}
+          secondarySummary={preparedViewResults.computeSummary}
+          summary={preparedViewResults.renderSummary}
+          title="benchmark/prepared-view"
         />
 
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
+          <Text style={styles.summaryLabel}>Combined View</Text>
           <Text style={styles.summaryDescription}>
-            Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then Prepared Native View, and come back here for the combined read.
+            Latest comparison across dedicated benchmark screens.
           </Text>
           <View style={styles.summaryMetricList}>
             <SummaryMetric

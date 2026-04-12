@@ -4,9 +4,15 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import type { AppStackParamList } from "./benchmark/types";
 import { BenchmarkResultsProvider } from "./context/BenchmarkResultsContext";
-import { BaseTextBenchmarkScreen } from "./screens/BaseTextBenchmarkScreen";
 import { HomeScreen } from "./screens/HomeScreen";
-import { PreparedParagraphViewBenchmarkScreen } from "./screens/PreparedParagraphViewBenchmarkScreen";
+import { BaseTextBenchmarkScreen } from "./screens/benchmark/BaseTextBenchmarkScreen";
+import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
+import { PreparedParagraphViewBenchmarkScreen } from "./screens/benchmark/PreparedParagraphViewBenchmarkScreen";
+import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
+import { InlineSegmentsExampleScreen } from "./screens/examples/InlineSegmentsExampleScreen";
+import { LineCursorExampleScreen } from "./screens/examples/LineCursorExampleScreen";
+import { PreparedTextExampleScreen } from "./screens/examples/PreparedTextExampleScreen";
+import { PreparedViewExampleScreen } from "./screens/examples/PreparedViewExampleScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -21,11 +27,28 @@ const navigationTheme = {
   },
 };
 
+const linking = {
+  prefixes: ["pretext://"],
+  config: {
+    screens: {
+      Home: "",
+      BenchmarkIndex: "benchmark",
+      BenchmarkBaseText: "benchmark/base-text",
+      BenchmarkPreparedView: "benchmark/prepared-view",
+      ExampleIndex: "examples",
+      ExamplePreparedView: "examples/prepared-view",
+      ExamplePreparedText: "examples/prepared-text",
+      ExampleInlineSegments: "examples/inline-segments",
+      ExampleLineCursor: "examples/line-cursor",
+    },
+  },
+};
+
 export default function App() {
   return (
     <SafeAreaProvider>
       <BenchmarkResultsProvider>
-        <NavigationContainer theme={navigationTheme}>
+        <NavigationContainer linking={linking} theme={navigationTheme}>
           <Stack.Navigator
             initialRouteName="Home"
             screenOptions={{
@@ -45,17 +68,47 @@ export default function App() {
             <Stack.Screen
               component={HomeScreen}
               name="Home"
-              options={{ title: "Text Relayout Benchmark" }}
+              options={{ title: "Prepared Paragraph Lab" }}
+            />
+            <Stack.Screen
+              component={BenchmarkIndexScreen}
+              name="BenchmarkIndex"
+              options={{ title: "benchmark/*" }}
             />
             <Stack.Screen
               component={BaseTextBenchmarkScreen}
-              name="BaseText"
-              options={{ title: "BaseText Page" }}
+              name="BenchmarkBaseText"
+              options={{ title: "benchmark/base-text" }}
             />
             <Stack.Screen
               component={PreparedParagraphViewBenchmarkScreen}
-              name="PreparedView"
-              options={{ title: "Prepared View Page" }}
+              name="BenchmarkPreparedView"
+              options={{ title: "benchmark/prepared-view" }}
+            />
+            <Stack.Screen
+              component={ExampleIndexScreen}
+              name="ExampleIndex"
+              options={{ title: "examples/*" }}
+            />
+            <Stack.Screen
+              component={PreparedViewExampleScreen}
+              name="ExamplePreparedView"
+              options={{ title: "examples/prepared-view" }}
+            />
+            <Stack.Screen
+              component={PreparedTextExampleScreen}
+              name="ExamplePreparedText"
+              options={{ title: "examples/prepared-text" }}
+            />
+            <Stack.Screen
+              component={InlineSegmentsExampleScreen}
+              name="ExampleInlineSegments"
+              options={{ title: "examples/inline-segments" }}
+            />
+            <Stack.Screen
+              component={LineCursorExampleScreen}
+              name="ExampleLineCursor"
+              options={{ title: "examples/line-cursor" }}
             />
           </Stack.Navigator>
         </NavigationContainer>

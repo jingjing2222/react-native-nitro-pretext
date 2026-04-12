@@ -1,21 +1,17 @@
-import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { MODE_DESCRIPTIONS, styles } from "../benchmark/constants";
-import type { AppStackParamList } from "../benchmark/types";
+import { MODE_DESCRIPTIONS, styles } from "../../benchmark/constants";
+import { useBenchmarkHarness } from "../../benchmark/useBenchmarkHarness";
 import {
   MetricPill,
   PrimaryButton,
   SummaryCard,
   SurfaceCard,
-} from "../components/BenchmarkComponents";
-import { useBenchmarkResults } from "../context/BenchmarkResultsContext";
-import { useBenchmarkHarness } from "../benchmark/useBenchmarkHarness";
+} from "../../components/BenchmarkComponents";
+import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
 
-type Props = NativeStackScreenProps<AppStackParamList, "BaseText">;
-
-export function BaseTextBenchmarkScreen(_: Props) {
+export function BaseTextBenchmarkScreen() {
   const insets = useSafeAreaInsets();
   const { baselineResults, setBaselineResults } = useBenchmarkResults();
   const benchmark = useBenchmarkHarness({
@@ -45,13 +41,13 @@ export function BaseTextBenchmarkScreen(_: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>BaseText</Text>
+          <Text style={styles.eyebrow}>benchmark/base-text</Text>
           <Text style={styles.title}>
             Measure plain React Native &lt;Text&gt; only.
           </Text>
           <Text style={styles.subtitle}>
-            This page owns the baseline interaction cost and the sample
-            line-count oracle used by the prepared view page.
+            This screen owns the baseline interaction cost and the sample
+            line-count oracle used by the prepared view benchmark.
           </Text>
 
           <View style={styles.metricRow}>

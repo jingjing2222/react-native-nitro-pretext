@@ -206,6 +206,44 @@ export const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1f2725",
   },
+  optionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
+  optionChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#efe6d7",
+  },
+  optionChipActive: {
+    backgroundColor: "#1d2b2a",
+  },
+  optionChipText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#5b665f",
+  },
+  optionChipTextActive: {
+    color: "#f7f2e9",
+  },
+  exampleStack: {
+    gap: 18,
+  },
+  exampleSurface: {
+    alignItems: "center",
+    gap: 14,
+  },
+  codeList: {
+    gap: 8,
+  },
+  codeRow: {
+    fontSize: 12,
+    lineHeight: 18,
+    color: "#3a403c",
+    fontFamily: "Menlo",
+  },
   title: {
     fontSize: 28,
     lineHeight: 34,

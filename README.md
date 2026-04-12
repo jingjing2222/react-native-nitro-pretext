@@ -10,7 +10,7 @@ The current goal is not to copy all of `pretext`. The implemented path is narrow
 
 ## Status
 
-Implemented today:
+Implemented in the repository:
 
 - native `measure()` and `measureBatch()`
 - `prepareParagraphs()` and `prepareParagraphsWithStats()`
@@ -20,7 +20,8 @@ Implemented today:
 - cursor-style streaming with `createParagraphLineCursor()` and `nextParagraphLine()`
 - `PreparedParagraphView`, a native paragraph surface that consumes `preparedId + paragraphIndex + width` directly
 - `PreparedParagraphText`, a React Native `<Text>` renderer that materializes prepared paragraph breaks on demand
-- split benchmark app with separate `BaseText` and `Prepared View` pages
+- benchmark corpus helpers: `prepareBenchmarkCorpus()`, `layoutPreparedBenchmarkCorpus()`, and `releasePreparedBenchmarkCorpus()`
+- split example app into dedicated `screens/benchmark/*` and `screens/examples/*` pages with React Navigation
 
 Platform backends:
 
@@ -31,6 +32,7 @@ Not implemented yet:
 
 - rich inline styling and embedded non-text content like chips/images
 - renderer integrations beyond the current native paragraph view and React Native `<Text>` helpers
+- full `pretext` feature parity for advanced inline layout, shaping, and parity-perfect line breaking
 
 ## Installation
 
@@ -146,6 +148,8 @@ const firstLine = nextParagraphLine(cursor.id);
 
 ## Public API
 
+- `ParagraphEngine`
+- `TextMeasure`
 - `measure(text, fontFamily, fontSize)`
 - `measureBatch(texts, fontFamily, fontSize)`
 - `prepareParagraphs(texts, style)`
@@ -163,6 +167,9 @@ const firstLine = nextParagraphLine(cursor.id);
 - `nextParagraphLine(cursorId)`
 - `releaseParagraphLineCursor(cursorId)`
 - `releaseParagraphs(preparedId)`
+- `prepareBenchmarkCorpus(texts, fontFamily, fontSize)`
+- `layoutPreparedBenchmarkCorpus(preparedId, width)`
+- `releasePreparedBenchmarkCorpus(preparedId)`
 - `PreparedParagraphView`
 - `PreparedParagraphText`
 
@@ -170,9 +177,15 @@ const firstLine = nextParagraphLine(cursor.id);
 
 The example app is intentionally split by page so each path can be measured independently.
 
-- `Home`: combines the latest results from both pages
-- `BaseText`: plain React Native `<Text>` baseline and line-count oracle
-- `Prepared View`: prepared-state relayout plus native paragraph view rendering
+- `Home`: combines the latest results from both benchmark pages
+- `screens/benchmark/BenchmarkIndexScreen`: benchmark landing page
+- `screens/benchmark/BaseTextBenchmarkScreen`: plain React Native `<Text>` baseline and line-count oracle
+- `screens/benchmark/PreparedParagraphViewBenchmarkScreen`: prepared-state relayout plus native paragraph view rendering
+- `screens/examples/ExampleIndexScreen`: examples landing page
+- `screens/examples/PreparedViewExampleScreen`: native paragraph surface example
+- `screens/examples/PreparedTextExampleScreen`: prepared-state-backed `<Text>` example
+- `screens/examples/InlineSegmentsExampleScreen`: non-breakable inline span example
+- `screens/examples/LineCursorExampleScreen`: request-based relayout and cursor streaming example
 
 Run the example app:
 
@@ -181,37 +194,43 @@ yarn example:android
 yarn example:ios
 ```
 
+For meaningful benchmark numbers, use release builds on the same device class:
+
+```sh
+cd example
+npx react-native run-android --mode release --device <serial> --no-packager --extra-params "--console=plain --no-daemon"
+npx react-native run-ios --simulator "${IOS_SIMULATOR:-iPhone 16}" --mode Release --no-packager --extra-params "ONLY_ACTIVE_ARCH=YES ARCHS=arm64"
+```
+
 For the current benchmark flow:
 
 1. Run `BaseText` first.
 2. Run `Prepared View` next.
-3. Return to `Home` to compare the latest summaries.
+3. Return to `benchmark/*` or `Home` to compare the latest summaries.
 
 The benchmark focuses on repeated width relayout, not first mount only.
 
 ## Latest Local Benchmark Snapshot
 
-Latest local Android release run on `2026-04-13`:
+Latest checked local release snapshots on `2026-04-13`:
 
-- BaseText median interaction: `24.38 ms`
-- BaseText p95 interaction: `31.27 ms`
-- Prepared Native View median interaction: `19.33 ms`
-- Prepared Native View p95 interaction: `21.96 ms`
-- Prepared compute-only median: `1.41 ms`
-- Cold prepare: `25.76 ms`
-- Sample line parity mismatch: `15 / 240`
+| Platform | Device / build | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Render layout-only median | Compute-only median | Cold prepare | Line parity |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Android | Pixel 9 Pro emulator / Release | `23.17 ms` | `26.03 ms` | `19.45 ms` | `20.66 ms` | `1.89 ms` | `1.33 ms` | `43.56 ms` | `80 / 240 mismatch` |
+| iOS | iPhone 16 simulator / Release | `154.58 ms` | `310.06 ms` | `92.63 ms` | `137.20 ms` | `13.92 ms` | `13.56 ms` | `340.88 ms` | `35 / 240 mismatch` |
 
-Interpretation:
+Current reading of the numbers:
 
-- the prepared native view path currently beats plain RN `<Text>` end-to-end in the local release benchmark
-- the architecture shows value mainly when prepared state is consumed directly by a renderer
-- hot relayout is no longer the ultra-fast greedy prototype; accuracy was improved by moving to platform-native line breaking, so there is a real speed vs parity tradeoff
+- the prepared native view path is already faster than plain RN `<Text>` in the repeated-relayout benchmark on both local release runs
+- most cold cost is still in native measurement during `prepare*()`, not in JS object construction
+- the renderer-oriented path is where the architecture currently pays off; `PreparedParagraphText` exists as a compatibility helper, but the main performance win comes from consuming prepared state directly from native
+- line parity is not perfect yet, so these numbers show structural value, not final quality parity
 
 Do not treat these numbers as universal. Compare on the same device, same build type, same font, and same corpus.
 
 ## Relationship to Pretext
 
-This project is currently similar to `pretext` in one specific area:
+This project is currently similar to `pretext` in the following areas:
 
 - `prepare once + layout many`
 - expose line layout output from prepared state
@@ -220,7 +239,13 @@ This project is currently similar to `pretext` in one specific area:
 - support simple shape-aware relayout and line-break policy overrides
 - amortize cold preparation over repeated relayouts
 
-It is not yet equivalent to `pretext` as a full feature set. The current implementation is closer to a React Native native paragraph engine prototype than a full `pretext` clone.
+The key difference is the target architecture. The current implementation is explicitly renderer-oriented:
+
+- mount 전에 paragraph geometry 를 얻고
+- 같은 prepared paragraph state 를 여러 width / shape 에 대해 다시 흘리고
+- `PreparedParagraphView`, custom native paragraph views, and future renderer paths that can consume precomputed line ranges directly
+
+It is not yet equivalent to `pretext` as a full feature set. The current implementation is closer to a React Native native paragraph engine prototype than a full `pretext` clone, and today the clearest win appears when prepared state is consumed directly by a native renderer instead of being rematerialized back into plain RN `<Text>`.
 
 ## Development
 
