@@ -74,7 +74,16 @@ Useful commands:
 yarn ios:signing
 yarn ios:signing:write
 yarn ios:match
+yarn start
+yarn ios
+yarn ios:device
 ```
+
+Run `yarn start` in one terminal first, then run `yarn ios` in another terminal.
+The `ios` script always targets a simulator and defaults to `iPhone 16`.
+If you want a different simulator, set `IOS_SIMULATOR` first.
+Use `yarn ios:device` only when you intentionally want to install on a connected device.
+The iOS scripts use `--no-packager`, so they won't try to open a new terminal window for Metro.
 
 If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
 
