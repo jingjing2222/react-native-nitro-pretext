@@ -1,59 +1,65 @@
-import { Text, View, StyleSheet } from "react-native";
-import { measure, measureBatch } from "react-native-nitro-pretext";
+import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+
+import type { AppStackParamList } from "./benchmark/types";
+import { BenchmarkResultsProvider } from "./context/BenchmarkResultsContext";
+import { BaseTextBenchmarkScreen } from "./screens/BaseTextBenchmarkScreen";
+import { HomeScreen } from "./screens/HomeScreen";
+import { PreparedParagraphViewBenchmarkScreen } from "./screens/PreparedParagraphViewBenchmarkScreen";
+
+const Stack = createNativeStackNavigator<AppStackParamList>();
+
+const navigationTheme = {
+  ...DefaultTheme,
+  colors: {
+    ...DefaultTheme.colors,
+    background: "#f3eee5",
+    card: "#f3eee5",
+    text: "#1f2725",
+    border: "#e6ddcd",
+  },
+};
 
 export default function App() {
-  const titleWidth = measure(
-    "React Native Nitro Pretext",
-    "System",
-    24,
-  ).toFixed(2);
-  const sampleWords = ["Typography", "Kerning", "Ligature"];
-  const sampleWidths = measureBatch(sampleWords, "System", 18);
-
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>TextMeasure via Nitro</Text>
-      <Text style={styles.subtitle}>
-        measure("React Native Nitro Pretext", 24)
-      </Text>
-      <Text style={styles.value}>{titleWidth}px</Text>
-      {sampleWords.map((word, index) => (
-        <Text key={word} style={styles.row}>
-          {word}: {(sampleWidths[index] ?? 0).toFixed(2)}px
-        </Text>
-      ))}
-    </View>
+    <SafeAreaProvider>
+      <BenchmarkResultsProvider>
+        <NavigationContainer theme={navigationTheme}>
+          <Stack.Navigator
+            initialRouteName="Home"
+            screenOptions={{
+              headerShadowVisible: false,
+              headerStyle: {
+                backgroundColor: "#f3eee5",
+              },
+              headerTintColor: "#1f2725",
+              headerTitleStyle: {
+                fontWeight: "800",
+              },
+              contentStyle: {
+                backgroundColor: "#f3eee5",
+              },
+            }}
+          >
+            <Stack.Screen
+              component={HomeScreen}
+              name="Home"
+              options={{ title: "Text Relayout Benchmark" }}
+            />
+            <Stack.Screen
+              component={BaseTextBenchmarkScreen}
+              name="BaseText"
+              options={{ title: "BaseText Page" }}
+            />
+            <Stack.Screen
+              component={PreparedParagraphViewBenchmarkScreen}
+              name="PreparedView"
+              options={{ title: "Prepared View Page" }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </BenchmarkResultsProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 24,
-    backgroundColor: "#f8f7f4",
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1f2937",
-  },
-  subtitle: {
-    marginTop: 12,
-    fontSize: 14,
-    color: "#6b7280",
-  },
-  value: {
-    marginTop: 6,
-    marginBottom: 16,
-    fontSize: 28,
-    fontWeight: "600",
-    color: "#111827",
-  },
-  row: {
-    fontSize: 16,
-    color: "#374151",
-    marginTop: 8,
-  },
-});

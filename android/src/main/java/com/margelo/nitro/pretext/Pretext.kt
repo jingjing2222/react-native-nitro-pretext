@@ -1,40 +1,53 @@
 package com.margelo.nitro.pretext
-  
-import android.graphics.Paint
-import android.graphics.Typeface
+
 import com.facebook.proguard.annotations.DoNotStrip
 
 @DoNotStrip
 class Pretext : HybridPretextSpec() {
   override fun measure(text: String, fontFamily: String, fontSize: Double): Double {
-    val paint = Paint().apply {
-      textSize = fontSize.toFloat()
-      typeface = resolveTypeface(fontFamily)
-      isAntiAlias = true
-    }
-    return paint.measureText(text).toDouble()
+    return PretextShared.measure(text, fontFamily, fontSize)
   }
 
   override fun measureBatch(texts: Array<String>, fontFamily: String, fontSize: Double): DoubleArray {
-    val paint = Paint().apply {
-      textSize = fontSize.toFloat()
-      typeface = resolveTypeface(fontFamily)
-      isAntiAlias = true
-    }
-    return DoubleArray(texts.size) { index -> paint.measureText(texts[index]).toDouble() }
+    return PretextShared.measureBatch(texts, fontFamily, fontSize)
   }
 
-  private fun resolveTypeface(fontFamily: String): Typeface {
-    return when (fontFamily.lowercase()) {
-      "system", "default", "" -> Typeface.DEFAULT
-      "serif" -> Typeface.SERIF
-      "monospace" -> Typeface.MONOSPACE
-      else ->
-        try {
-          Typeface.create(fontFamily, Typeface.NORMAL)
-        } catch (_: Exception) {
-          Typeface.DEFAULT
-        }
-    }
+  override fun prepareParagraphs(
+    texts: Array<String>,
+    style: ParagraphStyle,
+  ): PreparedParagraphState {
+    return prepareParagraphsWithStats(texts, style).prepared
+  }
+
+  override fun prepareParagraphsWithStats(
+    texts: Array<String>,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    return PretextShared.prepareParagraphsWithStats(texts, style)
+  }
+
+  override fun layoutParagraphs(
+    preparedId: Double,
+    width: Double,
+  ): Array<LaidOutParagraph> {
+    return PretextShared.layoutParagraphs(preparedId, width)
+  }
+
+  override fun layoutParagraphsMetadata(
+    preparedId: Double,
+    width: Double,
+  ): Array<LaidOutParagraphMetrics> {
+    return PretextShared.layoutParagraphsMetadata(preparedId, width)
+  }
+
+  override fun layoutParagraphLines(
+    preparedId: Double,
+    width: Double,
+  ): Array<LaidOutParagraphLines> {
+    return PretextShared.layoutParagraphLines(preparedId, width)
+  }
+
+  override fun releaseParagraphs(preparedId: Double) {
+    PretextShared.releaseParagraphs(preparedId)
   }
 }
