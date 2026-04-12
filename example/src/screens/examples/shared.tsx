@@ -1,4 +1,4 @@
-import type { DependencyList, ReactNode } from "react";
+import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   Pressable,
@@ -63,37 +63,39 @@ export function useExampleWidthSelection() {
   };
 }
 
-function usePreparedResult(
-  factory: () => PreparedParagraphResult,
-  deps: DependencyList,
-) {
+export function usePreparedParagraphExample(text: string) {
   const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
     null,
   );
 
   useEffect(() => {
-    const nextPrepared = factory();
+    const nextPrepared = prepareParagraphsWithStats([text], BENCHMARK_STYLE);
     setPrepared(nextPrepared);
     return () => {
       releaseParagraphs(nextPrepared.prepared.id);
     };
-  }, deps);
+  }, [text]);
 
   return prepared;
 }
 
-export function usePreparedParagraphExample(text: string) {
-  return usePreparedResult(
-    () => prepareParagraphsWithStats([text], BENCHMARK_STYLE),
-    [text],
-  );
-}
-
 export function usePreparedInlineExample(paragraph: InlineSegment[]) {
-  return usePreparedResult(
-    () => prepareInlineParagraphsWithStats([paragraph], BENCHMARK_STYLE),
-    [paragraph],
+  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
+    null,
   );
+
+  useEffect(() => {
+    const nextPrepared = prepareInlineParagraphsWithStats(
+      [paragraph],
+      BENCHMARK_STYLE,
+    );
+    setPrepared(nextPrepared);
+    return () => {
+      releaseParagraphs(nextPrepared.prepared.id);
+    };
+  }, [paragraph]);
+
+  return prepared;
 }
 
 export function ExamplePageShell({
