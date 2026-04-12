@@ -1,6 +1,6 @@
 {
   "name": "react-native-pretext",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "React Native port of pretext with native text measurement backends for accurate multiline layout",
   "keywords": [
     "android",
