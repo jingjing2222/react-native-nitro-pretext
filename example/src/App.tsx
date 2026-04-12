@@ -1,15 +1,21 @@
 import { Text, View, StyleSheet } from "react-native";
-import { measure, measureBatch } from "react-native-pretext";
+import { measure, measureBatch } from "react-native-nitro-pretext";
 
 export default function App() {
-  const titleWidth = measure("React Native Pretext", "System", 24).toFixed(2);
+  const titleWidth = measure(
+    "React Native Nitro Pretext",
+    "System",
+    24,
+  ).toFixed(2);
   const sampleWords = ["Typography", "Kerning", "Ligature"];
   const sampleWidths = measureBatch(sampleWords, "System", 18);
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>TextMeasure via Nitro</Text>
-      <Text style={styles.subtitle}>measure("React Native Pretext", 24)</Text>
+      <Text style={styles.subtitle}>
+        measure("React Native Nitro Pretext", 24)
+      </Text>
       <Text style={styles.value}>{titleWidth}px</Text>
       {sampleWords.map((word, index) => (
         <Text key={word} style={styles.row}>

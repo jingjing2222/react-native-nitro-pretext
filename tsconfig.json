@@ -2,7 +2,7 @@
   "compilerOptions": {
     "rootDir": ".",
     "paths": {
-      "react-native-pretext": ["./src/index"]
+      "react-native-nitro-pretext": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,

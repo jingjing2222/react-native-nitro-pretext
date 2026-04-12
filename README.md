@@ -1,11 +1,11 @@
-# react-native-pretext
+# react-native-nitro-pretext
 
 React Native port of pretext with native text measurement backends for accurate multiline layout
 
 ## Installation
 
 ```sh
-npm install react-native-pretext react-native-nitro-modules
+npm install react-native-nitro-pretext react-native-nitro-modules
 
 > `react-native-nitro-modules` is required as this library relies on [Nitro Modules](https://nitro.margelo.com/).
 ```
@@ -13,7 +13,7 @@ npm install react-native-pretext react-native-nitro-modules
 ## Usage
 
 ```ts
-import { measure, measureBatch } from "react-native-pretext";
+import { measure, measureBatch } from "react-native-nitro-pretext";
 
 // ...
 

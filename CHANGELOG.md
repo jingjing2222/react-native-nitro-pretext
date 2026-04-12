@@ -1,4 +1,4 @@
-# react-native-pretext
+# react-native-nitro-pretext
 
 ## 0.0.1
 

@@ -7879,9 +7879,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-pretext-example@workspace:example":
+"react-native-nitro-pretext-example@workspace:example":
   version: 0.0.0-use.local
-  resolution: "react-native-pretext-example@workspace:example"
+  resolution: "react-native-nitro-pretext-example@workspace:example"
   dependencies:
     "@babel/core": "npm:^7.25.2"
     "@babel/preset-env": "npm:^7.25.3"
@@ -7902,9 +7902,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"react-native-pretext@workspace:.":
+"react-native-nitro-pretext@workspace:.":
   version: 0.0.0-use.local
-  resolution: "react-native-pretext@workspace:."
+  resolution: "react-native-nitro-pretext@workspace:."
   dependencies:
     "@changesets/cli": "npm:^2.30.0"
     "@jest/globals": "npm:^30.0.0"

@@ -1,5 +1,5 @@
 {
-  "name": "react-native-pretext",
+  "name": "react-native-nitro-pretext",
   "version": "0.0.1",
   "description": "React Native port of pretext with native text measurement backends for accurate multiline layout",
   "keywords": [
@@ -7,15 +7,15 @@
     "ios",
     "react-native"
   ],
-  "homepage": "https://github.com/jingjing2222/react-native-pretext#readme",
+  "homepage": "https://github.com/jingjing2222/react-native-nitro-pretext#readme",
   "bugs": {
-    "url": "https://github.com/jingjing2222/react-native-pretext/issues"
+    "url": "https://github.com/jingjing2222/react-native-nitro-pretext/issues"
   },
   "license": "MIT",
   "author": "jingjing2222 <hj.jingjing2222@gmail.com> (https://github.com/jingjing2222)",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jingjing2222/react-native-pretext.git"
+    "url": "git+https://github.com/jingjing2222/react-native-nitro-pretext.git"
   },
   "workspaces": [
     ".",
@@ -58,8 +58,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "example:ios": "yarn workspace react-native-pretext-example ios",
-    "example:android": "yarn workspace react-native-pretext-example android",
+    "example:ios": "yarn workspace react-native-nitro-pretext-example ios",
+    "example:android": "yarn workspace react-native-nitro-pretext-example android",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",
     "build": "del-cli lib dist && bob build && tsc -p tsconfig.build.json",
     "prepack": "yarn build",
