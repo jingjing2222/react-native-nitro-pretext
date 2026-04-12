@@ -12,12 +12,13 @@ npm install react-native-pretext react-native-nitro-modules
 
 ## Usage
 
-```js
-import { multiply } from "react-native-pretext";
+```ts
+import { measure, measureBatch } from "react-native-pretext";
 
 // ...
 
-const result = multiply(3, 7);
+const width = measure("Pretext", "System", 16);
+const widths = measureBatch(["One", "Two"], "System", 16);
 ```
 
 ## Contributing

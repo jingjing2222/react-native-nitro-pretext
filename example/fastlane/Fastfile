@@ -1,0 +1,27 @@
+default_platform(:ios)
+
+def signing_repo_headers
+  basic = ENV["SIGNING_FASTLANE_GIT_BASIC_AUTHORIZATION"] || ENV["MATCH_GIT_BASIC_AUTHORIZATION"]
+  return [] if basic.to_s.empty?
+
+  ["Authorization: Basic #{basic}"]
+end
+
+before_all do
+  # Use a temporary CI keychain so match can import certificates non-interactively.
+  setup_ci if is_ci
+end
+
+signing_fastfile_options = {
+  url: ENV.fetch("SIGNING_FASTLANE_REPO_URL", "https://github.com/jingjing2222/ios-certificate.git"),
+  branch: ENV.fetch("SIGNING_FASTLANE_REPO_BRANCH", "main"),
+  path: ENV.fetch("SIGNING_FASTLANE_REPO_PATH", "fastlane/Fastfile")
+}
+
+cache_path = ENV["SIGNING_FASTLANE_CACHE_PATH"]
+signing_fastfile_options[:cache_path] = cache_path unless cache_path.to_s.empty?
+
+headers = signing_repo_headers
+signing_fastfile_options[:git_extra_headers] = headers unless headers.empty?
+
+import_from_git(**signing_fastfile_options)

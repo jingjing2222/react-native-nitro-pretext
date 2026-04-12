@@ -6,7 +6,7 @@ We want this community to be friendly and respectful to each other. Please follo
 
 ## Development workflow
 
-This project is a monorepo managed using [Yarn workspaces](https://yarnpkg.com/features/workspaces). It contains the following packages:
+This project is a single library package with a Yarn workspace for the example app. It contains:
 
 - The library package in the root directory.
 - An example app in the `example/` directory.
@@ -78,6 +78,12 @@ Make sure your code passes TypeScript:
 yarn typecheck
 ```
 
+Make sure the package still builds:
+
+```sh
+yarn build
+```
+
 Remember to add tests for your change if possible. Run the unit tests by:
 
 ```sh
@@ -89,11 +95,29 @@ yarn test
 The `package.json` file contains various scripts for common tasks:
 
 - `yarn`: setup project by installing dependencies.
+- `yarn build`: build the package with Bob and regenerate Nitro outputs.
 - `yarn typecheck`: type-check files with TypeScript.
-  - `yarn test`: run unit tests with [Jest](https://jestjs.io/).
-  - `yarn example start`: start the Metro server for the example app.
+- `yarn test`: run unit tests with [Jest](https://jestjs.io/).
+- `yarn changeset`: create a release note and version bump entry for publishable changes.
+- `yarn version-packages`: apply pending Changesets locally.
+- `yarn example start`: start the Metro server for the example app.
 - `yarn example android`: run the example app on Android.
 - `yarn example ios`: run the example app on iOS.
+
+### Releases
+
+This repository uses [Changesets](https://github.com/changesets/changesets) for versioning and npm releases.
+The example app workspace is ignored for releases, so only the root `react-native-pretext` package is versioned and published.
+
+For any change that should ship to npm, add a Changeset:
+
+```sh
+yarn changeset
+```
+
+The `Release` GitHub workflow watches `main`. If there are unpublished Changesets, it opens or updates a release PR. When that PR is merged into `main`, the same workflow publishes the package to npm.
+
+To make the publish step work in GitHub Actions, configure an `NPM_TOKEN` repository secret with publish access to the npm package.
 
 ### Sending a pull request
 
