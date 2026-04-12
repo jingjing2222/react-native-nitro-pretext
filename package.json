@@ -59,7 +59,6 @@
     "example": "yarn workspace react-native-pretext-example",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib",
     "build": "bob build",
-    "prepare": "yarn build",
     "nitrogen": "nitrogen",
     "changeset": "changeset",
     "version-packages": "changeset version",
