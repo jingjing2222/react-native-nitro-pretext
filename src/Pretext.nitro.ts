@@ -4,5 +4,6 @@ export interface Pretext extends HybridObject<{
   ios: "swift";
   android: "kotlin";
 }> {
-  multiply(a: number, b: number): number;
+  measure(text: string, fontFamily: string, fontSize: number): number;
+  measureBatch(texts: string[], fontFamily: string, fontSize: number): number[];
 }
