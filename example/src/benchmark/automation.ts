@@ -180,7 +180,9 @@ export function createPreparedViewAutomationReport(args: {
     screen: "benchmark/prepared-view",
     status: args.status,
     tokenizeMs:
-      args.prepareState === null ? null : roundMetric(args.prepareState.tokenizeMs),
+      args.prepareState === null
+        ? null
+        : roundMetric(args.prepareState.tokenizeMs),
     totalRuns: args.totalRuns,
   };
 }
@@ -190,7 +192,9 @@ export function createCombinedBenchmarkAutomationReport(args: {
   preparedViewResults: PreparedViewResultState;
 }): CombinedAutomationReport {
   const baseSummary = serializeSummary(args.baselineResults.summary);
-  const renderSummary = serializeSummary(args.preparedViewResults.renderSummary);
+  const renderSummary = serializeSummary(
+    args.preparedViewResults.renderSummary,
+  );
   const computeSummary = serializeSummary(
     args.preparedViewResults.computeSummary,
   );
@@ -208,7 +212,9 @@ export function createCombinedBenchmarkAutomationReport(args: {
     renderSummary?.interactionP95Ms !== undefined &&
     baseSummary?.interactionP95Ms !== null &&
     baseSummary?.interactionP95Ms !== undefined
-      ? roundMetric(renderSummary.interactionP95Ms - baseSummary.interactionP95Ms)
+      ? roundMetric(
+          renderSummary.interactionP95Ms - baseSummary.interactionP95Ms,
+        )
       : null;
 
   return {
