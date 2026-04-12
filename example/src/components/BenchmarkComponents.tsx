@@ -302,9 +302,7 @@ const PreparedParagraphList = memo(function PreparedParagraphList({
           contentInsetVertical={PARAGRAPH_VERTICAL_PADDING}
           layoutWidth={layoutWidth}
           onLayout={() => onParagraphLayout(index)}
-          paragraphHeight={
-            (paragraphMetric ?? EMPTY_PREPARED_LAYOUT).height
-          }
+          paragraphHeight={(paragraphMetric ?? EMPTY_PREPARED_LAYOUT).height}
           paragraphIndex={index}
           paragraphStyle={BENCHMARK_STYLE}
           prepared={prepared}

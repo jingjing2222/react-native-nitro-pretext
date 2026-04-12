@@ -62,12 +62,13 @@ export function PreparedParagraphViewBenchmarkScreen() {
         <View style={styles.heroCard}>
           <Text style={styles.eyebrow}>benchmark/prepared-view</Text>
           <Text style={styles.title}>
-            Feed prepared paragraph state directly into a native paragraph surface.
+            Feed prepared paragraph state directly into a native paragraph
+            surface.
           </Text>
           <Text style={styles.subtitle}>
             This screen benchmarks the renderer-oriented path: prepared
-            paragraph state, native self-relayout, and one native paragraph
-            view per block.
+            paragraph state, native self-relayout, and one native paragraph view
+            per block.
           </Text>
 
           <View style={styles.metricRow}>

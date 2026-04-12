@@ -38,7 +38,9 @@ export function InlineSegmentsExampleScreen() {
       ) : (
         <View style={styles.stageCard}>
           <Text style={styles.stageLabel}>Inline Segments</Text>
-          <Text style={styles.stageTitle}>Non-breakable handle + wrapping body</Text>
+          <Text style={styles.stageTitle}>
+            Non-breakable handle + wrapping body
+          </Text>
           <View style={styles.exampleSurface}>
             <PreparedParagraphText
               allowFontScaling={false}

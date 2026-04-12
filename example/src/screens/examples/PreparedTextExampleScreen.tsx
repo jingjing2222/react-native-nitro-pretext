@@ -5,7 +5,13 @@ import {
 } from "react-native-nitro-pretext";
 
 import { styles } from "../../benchmark/constants";
-import { EXAMPLE_TEXT, ExamplePageShell, PreparingCard, useExampleWidthSelection, usePreparedParagraphExample } from "./shared";
+import {
+  EXAMPLE_TEXT,
+  ExamplePageShell,
+  PreparingCard,
+  useExampleWidthSelection,
+  usePreparedParagraphExample,
+} from "./shared";
 
 export function PreparedTextExampleScreen() {
   const prepared = usePreparedParagraphExample(EXAMPLE_TEXT);

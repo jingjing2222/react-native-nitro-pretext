@@ -6,7 +6,10 @@ import {
   type TextStyle,
 } from "react-native";
 
-import { createParagraphLayoutRequest, layoutParagraphsWithRequest } from "./TextMeasure";
+import {
+  createParagraphLayoutRequest,
+  layoutParagraphsWithRequest,
+} from "./TextMeasure";
 import type {
   ParagraphLayoutRequest,
   PreparedParagraphState,

@@ -214,10 +214,10 @@ The benchmark focuses on repeated width relayout, not first mount only.
 
 Latest checked local release snapshots on `2026-04-13`:
 
-| Platform | Device / build | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Render layout-only median | Compute-only median | Cold prepare | Line parity |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Android | Pixel 9 Pro emulator / Release | `23.17 ms` | `26.03 ms` | `19.45 ms` | `20.66 ms` | `1.89 ms` | `1.33 ms` | `43.56 ms` | `80 / 240 mismatch` |
-| iOS | iPhone 16 simulator / Release | `154.58 ms` | `310.06 ms` | `92.63 ms` | `137.20 ms` | `13.92 ms` | `13.56 ms` | `340.88 ms` | `35 / 240 mismatch` |
+| Platform | Device / build                 | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Render layout-only median | Compute-only median | Cold prepare | Line parity         |
+| -------- | ------------------------------ | --------------- | ------------ | -------------------- | ----------------- | ------------------------- | ------------------- | ------------ | ------------------- |
+| Android  | Pixel 9 Pro emulator / Release | `23.17 ms`      | `26.03 ms`   | `19.45 ms`           | `20.66 ms`        | `1.89 ms`                 | `1.33 ms`           | `43.56 ms`   | `80 / 240 mismatch` |
+| iOS      | iPhone 16 simulator / Release  | `154.58 ms`     | `310.06 ms`  | `92.63 ms`           | `137.20 ms`       | `13.92 ms`                | `13.56 ms`          | `340.88 ms`  | `35 / 240 mismatch` |
 
 Current reading of the numbers:
 

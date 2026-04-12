@@ -1,6 +1,12 @@
 import type { DependencyList, ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View, useWindowDimensions } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
 import {
   prepareInlineParagraphsWithStats,
   prepareParagraphsWithStats,
@@ -61,7 +67,9 @@ function usePreparedResult(
   factory: () => PreparedParagraphResult,
   deps: DependencyList,
 ) {
-  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(null);
+  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
+    null,
+  );
 
   useEffect(() => {
     const nextPrepared = factory();

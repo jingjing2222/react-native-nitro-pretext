@@ -6,10 +6,7 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import type {
-  ParagraphStyle,
-  PreparedParagraphState,
-} from "./Pretext.nitro";
+import type { ParagraphStyle, PreparedParagraphState } from "./Pretext.nitro";
 
 type NativePreparedParagraphViewProps = ViewProps & {
   contentInsetLeft: number;

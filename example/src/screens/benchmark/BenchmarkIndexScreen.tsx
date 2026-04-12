@@ -43,8 +43,9 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
             Benchmark routes stay isolated from API examples.
           </Text>
           <Text style={styles.subtitle}>
-            `benchmark/base-text` owns the RN Text baseline. `benchmark/prepared-view`
-            owns the prepared-state render and compute measurements.
+            `benchmark/base-text` owns the RN Text baseline.
+            `benchmark/prepared-view` owns the prepared-state render and compute
+            measurements.
           </Text>
         </View>
 

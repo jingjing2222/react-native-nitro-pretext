@@ -314,7 +314,9 @@ describe("react-native-nitro-pretext", () => {
   });
 
   it("forwards inline paragraph prepare calls to the Nitro hybrid object", () => {
-    const prepareInlineMock = jest.mocked(ParagraphEngine.prepareInlineParagraphs);
+    const prepareInlineMock = jest.mocked(
+      ParagraphEngine.prepareInlineParagraphs,
+    );
 
     expect(
       prepareInlineParagraphs(

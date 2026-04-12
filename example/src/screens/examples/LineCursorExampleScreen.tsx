@@ -84,7 +84,10 @@ export function LineCursorExampleScreen() {
       return null;
     }
 
-    return layoutParagraphLinesWithRequest(prepared.prepared.id, cursorRequest)[0] ?? null;
+    return (
+      layoutParagraphLinesWithRequest(prepared.prepared.id, cursorRequest)[0] ??
+      null
+    );
   }, [cursorRequest, prepared]);
 
   return (
@@ -120,12 +123,17 @@ export function LineCursorExampleScreen() {
           <View style={styles.summaryCard}>
             <Text style={styles.summaryLabel}>Cursor Output</Text>
             <Text style={styles.summaryDescription}>
-              `createParagraphLineCursor()` streams line ranges one by one from the same request-based relayout.
+              `createParagraphLineCursor()` streams line ranges one by one from
+              the same request-based relayout.
             </Text>
             <View style={styles.summaryMetricList}>
               <SummaryMetric
                 label="Materialized lines"
-                value={cursorParagraph === null ? "—" : String(cursorParagraph.lines.length)}
+                value={
+                  cursorParagraph === null
+                    ? "—"
+                    : String(cursorParagraph.lines.length)
+                }
               />
               <SummaryMetric
                 label="Cursor lines"

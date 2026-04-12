@@ -59,10 +59,7 @@ export function HomeScreen({ navigation }: Props) {
               label="Corpus"
               value={`${BENCHMARK_PARAGRAPH_COUNT} paragraphs`}
             />
-            <MetricPill
-              label="Routes"
-              value="benchmark/* / examples/*"
-            />
+            <MetricPill label="Routes" value="benchmark/* / examples/*" />
             <MetricPill
               label="Runs"
               value={`${BENCHMARK_WARMUP_RUNS} warmup + ${BENCHMARK_MEASURED_RUNS} measured`}

@@ -26,8 +26,8 @@ export function ExampleIndexScreen({ navigation }: Props) {
             Example routes stay focused on API and renderer usage.
           </Text>
           <Text style={styles.subtitle}>
-            These screens are not benchmark runs. Each page demonstrates one
-            API or renderer surface without sharing a catch-all detail page.
+            These screens are not benchmark runs. Each page demonstrates one API
+            or renderer surface without sharing a catch-all detail page.
           </Text>
         </View>
 
