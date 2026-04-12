@@ -19,11 +19,25 @@ class Pretext : HybridPretextSpec() {
     return prepareParagraphsWithStats(texts, style).prepared
   }
 
+  override fun prepareInlineParagraphs(
+    paragraphs: Array<Array<InlineSegment>>,
+    style: ParagraphStyle,
+  ): PreparedParagraphState {
+    return prepareInlineParagraphsWithStats(paragraphs, style).prepared
+  }
+
   override fun prepareParagraphsWithStats(
     texts: Array<String>,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
     return PretextShared.prepareParagraphsWithStats(texts, style)
+  }
+
+  override fun prepareInlineParagraphsWithStats(
+    paragraphs: Array<Array<InlineSegment>>,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    return PretextShared.prepareInlineParagraphsWithStats(paragraphs, style)
   }
 
   override fun layoutParagraphs(

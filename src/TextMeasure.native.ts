@@ -1,5 +1,6 @@
 import { NitroModules } from "react-native-nitro-modules";
 import type {
+  InlineSegment,
   ParagraphLineCursorState,
   ParagraphLineCursorStep,
   ParagraphLayoutRequest,
@@ -42,11 +43,25 @@ export function prepareParagraphs(
   return ParagraphEngine.prepareParagraphs(texts, style);
 }
 
+export function prepareInlineParagraphs(
+  paragraphs: InlineSegment[][],
+  style: ParagraphStyle,
+): PreparedParagraphState {
+  return ParagraphEngine.prepareInlineParagraphs(paragraphs, style);
+}
+
 export function prepareParagraphsWithStats(
   texts: string[],
   style: ParagraphStyle,
 ): PreparedParagraphResult {
   return ParagraphEngine.prepareParagraphsWithStats(texts, style);
+}
+
+export function prepareInlineParagraphsWithStats(
+  paragraphs: InlineSegment[][],
+  style: ParagraphStyle,
+): PreparedParagraphResult {
+  return ParagraphEngine.prepareInlineParagraphsWithStats(paragraphs, style);
 }
 
 export function layoutParagraphs(
@@ -153,6 +168,7 @@ export function layoutPreparedBenchmarkCorpus(
 }
 
 export type {
+  InlineSegment,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,

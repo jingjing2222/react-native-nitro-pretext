@@ -26,6 +26,25 @@ jest.mock("react-native-nitro-modules", () => ({
           uniqueTokenCount: 8,
         },
       })),
+      prepareInlineParagraphs: jest.fn(() => ({
+        id: 13,
+        paragraphCount: 1,
+      })),
+      prepareInlineParagraphsWithStats: jest.fn(() => ({
+        prepared: {
+          id: 13,
+          paragraphCount: 1,
+        },
+        stats: {
+          tokenizeMs: 1.1,
+          measurementMs: 2.2,
+          buildPreparedMs: 0.4,
+          totalMs: 3.7,
+          paragraphCount: 1,
+          totalTokenCount: 5,
+          uniqueTokenCount: 3,
+        },
+      })),
       layoutParagraphs: jest.fn(() => [
         {
           brokenText: "alpha\nbeta",
@@ -170,6 +189,8 @@ import {
   measureBatch,
   nextParagraphLine,
   ParagraphEngine,
+  prepareInlineParagraphs,
+  prepareInlineParagraphsWithStats,
   prepareParagraphs,
   prepareParagraphsWithStats,
   prepareBenchmarkCorpus,
@@ -290,6 +311,89 @@ describe("react-native-nitro-pretext", () => {
       letterSpacing: 0,
       locale: "ko-KR",
     });
+  });
+
+  it("forwards inline paragraph prepare calls to the Nitro hybrid object", () => {
+    const prepareInlineMock = jest.mocked(ParagraphEngine.prepareInlineParagraphs);
+
+    expect(
+      prepareInlineParagraphs(
+        [
+          [
+            { text: "@mention", breakBehavior: "never" },
+            { text: " moves with the next word", breakBehavior: "normal" },
+          ],
+        ],
+        {
+          fontFamily: "System",
+          fontSize: 16,
+          lineHeight: 24,
+          letterSpacing: 0,
+          locale: "ko-KR",
+        },
+      ),
+    ).toEqual({
+      id: 13,
+      paragraphCount: 1,
+    });
+    expect(prepareInlineMock).toHaveBeenCalledWith(
+      [
+        [
+          { text: "@mention", breakBehavior: "never" },
+          { text: " moves with the next word", breakBehavior: "normal" },
+        ],
+      ],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 24,
+        letterSpacing: 0,
+        locale: "ko-KR",
+      },
+    );
+  });
+
+  it("returns stats for inline paragraph preparation", () => {
+    const prepareInlineWithStatsMock = jest.mocked(
+      ParagraphEngine.prepareInlineParagraphsWithStats,
+    );
+
+    expect(
+      prepareInlineParagraphsWithStats(
+        [[{ text: "@mention", breakBehavior: "never" }]],
+        {
+          fontFamily: "System",
+          fontSize: 16,
+          lineHeight: 24,
+          letterSpacing: 0,
+          locale: "ko-KR",
+        },
+      ),
+    ).toEqual({
+      prepared: {
+        id: 13,
+        paragraphCount: 1,
+      },
+      stats: {
+        tokenizeMs: 1.1,
+        measurementMs: 2.2,
+        buildPreparedMs: 0.4,
+        totalMs: 3.7,
+        paragraphCount: 1,
+        totalTokenCount: 5,
+        uniqueTokenCount: 3,
+      },
+    });
+    expect(prepareInlineWithStatsMock).toHaveBeenCalledWith(
+      [[{ text: "@mention", breakBehavior: "never" }]],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 24,
+        letterSpacing: 0,
+        locale: "ko-KR",
+      },
+    );
   });
 
   it("forwards paragraph layout calls to the Nitro hybrid object", () => {

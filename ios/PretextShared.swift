@@ -7,6 +7,7 @@ internal let whiteSpaceNormal = "normal"
 internal let whiteSpacePre = "pre"
 internal let wordBreakNormal = "normal"
 internal let wordBreakBreakAll = "break-all"
+internal let breakBehaviorNever = "never"
 
 internal struct NativeTokenDescriptor {
     let text: String
@@ -21,15 +22,33 @@ internal struct NativePreparedToken {
     let width: Double
 }
 
+internal struct NativePreparedParagraphSeed {
+    let text: String
+    let tokens: [NativeTokenDescriptor]
+    let breakUnits: [NativeTokenDescriptor]
+    let textUnits: Int
+    let forceTokenLayout: Bool
+}
+
 internal final class NativePreparedParagraph {
     let text: NSString
     let typesetter: CTTypesetter?
     let tokens: [NativePreparedToken]
+    let breakUnits: [NativePreparedToken]
+    let forceTokenLayout: Bool
 
-    init(text: String, typesetter: CTTypesetter?, tokens: [NativePreparedToken]) {
+    init(
+        text: String,
+        typesetter: CTTypesetter?,
+        tokens: [NativePreparedToken],
+        breakUnits: [NativePreparedToken],
+        forceTokenLayout: Bool
+    ) {
         self.text = text as NSString
         self.typesetter = typesetter
         self.tokens = tokens
+        self.breakUnits = breakUnits
+        self.forceTokenLayout = forceTokenLayout
     }
 }
 
@@ -124,27 +143,53 @@ internal final class PretextShared {
         texts: [String],
         style: ParagraphStyle
     ) -> PreparedParagraphResult {
+        let analyzedParagraphs = texts.map { text in
+            NativePreparedParagraphSeed(
+                text: text,
+                tokens: tokenize(text),
+                breakUnits: tokenizeBreakUnits(text),
+                textUnits: text.utf16.count,
+                forceTokenLayout: false
+            )
+        }
+        return prepareParagraphSeedsWithStats(analyzedParagraphs, style: style)
+    }
+
+    func prepareInlineParagraphsWithStats(
+        paragraphs: [[InlineSegment]],
+        style: ParagraphStyle
+    ) -> PreparedParagraphResult {
+        let analyzedParagraphs = paragraphs.map { paragraph in
+            prepareInlineParagraphSeed(paragraph)
+        }
+        return prepareParagraphSeedsWithStats(analyzedParagraphs, style: style)
+    }
+
+    private func prepareParagraphSeedsWithStats(
+        _ analyzedParagraphs: [NativePreparedParagraphSeed],
+        style: ParagraphStyle
+    ) -> PreparedParagraphResult {
         let prepareStartedAt = nowMs()
         let font = resolveFont(fontFamily: style.fontFamily, fontSize: style.fontSize)
         let lineHeight = resolvedLineHeight(style.lineHeight, font: font)
 
         let analyzeStartedAt = nowMs()
-        let totalTokenCount = texts.reduce(0) { partialResult, text in
-            partialResult + text.utf16.count
+        let totalTokenCount = analyzedParagraphs.reduce(0) { partialResult, paragraph in
+            partialResult + paragraph.textUnits
         }
         let analyzeMs = nowMs() - analyzeStartedAt
 
         let measurementStartedAt = nowMs()
-        let paragraphs = texts.map { text in
+        let paragraphs = analyzedParagraphs.map { paragraph in
             NativePreparedParagraph(
-                text: text,
-                typesetter: createTypesetter(
-                    text: text,
+                text: paragraph.text,
+                typesetter: paragraph.forceTokenLayout ? nil : createTypesetter(
+                    text: paragraph.text,
                     font: font,
                     letterSpacing: style.letterSpacing,
                     locale: style.locale
                 ),
-                tokens: tokenize(text).map { token in
+                tokens: paragraph.tokens.map { token in
                     NativePreparedToken(
                         text: token.text,
                         startUTF16: token.startUTF16,
@@ -158,7 +203,23 @@ internal final class PretextShared {
                                 locale: style.locale
                             )
                     )
-                }
+                },
+                breakUnits: paragraph.breakUnits.map { token in
+                    NativePreparedToken(
+                        text: token.text,
+                        startUTF16: token.startUTF16,
+                        endUTF16: token.endUTF16,
+                        width: token.text == newlineToken
+                            ? 0
+                            : measureToken(
+                                token.text,
+                                font: font,
+                                letterSpacing: style.letterSpacing,
+                                locale: style.locale
+                            )
+                    )
+                },
+                forceTokenLayout: paragraph.forceTokenLayout
             )
         }
         let measurementMs = nowMs() - measurementStartedAt
@@ -190,6 +251,31 @@ internal final class PretextShared {
         return PreparedParagraphResult(
             prepared: preparedState,
             stats: stats
+        )
+    }
+
+    private func prepareInlineParagraphSeed(
+        _ paragraph: [InlineSegment]
+    ) -> NativePreparedParagraphSeed {
+        var text = ""
+        var tokens: [NativeTokenDescriptor] = []
+        var breakUnits: [NativeTokenDescriptor] = []
+
+        for segment in paragraph {
+            appendInlineSegment(
+                segment,
+                text: &text,
+                tokens: &tokens,
+                breakUnits: &breakUnits
+            )
+        }
+
+        return NativePreparedParagraphSeed(
+            text: text,
+            tokens: tokens,
+            breakUnits: breakUnits,
+            textUnits: text.utf16.count,
+            forceTokenLayout: true
         )
     }
 
@@ -502,8 +588,9 @@ internal final class PretextShared {
         lineHeight: Double,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
-        guard let typesetter = prepared.typesetter else {
-            return layoutLineLayoutsFallback(prepared.tokens, lineHeight: lineHeight, request: request)
+        guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout else {
+            let tokens = request.wordBreak == wordBreakBreakAll ? prepared.breakUnits : prepared.tokens
+            return layoutLineLayoutsFallback(tokens, lineHeight: lineHeight, request: request)
         }
 
         var lines: [NativeLineLayout] = []
@@ -798,6 +885,103 @@ internal final class PretextShared {
 
         flushCurrent()
         return tokens
+    }
+
+    private func tokenizeBreakUnits(_ text: String) -> [NativeTokenDescriptor] {
+        let nsText = text as NSString
+        guard nsText.length > 0 else {
+            return []
+        }
+
+        var tokens: [NativeTokenDescriptor] = []
+        var cursor = 0
+        while cursor < nsText.length {
+            let range = nsText.rangeOfComposedCharacterSequence(at: cursor)
+            tokens.append(
+                NativeTokenDescriptor(
+                    text: nsText.substring(with: range),
+                    startUTF16: range.location,
+                    endUTF16: range.location + range.length
+                )
+            )
+            cursor = range.location + range.length
+        }
+        return tokens
+    }
+
+    private func appendInlineSegment(
+        _ segment: InlineSegment,
+        text: inout String,
+        tokens: inout [NativeTokenDescriptor],
+        breakUnits: inout [NativeTokenDescriptor]
+    ) {
+        let baseOffset = (text as NSString).length
+        text += segment.text
+
+        if segment.breakBehavior.lowercased() == breakBehaviorNever {
+            appendNeverBreakTokens(segment.text, baseOffset: baseOffset, output: &tokens)
+            appendNeverBreakTokens(segment.text, baseOffset: baseOffset, output: &breakUnits)
+            return
+        }
+
+        tokens += tokenize(segment.text).map { token in
+            NativeTokenDescriptor(
+                text: token.text,
+                startUTF16: token.startUTF16 + baseOffset,
+                endUTF16: token.endUTF16 + baseOffset
+            )
+        }
+        breakUnits += tokenizeBreakUnits(segment.text).map { token in
+            NativeTokenDescriptor(
+                text: token.text,
+                startUTF16: token.startUTF16 + baseOffset,
+                endUTF16: token.endUTF16 + baseOffset
+            )
+        }
+    }
+
+    private func appendNeverBreakTokens(
+        _ text: String,
+        baseOffset: Int,
+        output: inout [NativeTokenDescriptor]
+    ) {
+        let nsText = text as NSString
+        var localStart = 0
+
+        while localStart < nsText.length {
+            let remainingRange = NSRange(location: localStart, length: nsText.length - localStart)
+            let nextNewline = nsText.range(of: newlineToken, options: [], range: remainingRange)
+
+            if nextNewline.location == NSNotFound {
+                output.append(
+                    NativeTokenDescriptor(
+                        text: nsText.substring(with: remainingRange),
+                        startUTF16: baseOffset + localStart,
+                        endUTF16: baseOffset + nsText.length
+                    )
+                )
+                break
+            }
+
+            if nextNewline.location > localStart {
+                output.append(
+                    NativeTokenDescriptor(
+                        text: nsText.substring(with: NSRange(location: localStart, length: nextNewline.location - localStart)),
+                        startUTF16: baseOffset + localStart,
+                        endUTF16: baseOffset + nextNewline.location
+                    )
+                )
+            }
+
+            output.append(
+                NativeTokenDescriptor(
+                    text: newlineToken,
+                    startUTF16: baseOffset + nextNewline.location,
+                    endUTF16: baseOffset + nextNewline.location + nextNewline.length
+                )
+            )
+            localStart = nextNewline.location + nextNewline.length
+        }
     }
 
     private func sumHeights(_ lineLayouts: [NativeLineLayout]) -> Double {

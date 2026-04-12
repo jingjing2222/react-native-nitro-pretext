@@ -13,6 +13,8 @@ export {
   measureBatch,
   nextParagraphLine,
   ParagraphEngine,
+  prepareInlineParagraphs,
+  prepareInlineParagraphsWithStats,
   prepareParagraphs,
   prepareParagraphsWithStats,
   prepareBenchmarkCorpus,
@@ -23,7 +25,12 @@ export {
 } from "./TextMeasure";
 export { PreparedParagraphView } from "./PreparedParagraphView";
 export type { PreparedParagraphViewProps } from "./PreparedParagraphView";
+export {
+  PreparedParagraphText,
+  type PreparedParagraphTextProps,
+} from "./PreparedParagraphText";
 export type {
+  InlineSegment,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,

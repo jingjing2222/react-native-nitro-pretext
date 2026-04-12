@@ -16,11 +16,25 @@ class Pretext: HybridPretextSpec {
         try prepareParagraphsWithStats(texts: texts, style: style).prepared
     }
 
+    public func prepareInlineParagraphs(
+        paragraphs: [[InlineSegment]],
+        style: ParagraphStyle
+    ) throws -> PreparedParagraphState {
+        try prepareInlineParagraphsWithStats(paragraphs: paragraphs, style: style).prepared
+    }
+
     public func prepareParagraphsWithStats(
         texts: [String],
         style: ParagraphStyle
     ) throws -> PreparedParagraphResult {
         PretextShared.shared.prepareParagraphsWithStats(texts: texts, style: style)
+    }
+
+    public func prepareInlineParagraphsWithStats(
+        paragraphs: [[InlineSegment]],
+        style: ParagraphStyle
+    ) throws -> PreparedParagraphResult {
+        PretextShared.shared.prepareInlineParagraphsWithStats(paragraphs: paragraphs, style: style)
     }
 
     public func layoutParagraphs(

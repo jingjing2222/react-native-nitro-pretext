@@ -14,10 +14,12 @@ Implemented today:
 
 - native `measure()` and `measureBatch()`
 - `prepareParagraphs()` and `prepareParagraphsWithStats()`
+- inline paragraph preparation with `InlineSegment[]` and `breakBehavior: "never"`
 - repeated relayout with `layoutParagraphs()`, `layoutParagraphsMetadata()`, and `layoutParagraphLines()`
 - request-based relayout with `whiteSpace`, `wordBreak`, `shapeSlices`, and `left`
 - cursor-style streaming with `createParagraphLineCursor()` and `nextParagraphLine()`
 - `PreparedParagraphView`, a native paragraph surface that consumes `preparedId + paragraphIndex + width` directly
+- `PreparedParagraphText`, a React Native `<Text>` renderer that materializes prepared paragraph breaks on demand
 - split benchmark app with separate `BaseText` and `Prepared View` pages
 
 Platform backends:
@@ -27,8 +29,8 @@ Platform backends:
 
 Not implemented yet:
 
-- rich inline segments like mentions/chips/images
-- renderer integrations beyond the current native paragraph view prototype
+- rich inline styling and embedded non-text content like chips/images
+- renderer integrations beyond the current native paragraph view and React Native `<Text>` helpers
 
 ## Installation
 
@@ -54,12 +56,15 @@ The library is organized around three steps:
 ```ts
 import {
   PreparedParagraphView,
+  PreparedParagraphText,
   createParagraphLayoutRequest,
   createParagraphLineCursor,
   layoutParagraphsMetadata,
   layoutParagraphLinesWithRequest,
   nextParagraphLine,
+  prepareInlineParagraphsWithStats,
   prepareParagraphsWithStats,
+  type InlineSegment,
   type ParagraphStyle,
 } from "react-native-nitro-pretext";
 
@@ -97,6 +102,28 @@ function Example() {
 }
 ```
 
+For inline content with non-breakable spans:
+
+```ts
+const inlineParagraph: InlineSegment[] = [
+  { text: "@pretext", breakBehavior: "never" },
+  { text: " keeps the handle together while the rest can wrap normally.", breakBehavior: "normal" },
+];
+
+const inlinePrepared = prepareInlineParagraphsWithStats([inlineParagraph], style);
+
+function InlineExample() {
+  return (
+    <PreparedParagraphText
+      layoutWidth={280}
+      paragraphIndex={0}
+      prepared={inlinePrepared.prepared}
+      style={{ width: 280, color: "#22211f", fontSize: 18, lineHeight: 28 }}
+    />
+  );
+}
+```
+
 If you are building your own renderer, `layoutParagraphLines()` exposes explicit line ranges with `textStart`, `textEnd`, `top`, `left`, `width`, `height`, `ascent`, and `descent`.
 
 For shaped relayout or policy control, use a request object:
@@ -123,6 +150,8 @@ const firstLine = nextParagraphLine(cursor.id);
 - `measureBatch(texts, fontFamily, fontSize)`
 - `prepareParagraphs(texts, style)`
 - `prepareParagraphsWithStats(texts, style)`
+- `prepareInlineParagraphs(paragraphs, style)`
+- `prepareInlineParagraphsWithStats(paragraphs, style)`
 - `layoutParagraphs(preparedId, width)`
 - `layoutParagraphsMetadata(preparedId, width)`
 - `layoutParagraphLines(preparedId, width)`
@@ -135,6 +164,7 @@ const firstLine = nextParagraphLine(cursor.id);
 - `releaseParagraphLineCursor(cursorId)`
 - `releaseParagraphs(preparedId)`
 - `PreparedParagraphView`
+- `PreparedParagraphText`
 
 ## Benchmark App
 
@@ -185,6 +215,7 @@ This project is currently similar to `pretext` in one specific area:
 
 - `prepare once + layout many`
 - expose line layout output from prepared state
+- allow simple non-breakable inline segments
 - expose a cursor-style line streaming path for custom renderers
 - support simple shape-aware relayout and line-break policy overrides
 - amortize cold preparation over repeated relayouts

@@ -1,4 +1,5 @@
 import type {
+  InlineSegment,
   ParagraphLineCursorState,
   ParagraphLineCursorStep,
   ParagraphLayoutRequest,
@@ -32,8 +33,20 @@ export const ParagraphEngine = {
   ): PreparedParagraphState {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },
+  prepareInlineParagraphs(
+    _paragraphs: InlineSegment[][],
+    _style: ParagraphStyle,
+  ): PreparedParagraphState {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
   prepareParagraphsWithStats(
     _texts: string[],
+    _style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  prepareInlineParagraphsWithStats(
+    _paragraphs: InlineSegment[][],
     _style: ParagraphStyle,
   ): PreparedParagraphResult {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
@@ -126,11 +139,25 @@ export function prepareParagraphs(
   return ParagraphEngine.prepareParagraphs(texts, style);
 }
 
+export function prepareInlineParagraphs(
+  paragraphs: InlineSegment[][],
+  style: ParagraphStyle,
+): PreparedParagraphState {
+  return ParagraphEngine.prepareInlineParagraphs(paragraphs, style);
+}
+
 export function prepareParagraphsWithStats(
   texts: string[],
   style: ParagraphStyle,
 ): PreparedParagraphResult {
   return ParagraphEngine.prepareParagraphsWithStats(texts, style);
+}
+
+export function prepareInlineParagraphsWithStats(
+  paragraphs: InlineSegment[][],
+  style: ParagraphStyle,
+): PreparedParagraphResult {
+  return ParagraphEngine.prepareInlineParagraphsWithStats(paragraphs, style);
 }
 
 export function layoutParagraphs(
@@ -230,6 +257,7 @@ export function releasePreparedBenchmarkCorpus(preparedId: number): void {
 export default ParagraphEngine;
 
 export type {
+  InlineSegment,
   LaidOutParagraphLines,
   ParagraphLayoutRequest,
   ParagraphLineCursorState,

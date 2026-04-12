@@ -48,11 +48,7 @@ internal object PretextShared {
     texts: Array<String>,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
-    val prepareStartedAt = nowMs()
-    val paint = createPaint(style)
     val locale = resolveLocale(style.locale)
-    val analyzeStartedAt = nowMs()
-    val lineHeight = resolveLineHeight(style.lineHeight, paint)
     val analyzedParagraphs = texts.map { text ->
       val tokens = tokenize(text)
       val breakUnits = tokenizeBreakUnits(text, locale)
@@ -61,8 +57,31 @@ internal object PretextShared {
         tokens = tokens,
         breakUnits = breakUnits,
         textUnits = text.length,
+        forceTokenLayout = false,
       )
     }
+    return prepareParagraphSeedsWithStats(analyzedParagraphs, style)
+  }
+
+  fun prepareInlineParagraphsWithStats(
+    paragraphs: Array<Array<InlineSegment>>,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    val locale = resolveLocale(style.locale)
+    val analyzedParagraphs = paragraphs.map { paragraph ->
+      prepareInlineParagraphSeed(paragraph, locale)
+    }
+    return prepareParagraphSeedsWithStats(analyzedParagraphs, style)
+  }
+
+  private fun prepareParagraphSeedsWithStats(
+    analyzedParagraphs: List<NativePreparedParagraphSeed>,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    val prepareStartedAt = nowMs()
+    val paint = createPaint(style)
+    val analyzeStartedAt = nowMs()
+    val lineHeight = resolveLineHeight(style.lineHeight, paint)
     val analyzeMs = nowMs() - analyzeStartedAt
     val totalTokenCount = analyzedParagraphs.sumOf { it.textUnits }
     val uniqueTokenCount = orderedUniqueTexts(
@@ -85,12 +104,15 @@ internal object PretextShared {
       }
     }
     val preparedParagraphs = analyzedParagraphs.map { paragraph ->
-      NativePreparedParagraph(
-        text = paragraph.text,
-        measuredText = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-          Api29LineLayout.buildMeasuredText(paragraph.text, paint)
-        } else {
-          null
+        NativePreparedParagraph(
+          text = paragraph.text,
+          measuredText = if (
+            !paragraph.forceTokenLayout &&
+              Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
+          ) {
+            Api29LineLayout.buildMeasuredText(paragraph.text, paint)
+          } else {
+            null
         },
         tokens = paragraph.tokens.map { token ->
           NativePreparedToken(
@@ -108,6 +130,7 @@ internal object PretextShared {
             width = widthsByText[token.text] ?: 0.0,
           )
         },
+        forceTokenLayout = paragraph.forceTokenLayout,
       )
     }
     val measurementMs = nowMs() - measurementStartedAt
@@ -141,6 +164,33 @@ internal object PretextShared {
         totalTokenCount = totalTokenCount.toDouble(),
         uniqueTokenCount = uniqueTokenCount.toDouble(),
       ),
+    )
+  }
+
+  private fun prepareInlineParagraphSeed(
+    paragraph: Array<InlineSegment>,
+    locale: Locale,
+  ): NativePreparedParagraphSeed {
+    val textBuilder = StringBuilder()
+    val tokens = ArrayList<NativeTokenDescriptor>()
+    val breakUnits = ArrayList<NativeTokenDescriptor>()
+
+    paragraph.forEach { segment ->
+      appendInlineSegmentTokens(
+        segment = segment,
+        locale = locale,
+        textBuilder = textBuilder,
+        tokens = tokens,
+        breakUnits = breakUnits,
+      )
+    }
+
+    return NativePreparedParagraphSeed(
+      text = textBuilder.toString(),
+      tokens = tokens,
+      breakUnits = breakUnits,
+      textUnits = textBuilder.length,
+      forceTokenLayout = true,
     )
   }
 
@@ -534,6 +584,76 @@ internal object PretextShared {
     return units
   }
 
+  private fun appendInlineSegmentTokens(
+    segment: InlineSegment,
+    locale: Locale,
+    textBuilder: StringBuilder,
+    tokens: MutableList<NativeTokenDescriptor>,
+    breakUnits: MutableList<NativeTokenDescriptor>,
+  ) {
+    val baseOffset = textBuilder.length
+    textBuilder.append(segment.text)
+    val breakBehavior = segment.breakBehavior.lowercase()
+    if (breakBehavior == BREAK_BEHAVIOR_NEVER) {
+      appendNeverBreakTokens(segment.text, baseOffset, tokens)
+      appendNeverBreakTokens(segment.text, baseOffset, breakUnits)
+      return
+    }
+
+    tokens += tokenize(segment.text).map { token ->
+      NativeTokenDescriptor(
+        text = token.text,
+        start = token.start + baseOffset,
+        end = token.end + baseOffset,
+      )
+    }
+    breakUnits += tokenizeBreakUnits(segment.text, locale).map { token ->
+      NativeTokenDescriptor(
+        text = token.text,
+        start = token.start + baseOffset,
+        end = token.end + baseOffset,
+      )
+    }
+  }
+
+  private fun appendNeverBreakTokens(
+    text: String,
+    baseOffset: Int,
+    output: MutableList<NativeTokenDescriptor>,
+  ) {
+    var localStart = 0
+    while (localStart <= text.length) {
+      val newlineIndex = text.indexOf('\n', localStart)
+      if (newlineIndex == -1) {
+        if (localStart < text.length) {
+          output += NativeTokenDescriptor(
+            text = text.substring(localStart),
+            start = baseOffset + localStart,
+            end = baseOffset + text.length,
+          )
+        }
+        break
+      }
+
+      if (newlineIndex > localStart) {
+        output += NativeTokenDescriptor(
+          text = text.substring(localStart, newlineIndex),
+          start = baseOffset + localStart,
+          end = baseOffset + newlineIndex,
+        )
+      }
+      output += NativeTokenDescriptor(
+        text = NEWLINE_TOKEN,
+        start = baseOffset + newlineIndex,
+        end = baseOffset + newlineIndex + 1,
+      )
+      localStart = newlineIndex + 1
+      if (localStart == text.length) {
+        break
+      }
+    }
+  }
+
   private fun layoutLineLayouts(
     prepared: NativePreparedParagraph,
     corpus: NativePreparedCorpus,
@@ -545,6 +665,7 @@ internal object PretextShared {
       Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
         lineBreaker != null &&
         measuredText != null &&
+        !prepared.forceTokenLayout &&
         request.shapeSlices.isEmpty() &&
         request.whiteSpace == WHITE_SPACE_NORMAL &&
         request.wordBreak == WORD_BREAK_NORMAL
@@ -913,6 +1034,7 @@ internal data class NativePreparedParagraphSeed(
   val tokens: List<NativeTokenDescriptor>,
   val breakUnits: List<NativeTokenDescriptor>,
   val textUnits: Int,
+  val forceTokenLayout: Boolean,
 )
 
 internal data class NativeTokenDescriptor(
@@ -933,6 +1055,7 @@ internal data class NativePreparedParagraph(
   val measuredText: Any?,
   val tokens: List<NativePreparedToken>,
   val breakUnits: List<NativePreparedToken>,
+  val forceTokenLayout: Boolean,
 )
 
 internal data class NativePreparedCorpus(
@@ -1003,3 +1126,4 @@ internal const val WHITE_SPACE_NORMAL = "normal"
 internal const val WHITE_SPACE_PRE = "pre"
 internal const val WORD_BREAK_NORMAL = "normal"
 internal const val WORD_BREAK_BREAK_ALL = "break-all"
+internal const val BREAK_BEHAVIOR_NEVER = "never"
