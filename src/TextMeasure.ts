@@ -1,5 +1,5 @@
 const UNSUPPORTED_PLATFORM_ERROR =
-  "'react-native-pretext' is only supported on iOS and Android.";
+  "'react-native-nitro-pretext' is only supported on iOS and Android.";
 
 export const TextMeasure = {
   measure(_text: string, _fontFamily: string, _fontSize: number): number {

@@ -12,7 +12,7 @@ jest.mock("react-native-nitro-modules", () => ({
 import { NitroModules } from "react-native-nitro-modules";
 import { TextMeasure, measure, measureBatch } from "../index";
 
-describe("react-native-pretext", () => {
+describe("react-native-nitro-pretext", () => {
   it("creates the Pretext hybrid object", () => {
     expect(NitroModules.createHybridObject).toHaveBeenCalledWith("Pretext");
   });
