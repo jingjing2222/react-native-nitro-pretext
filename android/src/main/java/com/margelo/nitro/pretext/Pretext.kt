@@ -1,6 +1,7 @@
 package com.margelo.nitro.pretext
 
 import com.facebook.proguard.annotations.DoNotStrip
+import org.json.JSONArray
 
 @DoNotStrip
 class Pretext : HybridPretextSpec() {
@@ -20,13 +21,11 @@ class Pretext : HybridPretextSpec() {
   }
 
   override fun prepareInlineParagraphSegments(
-    segments: Array<InlineSegment>,
-    paragraphSegmentOffsets: DoubleArray,
+    paragraphsPayload: String,
     style: ParagraphStyle,
   ): PreparedParagraphState {
     return prepareInlineParagraphSegmentsWithStats(
-      segments,
-      paragraphSegmentOffsets,
+      paragraphsPayload,
       style,
     ).prepared
   }
@@ -39,12 +38,11 @@ class Pretext : HybridPretextSpec() {
   }
 
   override fun prepareInlineParagraphSegmentsWithStats(
-    segments: Array<InlineSegment>,
-    paragraphSegmentOffsets: DoubleArray,
+    paragraphsPayload: String,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
     return PretextShared.prepareInlineParagraphsWithStats(
-      materializeInlineParagraphs(segments, paragraphSegmentOffsets),
+      materializeInlineParagraphs(paragraphsPayload),
       style,
     )
   }
@@ -112,20 +110,30 @@ class Pretext : HybridPretextSpec() {
   }
 
   private fun materializeInlineParagraphs(
-    segments: Array<InlineSegment>,
-    paragraphSegmentOffsets: DoubleArray,
+    paragraphsPayload: String,
   ): Array<Array<InlineSegment>> {
-    if (paragraphSegmentOffsets.isEmpty()) {
+    if (paragraphsPayload.isBlank()) {
       return emptyArray()
     }
 
-    val normalizedOffsets = paragraphSegmentOffsets.map { it.toInt() }
-    val paragraphs = ArrayList<Array<InlineSegment>>(normalizedOffsets.size - 1)
+    val root = JSONArray(paragraphsPayload)
+    val paragraphs = ArrayList<Array<InlineSegment>>(root.length())
 
-    for (index in 0 until normalizedOffsets.lastIndex) {
-      val start = normalizedOffsets[index].coerceIn(0, segments.size)
-      val end = normalizedOffsets[index + 1].coerceIn(start, segments.size)
-      paragraphs.add(segments.copyOfRange(start, end))
+    for (paragraphIndex in 0 until root.length()) {
+      val paragraphJson = root.getJSONArray(paragraphIndex)
+      val paragraph = ArrayList<InlineSegment>(paragraphJson.length())
+
+      for (segmentIndex in 0 until paragraphJson.length()) {
+        val segmentJson = paragraphJson.getJSONObject(segmentIndex)
+        paragraph.add(
+          InlineSegment(
+            segmentJson.optString("text"),
+            segmentJson.optString("breakBehavior"),
+          ),
+        )
+      }
+
+      paragraphs.add(paragraph.toTypedArray())
     }
 
     return paragraphs.toTypedArray()

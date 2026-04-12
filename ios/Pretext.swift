@@ -17,13 +17,11 @@ class Pretext: HybridPretextSpec {
     }
 
     public func prepareInlineParagraphSegments(
-        segments: [InlineSegment],
-        paragraphSegmentOffsets: [Double],
+        paragraphsPayload: String,
         style: ParagraphStyle
     ) throws -> PreparedParagraphState {
         try prepareInlineParagraphSegmentsWithStats(
-            segments: segments,
-            paragraphSegmentOffsets: paragraphSegmentOffsets,
+            paragraphsPayload: paragraphsPayload,
             style: style
         ).prepared
     }
@@ -36,15 +34,11 @@ class Pretext: HybridPretextSpec {
     }
 
     public func prepareInlineParagraphSegmentsWithStats(
-        segments: [InlineSegment],
-        paragraphSegmentOffsets: [Double],
+        paragraphsPayload: String,
         style: ParagraphStyle
     ) throws -> PreparedParagraphResult {
         PretextShared.shared.prepareInlineParagraphsWithStats(
-            paragraphs: materializeInlineParagraphs(
-                segments: segments,
-                paragraphSegmentOffsets: paragraphSegmentOffsets
-            ),
+            paragraphs: try materializeInlineParagraphs(paragraphsPayload: paragraphsPayload),
             style: style
         )
     }
@@ -116,25 +110,39 @@ class Pretext: HybridPretextSpec {
     }
 
     private func materializeInlineParagraphs(
-        segments: [InlineSegment],
-        paragraphSegmentOffsets: [Double]
-    ) -> [[InlineSegment]] {
-        guard !paragraphSegmentOffsets.isEmpty else {
+        paragraphsPayload: String
+    ) throws -> [[InlineSegment]] {
+        guard !paragraphsPayload.isEmpty else {
             return []
         }
 
-        let normalizedOffsets = paragraphSegmentOffsets.map { offset in
-            min(max(Int(offset), 0), segments.count)
-        }
-        var paragraphs: [[InlineSegment]] = []
-        paragraphs.reserveCapacity(max(normalizedOffsets.count - 1, 0))
-
-        for index in 0..<(normalizedOffsets.count - 1) {
-            let start = normalizedOffsets[index]
-            let end = max(start, normalizedOffsets[index + 1])
-            paragraphs.append(Array(segments[start..<end]))
+        guard let data = paragraphsPayload.data(using: .utf8) else {
+            throw NSError(
+                domain: "Pretext",
+                code: 1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to decode inline paragraph payload."]
+            )
         }
 
-        return paragraphs
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [[Any]] else {
+            throw NSError(
+                domain: "Pretext",
+                code: 2,
+                userInfo: [NSLocalizedDescriptionKey: "Inline paragraph payload must be a nested array."]
+            )
+        }
+
+        return root.map { paragraph in
+            paragraph.compactMap { segment in
+                guard let segmentObject = segment as? [String: Any] else {
+                    return nil
+                }
+
+                return InlineSegment(
+                    text: segmentObject["text"] as? String ?? "",
+                    breakBehavior: segmentObject["breakBehavior"] as? String ?? ""
+                )
+            }
+        }
     }
 }

@@ -16,7 +16,7 @@ import type {
   PreparedParagraphState,
 } from "./Pretext.nitro";
 import type { Pretext } from "./PublicTypes";
-import { flattenInlineParagraphs } from "./inlineParagraphSegments";
+import { serializeInlineParagraphs } from "./inlineParagraphSegments";
 
 const NativeParagraphEngine =
   NitroModules.createHybridObject<NitroPretext>("Pretext");
@@ -45,12 +45,8 @@ export const ParagraphEngine: Pretext = {
     return NativeParagraphEngine.prepareParagraphs(texts, style);
   },
   prepareInlineParagraphs(paragraphs, style) {
-    const { segments, paragraphSegmentOffsets } =
-      flattenInlineParagraphs(paragraphs);
-
     return NativeParagraphEngine.prepareInlineParagraphSegments(
-      segments,
-      paragraphSegmentOffsets,
+      serializeInlineParagraphs(paragraphs),
       style,
     );
   },
@@ -58,12 +54,8 @@ export const ParagraphEngine: Pretext = {
     return NativeParagraphEngine.prepareParagraphsWithStats(texts, style);
   },
   prepareInlineParagraphsWithStats(paragraphs, style) {
-    const { segments, paragraphSegmentOffsets } =
-      flattenInlineParagraphs(paragraphs);
-
     return NativeParagraphEngine.prepareInlineParagraphSegmentsWithStats(
-      segments,
-      paragraphSegmentOffsets,
+      serializeInlineParagraphs(paragraphs),
       style,
     );
   },

@@ -355,11 +355,12 @@ describe("react-native-nitro-pretext", () => {
         -1,
       ),
     ).toEqual([
-      [
-        { text: "@mention", breakBehavior: "never" },
-        { text: " moves with the next word", breakBehavior: "normal" },
-      ],
-      [0, 2],
+      JSON.stringify([
+        [
+          { text: "@mention", breakBehavior: "never" },
+          { text: " moves with the next word", breakBehavior: "normal" },
+        ],
+      ]),
       {
         fontFamily: "System",
         fontSize: 16,
@@ -402,8 +403,7 @@ describe("react-native-nitro-pretext", () => {
         -1,
       ),
     ).toEqual([
-      [{ text: "@mention", breakBehavior: "never" }],
-      [0, 1],
+      JSON.stringify([[{ text: "@mention", breakBehavior: "never" }]]),
       {
         fontFamily: "System",
         fontSize: 16,

@@ -114,8 +114,7 @@ export interface Pretext extends HybridObject<{
     style: ParagraphStyle,
   ): PreparedParagraphState;
   prepareInlineParagraphSegments(
-    segments: InlineSegment[],
-    paragraphSegmentOffsets: number[],
+    paragraphsPayload: string,
     style: ParagraphStyle,
   ): PreparedParagraphState;
   prepareParagraphsWithStats(
@@ -123,8 +122,7 @@ export interface Pretext extends HybridObject<{
     style: ParagraphStyle,
   ): PreparedParagraphResult;
   prepareInlineParagraphSegmentsWithStats(
-    segments: InlineSegment[],
-    paragraphSegmentOffsets: number[],
+    paragraphsPayload: string,
     style: ParagraphStyle,
   ): PreparedParagraphResult;
   layoutParagraphs(preparedId: number, width: number): LaidOutParagraph[];
