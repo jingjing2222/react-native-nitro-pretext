@@ -87,6 +87,25 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
       widthSequence: benchmark.widthSequence,
     }),
   );
+  const renderMedianMs =
+    benchmark.summaries["pretext-render"]?.interactionMedianMs ?? null;
+  const layoutOnlyMedianMs =
+    benchmark.summaries["pretext-compute"]?.layoutOnlyMedianMs ?? null;
+  const renderOverheadMs =
+    renderMedianMs !== null && layoutOnlyMedianMs !== null
+      ? renderMedianMs - layoutOnlyMedianMs
+      : null;
+  const engineShareText =
+    renderMedianMs !== null && renderMedianMs > 0 && layoutOnlyMedianMs !== null
+      ? `${((layoutOnlyMedianMs / renderMedianMs) * 100).toFixed(1)}%`
+      : "—";
+  const measureShareText =
+    prepareMs !== null &&
+    prepareMs > 0 &&
+    prepareStats?.measurementMs !== null &&
+    prepareStats?.measurementMs !== undefined
+      ? `${((prepareStats.measurementMs / prepareMs) * 100).toFixed(1)}%`
+      : "—";
 
   return (
     <View style={styles.appShell}>
@@ -177,6 +196,23 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
           label="Prepared Line Layout Only"
           summary={benchmark.summaries["pretext-compute"]}
         />
+
+        <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>Bottleneck Split</Text>
+          <Text style={styles.summaryDescription}>
+            Separate the relayout engine from renderer overhead. If render stays
+            much larger than layout-only, the next win has to come from the
+            surface, not the breaker.
+          </Text>
+          <View style={styles.summaryMetricList}>
+            <SummaryMetric
+              label="Render overhead"
+              value={formatMilliseconds(renderOverheadMs)}
+            />
+            <SummaryMetric label="Engine share" value={engineShareText} />
+            <SummaryMetric label="Measure share" value={measureShareText} />
+          </View>
+        </View>
 
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Prepare Breakdown</Text>

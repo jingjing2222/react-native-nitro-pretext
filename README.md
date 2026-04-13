@@ -17,12 +17,14 @@ Implemented in the repository:
 - inline paragraph preparation with `InlineSegment[]`, segment-level font overrides, and `breakBehavior: "never"`
 - repeated relayout with `layoutParagraphs()`, `layoutParagraphsMetadata()`, and `layoutParagraphLines()`
 - request-based relayout with `whiteSpace`, `wordBreak`, `shapeSlices`, and `left`
+- native request-level relayout cache on iOS and Android for repeated width / request reuse
 - cursor-style streaming with `createParagraphLineCursor()` and `nextParagraphLine()`
 - `PreparedParagraphView`, a native paragraph surface that consumes `preparedId + paragraphIndex + layoutRequest` directly
 - `PreparedParagraphLinesView`, a line-range renderer that consumes explicit line positions and places one RN `<Text>` node per line
 - `PreparedParagraphText`, a React Native `<Text>` renderer that materializes prepared paragraph breaks on demand
 - benchmark corpus helpers: `prepareBenchmarkCorpus()`, `layoutPreparedBenchmarkCorpus()`, and `releasePreparedBenchmarkCorpus()`
 - split example app into dedicated `screens/benchmark/*` and `screens/examples/*` pages with React Navigation
+- pretext-style comparison scenarios under `screens/examples/slites/*`
 - machine-readable benchmark exports plus Maestro flows/scripts for `benchmark/base-text`, `benchmark/prepared-view`, and the combined benchmark suite
 - benchmark quality gates with line-count parity, line-text parity, and CI execution on the iOS benchmark suite
 
@@ -226,6 +228,10 @@ The example app is intentionally split by page so each path can be measured inde
 - `screens/examples/PreparedTextExampleScreen`: prepared-state-backed `<Text>` example
 - `screens/examples/InlineSegmentsExampleScreen`: styled inline run example with a glued handle span
 - `screens/examples/LineCursorExampleScreen`: request-based relayout and cursor streaming example
+- `screens/examples/slites/AccordionSliteScreen`: predict accordion height before opening
+- `screens/examples/slites/BubblesSliteScreen`: search the smallest bubble width that preserves the same wrapped lines
+- `screens/examples/slites/DynamicLayoutSliteScreen`: shape-aware relayout around an obstacle
+- `screens/examples/slites/RichNoteSliteScreen`: prepared inline runs with non-breakable spans vs plain RN `<Text>`
 
 Run the example app:
 
@@ -287,21 +293,51 @@ If Maestro reports `iOS driver not ready in time`, restart the simulator and rer
 
 ## Latest Local Benchmark Snapshot
 
-Latest Maestro-driven release snapshots on `2026-04-13`:
+Latest validated iOS suite snapshot on `2026-04-13`:
 
-| Platform | Device / build                 | BaseText median | BaseText p95 | Prepared view median | Prepared view p95 | Layout-only median | Cold prepare | Native measure | Median delta |
-| -------- | ------------------------------ | --------------- | ------------ | -------------------- | ----------------- | ------------------ | ------------ | -------------- | ------------ |
-| Android  | Pixel 9 Pro emulator / Release | `32.20 ms`      | `38.76 ms`   | `21.81 ms`           | `23.62 ms`        | `3.81 ms`          | `21.06 ms`   | `15.54 ms`     | `-10.39 ms`  |
-| iOS      | iPhone 16 simulator / Release  | `179.23 ms`     | `346.82 ms`  | `95.13 ms`           | `143.17 ms`       | `13.95 ms`         | `308.06 ms`  | `307.59 ms`    | `-84.10 ms`  |
+Source artifacts:
+
+- [Benchmark suite summary](example/.maestro-artifacts/ios-suite/latest-summary.txt)
+- [Improvement report](docs/benchmark-improvement-report.md)
+
+| Metric | BaseText | Prepared view | Delta | Gain |
+| ------ | -------: | ------------: | ----: | ---: |
+| Interaction median | `232.58 ms` | `95.40 ms` | `-137.18 ms` | `59.0% faster` |
+| Interaction p95 | `366.54 ms` | `155.14 ms` | `-211.40 ms` | `57.7% faster` |
+| Layout-only median | `—` | `0.15 ms` | `—` | hot relayout isolated |
+| Prepare once | `—` | `47.73 ms` | `—` | amortized after about 1 relayout |
+| Native measure | `—` | `47.04 ms` | `—` | `98.6%` of prepare time |
+
+Prepared path improvement versus the earlier pre-cache prepared-view run:
+
+| Metric | Before | After | Gain |
+| ------ | -----: | ----: | ---: |
+| Prepared render median | `145.96 ms` | `95.40 ms` | `34.6% faster` |
+| Prepared render p95 | `211.44 ms` | `155.14 ms` | `26.6% faster` |
+| Prepared layout-only median | `14.11 ms` | `0.15 ms` | `98.9% faster` |
+| Prepare once | `55.92 ms` | `47.73 ms` | `14.6% faster` |
 
 Current reading of the numbers:
 
-- the prepared native view path is already faster than plain RN `<Text>` in the repeated-relayout benchmark on both local release runs
+- the prepared native view path is already materially faster than plain RN `<Text>` in the repeated-relayout benchmark
 - most cold cost is still in native measurement during `prepare*()`, not in JS object construction
 - the renderer-oriented path is where the architecture currently pays off; `PreparedParagraphText` exists as a compatibility helper, `PreparedParagraphLinesView` exposes the direct line-range contract in JS, and the main performance win still comes from consuming prepared state directly from native
+- the remaining bottleneck is renderer/materialization work after hot relayout, not the cached line-break computation itself
 - the automated suite now measures exactly the relayout question we care about: BaseText vs prepared-native-view across the same width sequence, plus the hot-path layout-only cost
 
 Do not treat these numbers as universal. Compare on the same device, same build type, same font, and same corpus.
+
+Practical examples:
+
+- split view, bottom sheet, or resizable card rails: the same paragraph set can relayout across a few widths without paying RN `<Text>` line layout each time
+- chat bubbles: prepared metadata can search the tightest width that preserves the same wrapped lines before rendering the final bubble
+- obstacle-aware editorial layouts: `shapeSlices` can narrow only the affected line bands instead of shrinking the entire paragraph
+- inline note / mention UI: prepared inline segments can keep styled spans and `breakBehavior: "never"` handles stable across width changes
+
+Scenario walkthrough:
+
+- [iOS walkthrough video](example/.maestro-artifacts/videos/slites-ios-demo.mov)
+- [Gesture telemetry](example/.maestro-artifacts/videos/slites-ios-demo.gesture-telemetry.json)
 
 ## Relationship to Pretext
 

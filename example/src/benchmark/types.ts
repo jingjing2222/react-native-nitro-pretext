@@ -11,6 +11,11 @@ export type AppStackParamList = {
   BenchmarkBaseText: undefined;
   BenchmarkPreparedView: undefined;
   ExampleIndex: undefined;
+  ExampleSlitesIndex: undefined;
+  ExampleSlitesAccordion: undefined;
+  ExampleSlitesBubbles: undefined;
+  ExampleSlitesDynamicLayout: undefined;
+  ExampleSlitesRichNote: undefined;
   ExamplePreparedView: undefined;
   ExamplePreparedLines: undefined;
   ExamplePreparedText: undefined;

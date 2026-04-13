@@ -14,6 +14,11 @@ import { LineCursorExampleScreen } from "./screens/examples/LineCursorExampleScr
 import { PreparedLinesExampleScreen } from "./screens/examples/PreparedLinesExampleScreen";
 import { PreparedTextExampleScreen } from "./screens/examples/PreparedTextExampleScreen";
 import { PreparedViewExampleScreen } from "./screens/examples/PreparedViewExampleScreen";
+import { AccordionSliteScreen } from "./screens/examples/slites/AccordionSliteScreen";
+import { BubblesSliteScreen } from "./screens/examples/slites/BubblesSliteScreen";
+import { DynamicLayoutSliteScreen } from "./screens/examples/slites/DynamicLayoutSliteScreen";
+import { RichNoteSliteScreen } from "./screens/examples/slites/RichNoteSliteScreen";
+import { SlitesIndexScreen } from "./screens/examples/slites/SlitesIndexScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -37,6 +42,11 @@ const linking = {
       BenchmarkBaseText: "benchmark/base-text",
       BenchmarkPreparedView: "benchmark/prepared-view",
       ExampleIndex: "examples",
+      ExampleSlitesIndex: "examples/slites",
+      ExampleSlitesAccordion: "examples/slites/accordion",
+      ExampleSlitesBubbles: "examples/slites/bubbles",
+      ExampleSlitesDynamicLayout: "examples/slites/dynamic-layout",
+      ExampleSlitesRichNote: "examples/slites/rich-note",
       ExamplePreparedView: "examples/prepared-view",
       ExamplePreparedLines: "examples/prepared-lines",
       ExamplePreparedText: "examples/prepared-text",
@@ -91,6 +101,31 @@ export default function App() {
               component={ExampleIndexScreen}
               name="ExampleIndex"
               options={{ title: "examples/*" }}
+            />
+            <Stack.Screen
+              component={SlitesIndexScreen}
+              name="ExampleSlitesIndex"
+              options={{ title: "examples/slites/*" }}
+            />
+            <Stack.Screen
+              component={AccordionSliteScreen}
+              name="ExampleSlitesAccordion"
+              options={{ title: "examples/slites/accordion" }}
+            />
+            <Stack.Screen
+              component={BubblesSliteScreen}
+              name="ExampleSlitesBubbles"
+              options={{ title: "examples/slites/bubbles" }}
+            />
+            <Stack.Screen
+              component={DynamicLayoutSliteScreen}
+              name="ExampleSlitesDynamicLayout"
+              options={{ title: "examples/slites/dynamic-layout" }}
+            />
+            <Stack.Screen
+              component={RichNoteSliteScreen}
+              name="ExampleSlitesRichNote"
+              options={{ title: "examples/slites/rich-note" }}
             />
             <Stack.Screen
               component={PreparedViewExampleScreen}

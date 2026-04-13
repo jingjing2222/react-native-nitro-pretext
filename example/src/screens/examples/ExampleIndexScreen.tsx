@@ -27,9 +27,18 @@ export function ExampleIndexScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>
             These screens are not benchmark runs. Each page demonstrates one API
-            or renderer surface without sharing a catch-all detail page.
+            or renderer surface without sharing a catch-all detail page. The
+            `examples/slites/*` branch adds pretext-style scenario comparisons
+            against plain React Native Text.
           </Text>
         </View>
+
+        <CatalogCard
+          buttonLabel="Open examples/slites/*"
+          description="Scenario pages inspired by pretext demos: accordion height prediction, tight bubbles, dynamic obstacle-aware routing, and rich-note comparison."
+          onPress={() => navigation.navigate("ExampleSlitesIndex")}
+          title="examples/slites/*"
+        />
 
         <CatalogCard
           buttonLabel="Open examples/prepared-view"

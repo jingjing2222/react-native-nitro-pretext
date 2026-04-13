@@ -44,6 +44,39 @@ const p95Ratio =
   baseText.interactionP95Ms > 0
     ? combined.preparedP95Ms / baseText.interactionP95Ms
     : null;
+const renderOverheadMs =
+  preparedView?.renderInteractionMedianMs !== null &&
+  preparedView?.renderInteractionMedianMs !== undefined &&
+  preparedView?.computeLayoutOnlyMedianMs !== null &&
+  preparedView?.computeLayoutOnlyMedianMs !== undefined
+    ? preparedView.renderInteractionMedianMs -
+      preparedView.computeLayoutOnlyMedianMs
+    : null;
+const engineShare =
+  preparedView?.renderInteractionMedianMs !== null &&
+  preparedView?.renderInteractionMedianMs !== undefined &&
+  preparedView?.renderInteractionMedianMs > 0 &&
+  preparedView?.computeLayoutOnlyMedianMs !== null &&
+  preparedView?.computeLayoutOnlyMedianMs !== undefined
+    ? preparedView.computeLayoutOnlyMedianMs /
+      preparedView.renderInteractionMedianMs
+    : null;
+const measurementShare =
+  preparedView?.prepareMs !== null &&
+  preparedView?.prepareMs !== undefined &&
+  preparedView?.prepareMs > 0 &&
+  preparedView?.measureMs !== null &&
+  preparedView?.measureMs !== undefined
+    ? preparedView.measureMs / preparedView.prepareMs
+    : null;
+
+function formatPercent(value) {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+
+  return `${(value * 100).toFixed(1)}%`;
+}
 
 function buildComparisonNotes() {
   if (!combined) {
@@ -94,6 +127,14 @@ function buildComparisonNotes() {
       `  hot path             prepared layout-only relayout costs ${formatMs(
         preparedLayoutOnly,
       )}`,
+    );
+  }
+
+  if (renderOverheadMs !== null) {
+    notes.push(
+      `  bottleneck           renderer/materialization still costs ${formatMs(
+        renderOverheadMs,
+      )} beyond hot layout`,
     );
   }
 
@@ -149,6 +190,9 @@ if (preparedView) {
       formatMs(preparedView.renderInteractionMedianMs),
     ),
     labelValue("render p95", formatMs(preparedView.renderInteractionP95Ms)),
+    labelValue("render overhead", formatMs(renderOverheadMs)),
+    labelValue("engine share", formatPercent(engineShare)),
+    labelValue("measure share", formatPercent(measurementShare)),
     labelValue(
       "render line parity",
       `${formatCount(preparedView.renderParityMismatches)}/${formatCount(

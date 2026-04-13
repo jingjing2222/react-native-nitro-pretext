@@ -67,9 +67,54 @@ internal final class NativePreparedParagraph {
     }
 }
 
-internal struct NativePreparedCorpus {
+internal final class NativePreparedCorpus {
     let paragraphs: [NativePreparedParagraph]
     let lineHeight: Double
+
+    private let layoutCacheLimit = 12
+    private let layoutCacheLock = NSLock()
+    private var layoutCache: [NativeLayoutRequest: [[NativeLineLayout]]] = [:]
+    private var layoutCacheOrder: [NativeLayoutRequest] = []
+
+    init(
+        paragraphs: [NativePreparedParagraph],
+        lineHeight: Double
+    ) {
+        self.paragraphs = paragraphs
+        self.lineHeight = lineHeight
+    }
+
+    func resolveLineLayouts(
+        request: NativeLayoutRequest,
+        builder: () -> [[NativeLineLayout]]
+    ) -> [[NativeLineLayout]] {
+        layoutCacheLock.lock()
+        if let cached = layoutCache[request] {
+            layoutCacheLock.unlock()
+            return cached
+        }
+        layoutCacheLock.unlock()
+
+        let computed = builder()
+
+        layoutCacheLock.lock()
+        if let cached = layoutCache[request] {
+            layoutCacheLock.unlock()
+            return cached
+        }
+
+        layoutCache[request] = computed
+        layoutCacheOrder.removeAll(where: { $0 == request })
+        layoutCacheOrder.append(request)
+
+        while layoutCacheOrder.count > layoutCacheLimit {
+            let evictedRequest = layoutCacheOrder.removeFirst()
+            layoutCache.removeValue(forKey: evictedRequest)
+        }
+        layoutCacheLock.unlock()
+
+        return computed
+    }
 }
 
 internal struct NativeLineLayout {
@@ -106,7 +151,7 @@ internal enum TokenMode {
     case text
 }
 
-internal struct NativeLayoutRequest {
+internal struct NativeLayoutRequest: Hashable {
     let width: Double
     let left: Double
     let whiteSpace: String
@@ -114,7 +159,7 @@ internal struct NativeLayoutRequest {
     let shapeSlices: [NativeShapeSlice]
 }
 
-internal struct NativeShapeSlice {
+internal struct NativeShapeSlice: Hashable {
     let top: Double
     let height: Double
     let left: Double
@@ -374,11 +419,11 @@ internal final class PretextShared {
             )
         }
 
-        let lines = layoutLineLayouts(
-            prepared.paragraphs[resolvedIndex],
-            lineHeight: prepared.lineHeight,
+        let allLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
             request: normalizedRequest
         )
+        let lines = allLineLayouts[resolvedIndex]
         let cursorId = nextLineCursorId
         nextLineCursorId += 1
         lineCursors[cursorId] = NativeLineCursor(lines: lines)
@@ -444,11 +489,10 @@ internal final class PretextShared {
         }
 
         let paragraph = prepared.paragraphs[paragraphIndex]
-        let lineLayouts = layoutLineLayouts(
-            paragraph,
-            lineHeight: prepared.lineHeight,
+        let lineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
             request: request
-        )
+        )[paragraphIndex]
         return NativeParagraphDrawing(
             text: paragraph.text,
             attributedText: paragraph.attributedText,
@@ -466,9 +510,13 @@ internal final class PretextShared {
         request: NativeLayoutRequest
     ) throws -> [LaidOutParagraph] {
         let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
 
-        return prepared.paragraphs.map { paragraph in
-            let lineLayouts = layoutLineLayouts(paragraph, lineHeight: prepared.lineHeight, request: request)
+        return prepared.paragraphs.enumerated().map { index, paragraph in
+            let lineLayouts = paragraphLineLayouts[index]
             let maxLineWidth = lineLayouts.map(\.width).max() ?? 0
             return LaidOutParagraph(
                 brokenText: materializeBrokenText(paragraph.text, lineLayouts: lineLayouts),
@@ -484,9 +532,13 @@ internal final class PretextShared {
         request: NativeLayoutRequest
     ) throws -> [LaidOutParagraphMetrics] {
         let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
 
-        return prepared.paragraphs.map { paragraph in
-            let lineLayouts = layoutLineLayouts(paragraph, lineHeight: prepared.lineHeight, request: request)
+        return prepared.paragraphs.enumerated().map { index, _ in
+            let lineLayouts = paragraphLineLayouts[index]
             return LaidOutParagraphMetrics(
                 lineCount: Double(lineLayouts.count),
                 height: sumHeights(lineLayouts),
@@ -500,9 +552,13 @@ internal final class PretextShared {
         request: NativeLayoutRequest
     ) throws -> [LaidOutParagraphLines] {
         let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
 
-        return prepared.paragraphs.map { paragraph in
-            let lineLayouts = layoutLineLayouts(paragraph, lineHeight: prepared.lineHeight, request: request)
+        return prepared.paragraphs.enumerated().map { index, _ in
+            let lineLayouts = paragraphLineLayouts[index]
             return LaidOutParagraphLines(
                 lineCount: Double(lineLayouts.count),
                 height: sumHeights(lineLayouts),
@@ -682,6 +738,21 @@ internal final class PretextShared {
             ascent: 0,
             descent: 0
         )
+    }
+
+    private func resolveParagraphLineLayouts(
+        prepared: NativePreparedCorpus,
+        request: NativeLayoutRequest
+    ) -> [[NativeLineLayout]] {
+        prepared.resolveLineLayouts(request: request) {
+            prepared.paragraphs.map { paragraph in
+                layoutLineLayouts(
+                    paragraph,
+                    lineHeight: prepared.lineHeight,
+                    request: request
+                )
+            }
+        }
     }
 
     private func resolveLineConstraint(

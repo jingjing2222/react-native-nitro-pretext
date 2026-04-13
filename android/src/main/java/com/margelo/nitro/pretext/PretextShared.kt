@@ -270,9 +270,9 @@ internal object PretextShared {
     val prepared = requirePreparedCorpus(preparedId)
     val normalizedRequest = normalizeLayoutRequest(request)
     val resolvedParagraphIndex = paragraphIndex.toInt()
-    val paragraph = prepared.paragraphs.getOrNull(resolvedParagraphIndex)
+    prepared.paragraphs.getOrNull(resolvedParagraphIndex)
       ?: error("Paragraph index $resolvedParagraphIndex not found for prepared corpus ${preparedId.toLong()}.")
-    val lines = layoutLineLayouts(paragraph, prepared, normalizedRequest)
+    val lines = resolveParagraphLineLayouts(prepared, normalizedRequest)[resolvedParagraphIndex]
     val cursorId = nextLineCursorId.getAndIncrement()
     lineCursors[cursorId] = NativeLineCursor(
       lines = lines,
@@ -330,7 +330,7 @@ internal object PretextShared {
   ): NativeParagraphDrawing? {
     val prepared = preparedCorpora[preparedId.toLong()] ?: return null
     val paragraph = prepared.paragraphs.getOrNull(paragraphIndex) ?: return null
-    val lineLayouts = layoutLineLayouts(paragraph, prepared, request)
+    val lineLayouts = resolveParagraphLineLayouts(prepared, request)[paragraphIndex]
     return NativeParagraphDrawing(
       text = paragraph.text,
       styledText = paragraph.styledText,
@@ -348,8 +348,9 @@ internal object PretextShared {
     request: NativeLayoutRequest,
   ): List<LaidOutParagraph> {
     val prepared = requirePreparedCorpus(preparedId)
-    return prepared.paragraphs.map { paragraph ->
-      val lineLayouts = layoutLineLayouts(paragraph, prepared, request)
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, paragraph ->
+      val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraph(
         brokenText = materializeBrokenText(paragraph.text, lineLayouts),
         lineCount = lineLayouts.size.toDouble(),
@@ -364,8 +365,9 @@ internal object PretextShared {
     request: NativeLayoutRequest,
   ): List<LaidOutParagraphMetrics> {
     val prepared = requirePreparedCorpus(preparedId)
-    return prepared.paragraphs.map { paragraph ->
-      val lineLayouts = layoutLineLayouts(paragraph, prepared, request)
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, _ ->
+      val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraphMetrics(
         lineCount = lineLayouts.size.toDouble(),
         height = sumHeights(lineLayouts),
@@ -379,8 +381,9 @@ internal object PretextShared {
     request: NativeLayoutRequest,
   ): List<LaidOutParagraphLines> {
     val prepared = requirePreparedCorpus(preparedId)
-    return prepared.paragraphs.map { paragraph ->
-      val lineLayouts = layoutLineLayouts(paragraph, prepared, request)
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, _ ->
+      val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraphLines(
         lineCount = lineLayouts.size.toDouble(),
         height = sumHeights(lineLayouts),
@@ -394,6 +397,17 @@ internal object PretextShared {
     val handle = preparedId.toLong()
     return preparedCorpora[handle]
       ?: error("Prepared benchmark corpus $handle not found.")
+  }
+
+  private fun resolveParagraphLineLayouts(
+    prepared: NativePreparedCorpus,
+    request: NativeLayoutRequest,
+  ): List<List<NativeLineLayout>> {
+    return prepared.resolveLineLayouts(request) {
+      prepared.paragraphs.map { paragraph ->
+        layoutLineLayouts(paragraph, prepared, request)
+      }
+    }
   }
 
   private fun buildPublicParagraphLineRanges(
@@ -1260,12 +1274,46 @@ internal data class NativePreparedParagraph(
   val hasStyledRuns: Boolean,
 )
 
-internal data class NativePreparedCorpus(
+internal class NativePreparedCorpus(
   val paragraphs: List<NativePreparedParagraph>,
   val lineHeight: Double,
   val textPaint: TextPaint,
   val lineBreaker: Any?,
-)
+) {
+  private val layoutCacheLock = Any()
+  private val layoutCache =
+    LinkedHashMap<NativeLayoutRequest, List<List<NativeLineLayout>>>(16, 0.75f, true)
+
+  fun resolveLineLayouts(
+    request: NativeLayoutRequest,
+    builder: () -> List<List<NativeLineLayout>>,
+  ): List<List<NativeLineLayout>> {
+    synchronized(layoutCacheLock) {
+      layoutCache[request]?.let { return it }
+    }
+
+    val computed = builder()
+
+    synchronized(layoutCacheLock) {
+      layoutCache[request]?.let { return it }
+      layoutCache[request] = computed
+      while (layoutCache.size > LAYOUT_CACHE_LIMIT) {
+        val iterator = layoutCache.entries.iterator()
+        if (!iterator.hasNext()) {
+          break
+        }
+        iterator.next()
+        iterator.remove()
+      }
+    }
+
+    return computed
+  }
+
+  private companion object {
+    private const val LAYOUT_CACHE_LIMIT = 12
+  }
+}
 
 internal data class NativeLineLayout(
   val textStart: Int,

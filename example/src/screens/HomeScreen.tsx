@@ -83,6 +83,14 @@ export function HomeScreen({ navigation }: Props) {
           title="Examples"
         />
 
+        <CatalogCard
+          buttonLabel="Open examples/slites/*"
+          buttonTestID="home.open-slites"
+          description="Walk through pretext-style scenario pages that compare plain Text against prepared paragraph state in actual UI patterns."
+          onPress={() => navigation.navigate("ExampleSlitesIndex")}
+          title="Scenario Slites"
+        />
+
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
