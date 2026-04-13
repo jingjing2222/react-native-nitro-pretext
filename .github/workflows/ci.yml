@@ -196,3 +196,118 @@ jobs:
       - name: Build example for iOS
         run: |
           yarn turbo run build:ios --cache-dir="${{ env.TURBO_CACHE_DIR }}"
+
+  benchmark-ios:
+    runs-on: macos-26
+    needs:
+      - build-ios
+    timeout-minutes: 75
+
+    env:
+      XCODE_VERSION: "26.4"
+      RCT_USE_RN_DEP: 1
+      RCT_USE_PREBUILT_RNCORE: 1
+      BENCHMARK_GATE_PROFILE: ci-debug
+      MAESTRO_DRIVER_STARTUP_TIMEOUT: 180000
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Generate nitrogen code
+        run: yarn nitrogen
+
+      - name: Use appropriate Xcode version
+        uses: maxim-lobanov/setup-xcode@60606e260d2fc5762a71e64e74b2174e8ea3c8bd # v1.6.0
+        with:
+          xcode-version: ${{ env.XCODE_VERSION }}
+
+      - name: Install CocoaPods dependencies
+        run: |
+          cd example
+          bundle install
+          bundle exec pod install --project-directory=ios
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: Create benchmark simulator
+        run: |
+          DEVICE_TYPE_ID="$(xcrun simctl list devicetypes -j | node -e 'const fs=require(\"node:fs\"); const data=JSON.parse(fs.readFileSync(0, \"utf8\")); const device=data.devicetypes.find((entry) => entry.name === \"iPhone 16\"); if (!device) { process.exit(1); } process.stdout.write(device.identifier);')"
+          RUNTIME_ID="$(xcrun simctl list runtimes -j | node -e 'const fs=require(\"node:fs\"); const data=JSON.parse(fs.readFileSync(0, \"utf8\")); const runtimes=data.runtimes.filter((entry) => entry.platform === \"iOS\" && entry.isAvailable !== false); runtimes.sort((left, right) => String(left.version ?? \"\").localeCompare(String(right.version ?? \"\"), undefined, { numeric: true })); const runtime=runtimes.at(-1); if (!runtime) { process.exit(1); } process.stdout.write(runtime.identifier);')"
+          DEVICE_NAME="pretext-benchmark-${GITHUB_RUN_ID}"
+          DEVICE_ID="$(xcrun simctl create "$DEVICE_NAME" "$DEVICE_TYPE_ID" "$RUNTIME_ID")"
+          echo "BENCHMARK_SIMULATOR_NAME=$DEVICE_NAME" >> "$GITHUB_ENV"
+          echo "MAESTRO_IOS_DEVICE_ID=$DEVICE_ID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$DEVICE_ID"
+          xcrun simctl bootstatus "$DEVICE_ID" -b
+
+      - name: Start Metro
+        run: |
+          cd example
+          yarn start > /tmp/pretext-metro.log 2>&1 &
+          echo $! > /tmp/pretext-metro.pid
+          node - <<'NODE'
+          const http = require("node:http");
+
+          let attempts = 0;
+
+          function retry() {
+            attempts += 1;
+            if (attempts >= 90) {
+              process.exit(1);
+            }
+
+            setTimeout(check, 1000);
+          }
+
+          function check() {
+            const request = http.get("http://127.0.0.1:8081/status", (response) => {
+              response.resume();
+              if (response.statusCode === 200) {
+                process.exit(0);
+              }
+
+              retry();
+            });
+
+            request.on("error", retry);
+          }
+
+          check();
+          NODE
+
+      - name: Install example app on simulator
+        run: |
+          cd example
+          npx react-native run-ios --udid "$MAESTRO_IOS_DEVICE_ID" --no-packager
+
+      - name: Run iOS benchmark suite
+        run: yarn benchmark:ios
+
+      - name: Upload benchmark artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-ios
+          path: |
+            example/.maestro-artifacts/ios-suite
+            /tmp/pretext-metro.log
+          if-no-files-found: warn
+
+      - name: Cleanup benchmark simulator
+        if: always()
+        run: |
+          if [[ -f /tmp/pretext-metro.pid ]]; then
+            kill "$(cat /tmp/pretext-metro.pid)" >/dev/null 2>&1 || true
+          fi
+
+          if [[ -n "${MAESTRO_IOS_DEVICE_ID:-}" ]]; then
+            xcrun simctl shutdown "$MAESTRO_IOS_DEVICE_ID" >/dev/null 2>&1 || true
+            xcrun simctl delete "$MAESTRO_IOS_DEVICE_ID" >/dev/null 2>&1 || true
+          fi

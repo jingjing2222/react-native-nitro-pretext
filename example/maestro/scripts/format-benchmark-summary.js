@@ -3,125 +3,49 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
+const {
+  formatCount,
+  formatMs,
+  formatRatio,
+  formatSignedMs,
+  labelValue,
+  readBenchmarkLog,
+  titleCase,
+} = require("./benchmark-report-utils");
+
 const [, , logPath, summaryPath, platformArg, flowArg] = process.argv;
 
 if (!logPath || !summaryPath) {
   console.error(
-    "usage: node maestro/scripts/format-benchmark-summary.js <maestro.log> <summary.txt> [platform] [flow]",
+    "usage: node example/maestro/scripts/format-benchmark-summary.js <maestro.log> <summary.txt> [platform] [flow]",
   );
   process.exit(1);
 }
 
 const platform = platformArg ?? "unknown";
 const flow = flowArg ?? "unknown";
-const logContents = fs.readFileSync(logPath, "utf8");
-const reports = {};
-let suite = null;
+const { summary } = readBenchmarkLog(logPath);
+const baseText = summary.baseText;
+const preparedView = summary.preparedView;
+const combined = summary.combined;
+const performanceRatio =
+  combined?.preparedMedianMs !== null &&
+  combined?.preparedMedianMs !== undefined &&
+  combined?.baseMedianMs !== null &&
+  combined?.baseMedianMs !== undefined &&
+  combined.baseMedianMs > 0
+    ? combined.preparedMedianMs / combined.baseMedianMs
+    : null;
+const p95Ratio =
+  combined?.preparedP95Ms !== null &&
+  combined?.preparedP95Ms !== undefined &&
+  baseText?.interactionP95Ms !== null &&
+  baseText?.interactionP95Ms !== undefined &&
+  baseText.interactionP95Ms > 0
+    ? combined.preparedP95Ms / baseText.interactionP95Ms
+    : null;
 
-function safeParseJson(raw, description) {
-  try {
-    return JSON.parse(raw);
-  } catch (error) {
-    throw new Error(`Failed to parse ${description}: ${error.message}`);
-  }
-}
-
-for (const line of logContents.split(/\r?\n/)) {
-  const jsConsoleIndex = line.indexOf("JsConsole: ");
-
-  if (jsConsoleIndex < 0) {
-    continue;
-  }
-
-  const payload = line.slice(jsConsoleIndex + "JsConsole: ".length).trim();
-
-  if (payload.startsWith("BENCHMARK_REPORT::")) {
-    const reportPayload = payload.slice("BENCHMARK_REPORT::".length);
-    const separatorIndex = reportPayload.indexOf("::");
-
-    if (separatorIndex < 0) {
-      continue;
-    }
-
-    const screen = reportPayload.slice(0, separatorIndex);
-    const rawJson = reportPayload.slice(separatorIndex + 2);
-    reports[screen] = safeParseJson(rawJson, `report for ${screen}`);
-    continue;
-  }
-
-  if (payload.startsWith("BENCHMARK_SUITE::")) {
-    suite = safeParseJson(
-      payload.slice("BENCHMARK_SUITE::".length),
-      "benchmark suite",
-    );
-  }
-}
-
-const summary = suite ?? {
-  baseText: reports["benchmark/base-text"] ?? null,
-  combined: reports["benchmark/index"] ?? null,
-  preparedView: reports["benchmark/prepared-view"] ?? null,
-};
-
-if (!summary.baseText && !summary.combined && !summary.preparedView) {
-  throw new Error(`No benchmark events found in ${logPath}`);
-}
-
-function formatNumber(value, digits = 2) {
-  if (value === null || value === undefined) {
-    return "n/a";
-  }
-
-  return Number(value).toFixed(digits);
-}
-
-function formatMs(value) {
-  if (value === null || value === undefined) {
-    return "n/a";
-  }
-
-  return `${formatNumber(value)} ms`;
-}
-
-function formatSignedMs(value) {
-  if (value === null || value === undefined) {
-    return "n/a";
-  }
-
-  const numeric = Number(value);
-  const sign = numeric > 0 ? "+" : "";
-  return `${sign}${numeric.toFixed(2)} ms`;
-}
-
-function formatCount(value) {
-  if (value === null || value === undefined) {
-    return "n/a";
-  }
-
-  return String(value);
-}
-
-function labelValue(label, value) {
-  return `  ${label.padEnd(20, " ")} ${value}`;
-}
-
-function titleCase(value) {
-  if (value === "ios") {
-    return "iOS";
-  }
-
-  if (value === "android") {
-    return "Android";
-  }
-
-  return value
-    .split(/[-_]/g)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ");
-}
-
-function buildComparisonNotes(combined) {
+function buildComparisonNotes() {
   if (!combined) {
     return ["  comparison           n/a"];
   }
@@ -173,16 +97,9 @@ function buildComparisonNotes(combined) {
     );
   }
 
-  if (notes.length === 0) {
-    return ["  verdict              n/a"];
-  }
-
-  return notes;
+  return notes.length === 0 ? ["  verdict              n/a"] : notes;
 }
 
-const baseText = summary.baseText;
-const preparedView = summary.preparedView;
-const combined = summary.combined;
 const reportLines = [
   "Benchmark Report",
   labelValue("platform", titleCase(platform)),
@@ -202,6 +119,12 @@ if (baseText) {
       "line parity",
       `${formatCount(baseText.parityMismatches)}/${formatCount(
         baseText.parityChecks,
+      )} mismatches`,
+    ),
+    labelValue(
+      "line text parity",
+      `${formatCount(baseText.lineTextParityMismatches)}/${formatCount(
+        baseText.lineTextParityChecks,
       )} mismatches`,
     ),
     labelValue("total runs", formatCount(baseText.totalRuns)),
@@ -226,6 +149,30 @@ if (preparedView) {
       formatMs(preparedView.renderInteractionMedianMs),
     ),
     labelValue("render p95", formatMs(preparedView.renderInteractionP95Ms)),
+    labelValue(
+      "render line parity",
+      `${formatCount(preparedView.renderParityMismatches)}/${formatCount(
+        preparedView.renderParityChecks,
+      )} mismatches`,
+    ),
+    labelValue(
+      "render text parity",
+      `${formatCount(preparedView.renderLineTextParityMismatches)}/${formatCount(
+        preparedView.renderLineTextParityChecks,
+      )} mismatches`,
+    ),
+    labelValue(
+      "compute line parity",
+      `${formatCount(preparedView.computeParityMismatches)}/${formatCount(
+        preparedView.computeParityChecks,
+      )} mismatches`,
+    ),
+    labelValue(
+      "compute text parity",
+      `${formatCount(preparedView.computeLineTextParityMismatches)}/${formatCount(
+        preparedView.computeLineTextParityChecks,
+      )} mismatches`,
+    ),
     labelValue("total runs", formatCount(preparedView.totalRuns)),
     "",
   );
@@ -240,17 +187,25 @@ if (combined) {
       "median delta",
       `${formatSignedMs(combined.medianDeltaMs)} (${combined.medianDeltaMs > 0 ? "prepared slower" : combined.medianDeltaMs < 0 ? "prepared faster" : "tied"})`,
     ),
+    labelValue("median ratio", formatRatio(performanceRatio)),
     labelValue("prepared p95", formatMs(combined.preparedP95Ms)),
     labelValue(
       "p95 delta",
       `${formatSignedMs(combined.p95DeltaMs)} (${combined.p95DeltaMs > 0 ? "prepared slower" : combined.p95DeltaMs < 0 ? "prepared faster" : "tied"})`,
     ),
+    labelValue("p95 ratio", formatRatio(p95Ratio)),
     labelValue(
       "layout-only median",
       formatMs(combined.preparedLayoutOnlyMedianMs),
     ),
+    labelValue(
+      "render text parity",
+      `${formatCount(
+        combined.preparedRenderLineTextParityMismatches,
+      )}/${formatCount(combined.preparedRenderLineTextParityChecks)} mismatches`,
+    ),
     "",
-    ...buildComparisonNotes(combined),
+    ...buildComparisonNotes(),
     "",
   );
 }

@@ -18,6 +18,8 @@ type SerializableSummary = {
   interactionMedianMs: number | null;
   interactionP95Ms: number | null;
   layoutOnlyMedianMs: number | null;
+  lineTextParityChecks: number;
+  lineTextParityMismatches: number;
   parityChecks: number;
   parityMismatches: number;
   totalJankCount: number;
@@ -29,6 +31,8 @@ type BaseTextAutomationReport = {
   interactionP95Ms: number | null;
   jankCount: number | null;
   layoutOnlyMedianMs: number | null;
+  lineTextParityChecks: number | null;
+  lineTextParityMismatches: number | null;
   parityChecks: number | null;
   parityMismatches: number | null;
   screen: "benchmark/base-text";
@@ -42,8 +46,17 @@ type PreparedViewAutomationReport = {
   computeLayoutOnlyMedianMs: number | null;
   measureMs: number | null;
   prepareMs: number | null;
+  computeLineTextParityChecks: number | null;
+  computeLineTextParityMismatches: number | null;
+  computeParityChecks: number | null;
+  computeParityMismatches: number | null;
   renderInteractionMedianMs: number | null;
   renderInteractionP95Ms: number | null;
+  renderJankCount: number | null;
+  renderLineTextParityChecks: number | null;
+  renderLineTextParityMismatches: number | null;
+  renderParityChecks: number | null;
+  renderParityMismatches: number | null;
   screen: "benchmark/prepared-view";
   status: AutomationStatus;
   tokenizeMs: number | null;
@@ -57,10 +70,19 @@ type CombinedAutomationReport = {
   measurementMs: number | null;
   p95DeltaMs: number | null;
   prepareMs: number | null;
+  preparedComputeLineTextParityChecks: number | null;
+  preparedComputeLineTextParityMismatches: number | null;
+  preparedComputeParityChecks: number | null;
+  preparedComputeParityMismatches: number | null;
   preparedCompletedAt: string | null;
   preparedLayoutOnlyMedianMs: number | null;
   preparedMedianMs: number | null;
   preparedP95Ms: number | null;
+  preparedRenderJankCount: number | null;
+  preparedRenderLineTextParityChecks: number | null;
+  preparedRenderLineTextParityMismatches: number | null;
+  preparedRenderParityChecks: number | null;
+  preparedRenderParityMismatches: number | null;
   screen: "benchmark/index";
   status: AutomationStatus;
 };
@@ -85,6 +107,8 @@ function serializeSummary(
     interactionMedianMs: roundMetric(summary.interactionMedianMs),
     interactionP95Ms: roundMetric(summary.interactionP95Ms),
     layoutOnlyMedianMs: roundMetric(summary.layoutOnlyMedianMs),
+    lineTextParityChecks: summary.lineTextParityChecks,
+    lineTextParityMismatches: summary.lineTextParityMismatches,
     parityChecks: summary.parityChecks,
     parityMismatches: summary.parityMismatches,
     totalJankCount: summary.totalJankCount,
@@ -132,6 +156,8 @@ export function createBaseTextAutomationReport(args: {
     interactionP95Ms: summary?.interactionP95Ms ?? null,
     jankCount: summary?.totalJankCount ?? null,
     layoutOnlyMedianMs: summary?.layoutOnlyMedianMs ?? null,
+    lineTextParityChecks: summary?.lineTextParityChecks ?? null,
+    lineTextParityMismatches: summary?.lineTextParityMismatches ?? null,
     parityChecks: summary?.parityChecks ?? null,
     parityMismatches: summary?.parityMismatches ?? null,
     screen: "benchmark/base-text",
@@ -169,7 +195,12 @@ export function createPreparedViewAutomationReport(args: {
         ? null
         : roundMetric(args.prepareState.buildPreparedMs),
     completedAt: args.completedAt,
+    computeLineTextParityChecks: computeSummary?.lineTextParityChecks ?? null,
+    computeLineTextParityMismatches:
+      computeSummary?.lineTextParityMismatches ?? null,
     computeLayoutOnlyMedianMs: computeSummary?.layoutOnlyMedianMs ?? null,
+    computeParityChecks: computeSummary?.parityChecks ?? null,
+    computeParityMismatches: computeSummary?.parityMismatches ?? null,
     measureMs:
       args.prepareState === null
         ? null
@@ -177,6 +208,12 @@ export function createPreparedViewAutomationReport(args: {
     prepareMs: roundMetric(args.prepareMs),
     renderInteractionMedianMs: renderSummary?.interactionMedianMs ?? null,
     renderInteractionP95Ms: renderSummary?.interactionP95Ms ?? null,
+    renderJankCount: renderSummary?.totalJankCount ?? null,
+    renderLineTextParityChecks: renderSummary?.lineTextParityChecks ?? null,
+    renderLineTextParityMismatches:
+      renderSummary?.lineTextParityMismatches ?? null,
+    renderParityChecks: renderSummary?.parityChecks ?? null,
+    renderParityMismatches: renderSummary?.parityMismatches ?? null,
     screen: "benchmark/prepared-view",
     status: args.status,
     tokenizeMs:
@@ -227,10 +264,23 @@ export function createCombinedBenchmarkAutomationReport(args: {
         : roundMetric(args.preparedViewResults.prepareStats.measurementMs),
     p95DeltaMs,
     prepareMs: roundMetric(args.preparedViewResults.prepareMs),
+    preparedComputeLineTextParityChecks:
+      computeSummary?.lineTextParityChecks ?? null,
+    preparedComputeLineTextParityMismatches:
+      computeSummary?.lineTextParityMismatches ?? null,
+    preparedComputeParityChecks: computeSummary?.parityChecks ?? null,
+    preparedComputeParityMismatches: computeSummary?.parityMismatches ?? null,
     preparedCompletedAt: args.preparedViewResults.completedAt,
     preparedLayoutOnlyMedianMs: computeSummary?.layoutOnlyMedianMs ?? null,
     preparedMedianMs: renderSummary?.interactionMedianMs ?? null,
     preparedP95Ms: renderSummary?.interactionP95Ms ?? null,
+    preparedRenderJankCount: renderSummary?.totalJankCount ?? null,
+    preparedRenderLineTextParityChecks:
+      renderSummary?.lineTextParityChecks ?? null,
+    preparedRenderLineTextParityMismatches:
+      renderSummary?.lineTextParityMismatches ?? null,
+    preparedRenderParityChecks: renderSummary?.parityChecks ?? null,
+    preparedRenderParityMismatches: renderSummary?.parityMismatches ?? null,
     screen: "benchmark/index",
     status:
       baseSummary !== null && renderSummary !== null ? "completed" : "partial",

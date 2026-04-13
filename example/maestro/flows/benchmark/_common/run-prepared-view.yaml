@@ -22,6 +22,11 @@ appId: pretext.example
     visible:
       text: "AUTOMATION_STATUS::benchmark/prepared-view::completed::.*"
     timeout: 180000
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "AUTOMATION_REPORT::benchmark/prepared-view::.*"
+    timeout: 20000
 - copyTextFrom:
     text: "AUTOMATION_REPORT::benchmark/prepared-view::.*"
 - runScript:
@@ -32,4 +37,5 @@ appId: pretext.example
 - assertTrue: ${output.reports.preparedView.computeLayoutOnlyMedianMs != null}
 - takeScreenshot:
     path: .maestro-artifacts/prepared-view-complete
-- tapOn: "benchmark/\\*|Navigate up"
+- tapOn: "Back to benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."

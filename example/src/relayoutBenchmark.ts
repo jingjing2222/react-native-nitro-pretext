@@ -1,4 +1,5 @@
 import {
+  layoutParagraphLines,
   layoutParagraphs,
   layoutParagraphsMetadata,
   prepareParagraphsWithStats,
@@ -142,6 +143,24 @@ export function layoutCorpusMetadataPoC(
     layoutOnlyMs: now() - startedAt,
     paragraphs,
   };
+}
+
+export function layoutCorpusSampleLineTextsPoC(
+  prepared: PreparedParagraphState,
+  maxWidth: number,
+): string[][] {
+  const paragraphs = layoutParagraphLines(prepared.id, maxWidth);
+
+  return paragraphs.slice(0, BENCHMARK_SAMPLE_SIZE).map((paragraph, index) => {
+    const text = BENCHMARK_CORPUS[index] ?? "";
+
+    return paragraph.lines.map((line) => {
+      const textStart = Math.max(0, Math.min(text.length, line.textStart));
+      const textEnd = Math.max(textStart, Math.min(text.length, line.textEnd));
+
+      return text.slice(textStart, textEnd);
+    });
+  });
 }
 
 export function disposePreparedCorpusPoC(

@@ -27,4 +27,5 @@ appId: pretext.example
 - assertTrue: ${output.reports.baseText.interactionMedianMs != null}
 - takeScreenshot:
     path: .maestro-artifacts/base-text-complete
-- tapOn: "benchmark/\\*|Navigate up"
+- tapOn: "Back to benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."

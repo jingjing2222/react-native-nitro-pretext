@@ -132,6 +132,22 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
                 preparedViewResults.computeSummary?.layoutOnlyMedianMs ?? null,
               )}
             />
+            <SummaryMetric
+              label="Render text parity"
+              value={
+                preparedViewResults.renderSummary === null
+                  ? "—"
+                  : `${preparedViewResults.renderSummary.lineTextParityMismatches}/${preparedViewResults.renderSummary.lineTextParityChecks} mismatch`
+              }
+            />
+            <SummaryMetric
+              label="Compute text parity"
+              value={
+                preparedViewResults.computeSummary === null
+                  ? "—"
+                  : `${preparedViewResults.computeSummary.lineTextParityMismatches}/${preparedViewResults.computeSummary.lineTextParityChecks} mismatch`
+              }
+            />
           </View>
         </View>
       </ScrollView>

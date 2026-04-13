@@ -1,3 +1,4 @@
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -16,13 +17,17 @@ import {
   SurfaceCard,
 } from "../../components/BenchmarkComponents";
 import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
+import type { AppStackParamList } from "../../benchmark/types";
 
-export function BaseTextBenchmarkScreen() {
+type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkBaseText">;
+
+export function BaseTextBenchmarkScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { baselineResults, setBaselineResults } = useBenchmarkResults();
   const benchmark = useBenchmarkHarness({
     baselineInteractionMedianMs: null,
     baselineSampleLineCountsByWidth: null,
+    baselineSampleLineTextsByWidth: null,
     initialCompletedAt: baselineResults.completedAt,
     initialSummaries: { baseline: baselineResults.summary },
     modes: ["baseline"],
@@ -30,6 +35,7 @@ export function BaseTextBenchmarkScreen() {
       setBaselineResults({
         completedAt: completion.completedAt,
         sampleLineCountsByWidth: completion.sampleLineCountsByWidth ?? null,
+        sampleLineTextsByWidth: completion.sampleLineTextsByWidth ?? null,
         summary: completion.summaries.baseline,
       });
     },
@@ -103,6 +109,13 @@ export function BaseTextBenchmarkScreen() {
               void benchmark.runBenchmarkSuite();
             }}
             testID="benchmark.base-text.run"
+          />
+
+          <PrimaryButton
+            disabled={benchmark.isRunning}
+            label="Back to benchmark/*"
+            onPress={() => navigation.navigate("BenchmarkIndex")}
+            testID="benchmark.base-text.back"
           />
 
           <HeroAutomationPanel

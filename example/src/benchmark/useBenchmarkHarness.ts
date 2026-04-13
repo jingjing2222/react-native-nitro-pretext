@@ -18,12 +18,13 @@ import {
   createWidthSequence,
   layoutCorpusPoC,
   layoutCorpusMetadataPoC,
+  layoutCorpusSampleLineTextsPoC,
   now,
 } from "../relayoutBenchmark";
 import {
   beginJankTracker,
   buildSummary,
-  compareLineCounts,
+  compareLineParity,
 } from "./harnessUtils";
 import {
   createSummaryRecord,
@@ -37,6 +38,7 @@ import {
 export function useBenchmarkHarness({
   baselineInteractionMedianMs,
   baselineSampleLineCountsByWidth,
+  baselineSampleLineTextsByWidth,
   initialCompletedAt,
   initialSummaries,
   modes,
@@ -74,6 +76,7 @@ export function useBenchmarkHarness({
   });
   const activeRenderPassRef = useRef<ActiveRenderPass | null>(null);
   const baselineParityRef = useRef<Map<number, number[]>>(new Map());
+  const baselineLineTextParityRef = useRef<Map<number, string[][]>>(new Map());
 
   useEffect(() => {
     if (isRunning) {
@@ -100,6 +103,9 @@ export function useBenchmarkHarness({
 
     const interactionMs = now() - activeRenderPass.startedAt;
     const sampleLineCounts = [...activeRenderPass.sampleLineCounts];
+    const sampleLineTexts = activeRenderPass.sampleLineTexts.map(
+      (lineTexts) => [...lineTexts],
+    );
     const stopJankTracking = activeRenderPass.stopJankTracking;
     const resolve = activeRenderPass.resolve;
     activeRenderPassRef.current = null;
@@ -110,19 +116,21 @@ export function useBenchmarkHarness({
           interactionMs,
           jankCount: stopJankTracking(),
           sampleLineCounts,
+          sampleLineTexts,
         });
       });
     });
   }, []);
 
   const handleParagraphTextLayout = useCallback(
-    (index: number, lineCount: number) => {
+    (index: number, lineCount: number, lineTexts: string[]) => {
       const activeRenderPass = activeRenderPassRef.current;
       if (!activeRenderPass || index >= BENCHMARK_SAMPLE_SIZE) {
         return;
       }
 
       activeRenderPass.sampleLineCounts[index] = lineCount;
+      activeRenderPass.sampleLineTexts[index] = [...lineTexts];
     },
     [],
   );
@@ -138,10 +146,15 @@ export function useBenchmarkHarness({
         interactionMs: number;
         jankCount: number;
         sampleLineCounts: number[];
+        sampleLineTexts: string[][];
       }>((resolve) => {
         activeRenderPassRef.current = {
           expectedParagraphs: BENCHMARK_PARAGRAPH_COUNT,
           sampleLineCounts: Array<number>(BENCHMARK_SAMPLE_SIZE).fill(0),
+          sampleLineTexts: Array.from(
+            { length: BENCHMARK_SAMPLE_SIZE },
+            () => [],
+          ),
           seenParagraphs: new Set<number>(),
           startedAt,
           resolve,
@@ -169,6 +182,7 @@ export function useBenchmarkHarness({
     setIsRunning(true);
     setLastCompletedAt(null);
     baselineParityRef.current.clear();
+    baselineLineTextParityRef.current.clear();
     setSummaries(createSummaryRecord());
 
     const nextSummaries = createSummaryRecord();
@@ -193,6 +207,7 @@ export function useBenchmarkHarness({
 
           let layoutOnlyMs: number | null = null;
           let expectedLineCounts: number[] | null = null;
+          let expectedLineTexts: string[][] | null = null;
           let renderTexts = BENCHMARK_CORPUS;
           const layoutWidth = Math.max(
             1,
@@ -208,6 +223,9 @@ export function useBenchmarkHarness({
             expectedLineCounts = layoutResult.paragraphs.map(
               (paragraph) => paragraph.lineCount,
             );
+            expectedLineTexts = layoutResult.paragraphs
+              .slice(0, BENCHMARK_SAMPLE_SIZE)
+              .map((paragraph) => paragraph.brokenText.split("\n"));
             renderTexts = layoutResult.paragraphs.map(
               (paragraph) => paragraph.brokenText,
             );
@@ -222,6 +240,10 @@ export function useBenchmarkHarness({
             expectedLineCounts = layoutResult.paragraphs.map(
               (paragraph) => paragraph.lineCount,
             );
+            expectedLineTexts = layoutCorpusSampleLineTextsPoC(
+              preparedParagraphs!,
+              layoutWidth,
+            );
           }
 
           const interaction = await measureInteraction(
@@ -233,24 +255,35 @@ export function useBenchmarkHarness({
 
           if (mode === "baseline") {
             baselineParityRef.current.set(width, interaction.sampleLineCounts);
+            baselineLineTextParityRef.current.set(
+              width,
+              interaction.sampleLineTexts,
+            );
           }
 
           if (runIndex < BENCHMARK_WARMUP_RUNS) {
             continue;
           }
 
-          const parity = compareLineCounts(
+          const parity = compareLineParity(
             mode === "baseline"
               ? undefined
               : (baselineSampleLineCountsByWidth?.[width] ??
                   baselineParityRef.current.get(width)),
             expectedLineCounts,
+            mode === "baseline"
+              ? undefined
+              : (baselineSampleLineTextsByWidth?.[width] ??
+                  baselineLineTextParityRef.current.get(width)),
+            expectedLineTexts,
           );
 
           modeMetrics.push({
             interactionMs: interaction.interactionMs,
             layoutOnlyMs,
             jankCount: interaction.jankCount,
+            lineTextParityChecks: parity.lineTextParityChecks,
+            lineTextParityMismatches: parity.lineTextParityMismatches,
             parityMismatches: parity.parityMismatches,
             parityChecks: parity.parityChecks,
           });
@@ -286,6 +319,9 @@ export function useBenchmarkHarness({
         sampleLineCountsByWidth: modes.includes("baseline")
           ? Object.fromEntries(baselineParityRef.current)
           : undefined,
+        sampleLineTextsByWidth: modes.includes("baseline")
+          ? Object.fromEntries(baselineLineTextParityRef.current)
+          : undefined,
         summaries: createSummaryRecord(nextSummaries),
       });
     } finally {
@@ -295,6 +331,7 @@ export function useBenchmarkHarness({
   }, [
     baselineInteractionMedianMs,
     baselineSampleLineCountsByWidth,
+    baselineSampleLineTextsByWidth,
     isRunning,
     measureInteraction,
     modes,

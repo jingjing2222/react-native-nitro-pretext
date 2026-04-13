@@ -256,6 +256,14 @@ export function SummaryCard({
           }
         />
         <SummaryMetric
+          label="Line text parity"
+          value={
+            summary === null
+              ? "—"
+              : `${summary.lineTextParityMismatches}/${summary.lineTextParityChecks} mismatch`
+          }
+        />
+        <SummaryMetric
           label="Prepare amortizes"
           value={
             summary === null || summary.amortizedAfterRuns === null
@@ -343,7 +351,11 @@ const ParagraphList = memo(function ParagraphList({
   texts,
 }: {
   onParagraphLayout: (index: number) => void;
-  onParagraphTextLayout: (index: number, lineCount: number) => void;
+  onParagraphTextLayout: (
+    index: number,
+    lineCount: number,
+    lineTexts: string[],
+  ) => void;
   paragraphWidth: number;
   texts: string[];
 }) {
@@ -357,7 +369,11 @@ const ParagraphList = memo(function ParagraphList({
           onTextLayout={
             index < BENCHMARK_SAMPLE_SIZE
               ? (event: TextLayoutEvent) =>
-                  onParagraphTextLayout(index, event.nativeEvent.lines.length)
+                  onParagraphTextLayout(
+                    index,
+                    event.nativeEvent.lines.length,
+                    event.nativeEvent.lines.map((line) => line.text),
+                  )
               : undefined
           }
           style={[styles.paragraph, { width: paragraphWidth }]}

@@ -1,3 +1,4 @@
+import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
@@ -22,8 +23,11 @@ import {
 } from "../../components/BenchmarkComponents";
 import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
 import { usePreparedParagraphs } from "../../benchmark/usePreparedParagraphs";
+import type { AppStackParamList } from "../../benchmark/types";
 
-export function PreparedParagraphViewBenchmarkScreen() {
+type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkPreparedView">;
+
+export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { baselineResults, preparedViewResults, setPreparedViewResults } =
     useBenchmarkResults();
@@ -33,6 +37,7 @@ export function PreparedParagraphViewBenchmarkScreen() {
     baselineInteractionMedianMs:
       baselineResults.summary?.interactionMedianMs ?? null,
     baselineSampleLineCountsByWidth: baselineResults.sampleLineCountsByWidth,
+    baselineSampleLineTextsByWidth: baselineResults.sampleLineTextsByWidth,
     initialCompletedAt: preparedViewResults.completedAt,
     initialSummaries: {
       "pretext-compute": preparedViewResults.computeSummary,
@@ -142,6 +147,13 @@ export function PreparedParagraphViewBenchmarkScreen() {
             }}
             showSpinner={isPreparing}
             testID="benchmark.prepared-view.run"
+          />
+
+          <PrimaryButton
+            disabled={isPreparing || benchmark.isRunning}
+            label="Back to benchmark/*"
+            onPress={() => navigation.navigate("BenchmarkIndex")}
+            testID="benchmark.prepared-view.back"
           />
 
           <HeroAutomationPanel

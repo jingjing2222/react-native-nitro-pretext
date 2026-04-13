@@ -17,13 +17,14 @@ import {
   BENCHMARK_WARMUP_RUNS,
   createWidthSequence,
   layoutCorpusMetadataPoC,
+  layoutCorpusSampleLineTextsPoC,
   now,
   type PreparedParagraphMetrics,
 } from "../relayoutBenchmark";
 import {
   beginJankTracker,
   buildSummary,
-  compareLineCounts,
+  compareLineParity,
 } from "./harnessUtils";
 import {
   createSummaryRecord,
@@ -68,6 +69,7 @@ function createEmptyParagraphMetrics(): PreparedParagraphMetrics[] {
 export function usePreparedViewBenchmarkHarness({
   baselineInteractionMedianMs,
   baselineSampleLineCountsByWidth,
+  baselineSampleLineTextsByWidth,
   initialCompletedAt,
   initialSummaries,
   onCompleted,
@@ -106,6 +108,25 @@ export function usePreparedViewBenchmarkHarness({
     label: "Ready",
   });
   const activeRenderPassRef = useRef<PreparedViewRenderPass | null>(null);
+  const sampleLineTextsByWidth = useMemo(() => {
+    if (!preparedParagraphs) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      widthSequence.map((width) => {
+        const layoutWidth = Math.max(
+          1,
+          width - PARAGRAPH_HORIZONTAL_PADDING * 2,
+        );
+
+        return [
+          width,
+          layoutCorpusSampleLineTextsPoC(preparedParagraphs, layoutWidth),
+        ];
+      }),
+    ) as Record<number, string[][]>;
+  }, [preparedParagraphs, widthSequence]);
 
   useEffect(() => {
     if (isRunning) {
@@ -230,6 +251,7 @@ export function usePreparedViewBenchmarkHarness({
           const expectedLineCounts = layoutResult.paragraphs.map(
             (paragraph) => paragraph.lineCount,
           );
+          const expectedLineTexts = sampleLineTextsByWidth[width] ?? null;
           const interaction =
             mode === "pretext-render"
               ? await measureRenderInteraction(
@@ -246,15 +268,19 @@ export function usePreparedViewBenchmarkHarness({
             continue;
           }
 
-          const parity = compareLineCounts(
+          const parity = compareLineParity(
             baselineSampleLineCountsByWidth?.[width],
             expectedLineCounts,
+            baselineSampleLineTextsByWidth?.[width],
+            expectedLineTexts,
           );
 
           modeMetrics.push({
             interactionMs: interaction.interactionMs,
             layoutOnlyMs: layoutResult.layoutOnlyMs,
             jankCount: interaction.jankCount,
+            lineTextParityChecks: parity.lineTextParityChecks,
+            lineTextParityMismatches: parity.lineTextParityMismatches,
             parityMismatches: parity.parityMismatches,
             parityChecks: parity.parityChecks,
           });
@@ -289,12 +315,14 @@ export function usePreparedViewBenchmarkHarness({
   }, [
     baselineInteractionMedianMs,
     baselineSampleLineCountsByWidth,
+    baselineSampleLineTextsByWidth,
     isRunning,
     measureRenderInteraction,
     onCompleted,
     paragraphWidth,
     prepareMs,
     preparedParagraphs,
+    sampleLineTextsByWidth,
     totalRuns,
     widthSequence,
   ]);

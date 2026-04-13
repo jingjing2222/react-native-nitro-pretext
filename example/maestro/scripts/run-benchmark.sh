@@ -1,27 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
+APP_ROOT_DIR="$(cd "$(dirname "$0")/../.." && pwd)"
 FLOW_NAME="${1:-suite}"
 PLATFORM_NAME="${2:-}"
 APP_ID="${MAESTRO_APP_ID:-pretext.example}"
 
+cd "$APP_ROOT_DIR"
+
 if [[ -z "$FLOW_NAME" || -z "$PLATFORM_NAME" ]]; then
-  echo "usage: bash maestro/scripts/run-benchmark.sh <suite|base-text|prepared-view> <ios|android>" >&2
+  echo "usage: bash example/maestro/scripts/run-benchmark.sh <suite|base-text|prepared-view> <ios|android>" >&2
   exit 1
 fi
 
 case "$FLOW_NAME" in
   suite)
-    FLOW_FILE="$ROOT_DIR/maestro/flows/benchmark/suite.yaml"
+    FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/suite.yaml"
     FLOW_KEY="suite"
     ;;
   base-text)
-    FLOW_FILE="$ROOT_DIR/maestro/flows/benchmark/base-text.yaml"
+    FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/base-text.yaml"
     FLOW_KEY="base-text"
     ;;
   prepared-view)
-    FLOW_FILE="$ROOT_DIR/maestro/flows/benchmark/prepared-view.yaml"
+    FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/prepared-view.yaml"
     FLOW_KEY="prepared-view"
     ;;
   *)
@@ -115,7 +117,7 @@ extract_android_driver_apks() {
 ensure_android_maestro_driver() {
   local device_id="$1"
   local debug_dir="$2"
-  local driver_dir="$ROOT_DIR/.maestro-artifacts/android-driver"
+  local driver_dir="$APP_ROOT_DIR/.maestro-artifacts/android-driver"
 
   mkdir -p "$debug_dir"
   extract_android_driver_apks "$driver_dir"
@@ -141,16 +143,41 @@ print_latest_summary() {
   local flow_key="$3"
   local latest_log
 
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  local summary_file="$debug_dir/latest-summary.txt"
+  node "$APP_ROOT_DIR/maestro/scripts/format-benchmark-summary.js" \
+    "$latest_log" \
+    "$summary_file" \
+    "$platform_name" \
+    "$flow_key"
+}
+
+find_latest_log() {
+  local debug_dir="$1"
+  local latest_log
+
   latest_log="$(find "$debug_dir/.maestro/tests" -name "maestro.log" | sort | tail -n 1)"
   if [[ -z "$latest_log" ]]; then
     echo "No maestro.log found under $debug_dir" >&2
     return 1
   fi
 
-  local summary_file="$debug_dir/latest-summary.txt"
-  node "$ROOT_DIR/maestro/scripts/format-benchmark-summary.js" \
+  echo "$latest_log"
+}
+
+run_quality_gate() {
+  local debug_dir="$1"
+  local platform_name="$2"
+  local flow_key="$3"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  local gate_file="$debug_dir/latest-gate.txt"
+  node "$APP_ROOT_DIR/maestro/scripts/assert-benchmark-gates.js" \
     "$latest_log" \
-    "$summary_file" \
+    "$gate_file" \
     "$platform_name" \
     "$flow_key"
 }
@@ -243,7 +270,7 @@ run_ios_benchmark() {
 
 case "$PLATFORM_NAME" in
   ios)
-    DEBUG_DIR="$ROOT_DIR/.maestro-artifacts/ios-$FLOW_KEY"
+    DEBUG_DIR="$APP_ROOT_DIR/.maestro-artifacts/ios-$FLOW_KEY"
     IOS_DEVICE_ID="${MAESTRO_IOS_DEVICE_ID:-2BDA24D2-3694-46CA-9CF5-2EA46D0445DE}"
     ensure_ios_app_ready "$IOS_DEVICE_ID"
     log_step "Running Maestro flow $FLOW_NAME on iOS"
@@ -251,7 +278,7 @@ case "$PLATFORM_NAME" in
     run_ios_benchmark "$DEBUG_DIR" "$IOS_DEVICE_ID" "$FLOW_FILE"
     ;;
   android)
-    DEBUG_DIR="$ROOT_DIR/.maestro-artifacts/android-$FLOW_KEY"
+    DEBUG_DIR="$APP_ROOT_DIR/.maestro-artifacts/android-$FLOW_KEY"
     ANDROID_DEVICE_ID="${MAESTRO_ANDROID_DEVICE_ID:-emulator-5554}"
     ensure_android_app_ready "$ANDROID_DEVICE_ID"
     log_step "Running Maestro flow $FLOW_NAME on Android"
@@ -266,3 +293,7 @@ case "$PLATFORM_NAME" in
 esac
 
 print_latest_summary "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
+
+if [[ "${BENCHMARK_SKIP_GATE:-0}" != "1" ]]; then
+  run_quality_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
+fi

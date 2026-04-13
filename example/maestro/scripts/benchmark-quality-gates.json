@@ -1,0 +1,123 @@
+{
+  "default": {
+    "suite": {
+      "requireCompleted": true,
+      "maxPreparedMedianRatio": 1.05,
+      "maxPreparedP95Ratio": 1.1,
+      "maxPrepareMs": 3000,
+      "maxMeasureMs": 2500,
+      "maxBuildPreparedMs": 1500,
+      "maxTokenizeMs": 250,
+      "maxLayoutOnlyMedianMs": 80,
+      "minRenderParityChecks": 200,
+      "maxRenderParityMismatches": 8,
+      "minRenderLineTextParityChecks": 200,
+      "maxRenderLineTextParityMismatches": 40,
+      "minComputeParityChecks": 200,
+      "maxComputeParityMismatches": 8,
+      "minComputeLineTextParityChecks": 200,
+      "maxComputeLineTextParityMismatches": 40
+    },
+    "base-text": {
+      "requireCompleted": true
+    },
+    "prepared-view": {
+      "requireCompleted": true,
+      "maxPreparedMedianRatio": 1.05,
+      "maxPreparedP95Ratio": 1.1,
+      "maxPrepareMs": 3000,
+      "maxMeasureMs": 2500,
+      "maxBuildPreparedMs": 1500,
+      "maxTokenizeMs": 250,
+      "maxLayoutOnlyMedianMs": 80,
+      "minRenderParityChecks": 200,
+      "maxRenderParityMismatches": 8,
+      "minRenderLineTextParityChecks": 200,
+      "maxRenderLineTextParityMismatches": 40,
+      "minComputeParityChecks": 200,
+      "maxComputeParityMismatches": 8,
+      "minComputeLineTextParityChecks": 200,
+      "maxComputeLineTextParityMismatches": 40
+    }
+  },
+  "local": {
+    "ios": {
+      "suite": {
+        "maxPreparedMedianRatio": 1,
+        "maxPreparedP95Ratio": 1,
+        "maxPrepareMs": 700,
+        "maxMeasureMs": 600,
+        "maxBuildPreparedMs": 400,
+        "maxTokenizeMs": 120,
+        "maxLayoutOnlyMedianMs": 25,
+        "maxRenderParityMismatches": 8,
+        "maxRenderLineTextParityMismatches": 40,
+        "maxComputeParityMismatches": 8,
+        "maxComputeLineTextParityMismatches": 40
+      },
+      "prepared-view": {
+        "maxPreparedMedianRatio": 1,
+        "maxPreparedP95Ratio": 1,
+        "maxPrepareMs": 700,
+        "maxMeasureMs": 600,
+        "maxBuildPreparedMs": 400,
+        "maxTokenizeMs": 120,
+        "maxLayoutOnlyMedianMs": 25,
+        "maxRenderParityMismatches": 8,
+        "maxRenderLineTextParityMismatches": 40,
+        "maxComputeParityMismatches": 8,
+        "maxComputeLineTextParityMismatches": 40
+      }
+    },
+    "android": {
+      "suite": {
+        "maxPreparedMedianRatio": 1,
+        "maxPreparedP95Ratio": 1.05,
+        "maxPrepareMs": 120,
+        "maxMeasureMs": 80,
+        "maxBuildPreparedMs": 60,
+        "maxTokenizeMs": 40,
+        "maxLayoutOnlyMedianMs": 10
+      },
+      "prepared-view": {
+        "maxPreparedMedianRatio": 1,
+        "maxPreparedP95Ratio": 1.05,
+        "maxPrepareMs": 120,
+        "maxMeasureMs": 80,
+        "maxBuildPreparedMs": 60,
+        "maxTokenizeMs": 40,
+        "maxLayoutOnlyMedianMs": 10
+      }
+    }
+  },
+  "ci-debug": {
+    "ios": {
+      "suite": {
+        "maxPreparedMedianRatio": 1.1,
+        "maxPreparedP95Ratio": 1.15,
+        "maxPrepareMs": 3500,
+        "maxMeasureMs": 3000,
+        "maxBuildPreparedMs": 2000,
+        "maxTokenizeMs": 300,
+        "maxLayoutOnlyMedianMs": 100,
+        "maxRenderParityMismatches": 12,
+        "maxRenderLineTextParityMismatches": 60,
+        "maxComputeParityMismatches": 12,
+        "maxComputeLineTextParityMismatches": 60
+      },
+      "prepared-view": {
+        "maxPreparedMedianRatio": 1.1,
+        "maxPreparedP95Ratio": 1.15,
+        "maxPrepareMs": 3500,
+        "maxMeasureMs": 3000,
+        "maxBuildPreparedMs": 2000,
+        "maxTokenizeMs": 300,
+        "maxLayoutOnlyMedianMs": 100,
+        "maxRenderParityMismatches": 12,
+        "maxRenderLineTextParityMismatches": 60,
+        "maxComputeParityMismatches": 12,
+        "maxComputeLineTextParityMismatches": 60
+      }
+    }
+  }
+}

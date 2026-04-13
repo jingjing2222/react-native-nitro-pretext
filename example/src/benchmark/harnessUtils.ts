@@ -31,15 +31,44 @@ export function beginJankTracker(): () => number {
   };
 }
 
-export function compareLineCounts(
+function normalizeLineText(text: string): string {
+  return text.replace(/\r?\n/gu, "").replace(/[ \t\u00a0]+$/gu, "");
+}
+
+function hasMatchingLineTexts(
+  baselineLineTexts: string[],
+  expectedLineTexts: string[],
+): boolean {
+  if (baselineLineTexts.length !== expectedLineTexts.length) {
+    return false;
+  }
+
+  return baselineLineTexts.every((lineText, index) => {
+    const expectedLineText = expectedLineTexts[index];
+
+    if (expectedLineText === undefined) {
+      return false;
+    }
+
+    return normalizeLineText(lineText) === normalizeLineText(expectedLineText);
+  });
+}
+
+export function compareLineParity(
   baselineCounts: number[] | undefined,
   expectedLineCounts: number[] | null,
+  baselineLineTexts: string[][] | undefined,
+  expectedLineTexts: string[][] | null,
 ): {
   parityChecks: number;
   parityMismatches: number;
+  lineTextParityChecks: number;
+  lineTextParityMismatches: number;
 } {
   if (!baselineCounts || !expectedLineCounts) {
     return {
+      lineTextParityChecks: 0,
+      lineTextParityMismatches: 0,
       parityChecks: 0,
       parityMismatches: 0,
     };
@@ -47,11 +76,13 @@ export function compareLineCounts(
 
   let parityMismatches = 0;
   let parityChecks = 0;
+  let lineTextParityMismatches = 0;
+  let lineTextParityChecks = 0;
 
   for (let index = 0; index < BENCHMARK_SAMPLE_SIZE; index += 1) {
     const baseline = baselineCounts[index];
     const expected = expectedLineCounts[index];
-    if (!baseline || expected === undefined) {
+    if (baseline === undefined || expected === undefined) {
       continue;
     }
 
@@ -59,9 +90,27 @@ export function compareLineCounts(
     if (baseline !== expected) {
       parityMismatches += 1;
     }
+
+    const baselineParagraphLineTexts = baselineLineTexts?.[index];
+    const expectedParagraphLineTexts = expectedLineTexts?.[index];
+    if (!baselineParagraphLineTexts || !expectedParagraphLineTexts) {
+      continue;
+    }
+
+    lineTextParityChecks += 1;
+    if (
+      !hasMatchingLineTexts(
+        baselineParagraphLineTexts,
+        expectedParagraphLineTexts,
+      )
+    ) {
+      lineTextParityMismatches += 1;
+    }
   }
 
   return {
+    lineTextParityChecks,
+    lineTextParityMismatches,
     parityChecks,
     parityMismatches,
   };
@@ -91,6 +140,12 @@ export function buildSummary(
     interactionMedianMs,
     interactionP95Ms,
     layoutOnlyMedianMs,
+    lineTextParityChecks: sum(
+      modeMetrics.map((metric) => metric.lineTextParityChecks),
+    ),
+    lineTextParityMismatches: sum(
+      modeMetrics.map((metric) => metric.lineTextParityMismatches),
+    ),
     parityChecks: sum(modeMetrics.map((metric) => metric.parityChecks)),
     parityMismatches: sum(modeMetrics.map((metric) => metric.parityMismatches)),
     totalJankCount: sum(modeMetrics.map((metric) => metric.jankCount)),

@@ -12,6 +12,7 @@ export type AppStackParamList = {
   BenchmarkPreparedView: undefined;
   ExampleIndex: undefined;
   ExamplePreparedView: undefined;
+  ExamplePreparedLines: undefined;
   ExamplePreparedText: undefined;
   ExampleInlineSegments: undefined;
   ExampleLineCursor: undefined;
@@ -27,6 +28,8 @@ export type BenchmarkSummary = {
   totalJankCount: number;
   parityMismatches: number;
   parityChecks: number;
+  lineTextParityMismatches: number;
+  lineTextParityChecks: number;
   amortizedAfterRuns: number | null;
 };
 
@@ -36,6 +39,8 @@ export type ModeRunMetric = {
   jankCount: number;
   parityMismatches: number;
   parityChecks: number;
+  lineTextParityMismatches: number;
+  lineTextParityChecks: number;
 };
 
 export type RunStatus = {
@@ -50,11 +55,13 @@ export type RenderPassObservation = {
   interactionMs: number;
   jankCount: number;
   sampleLineCounts: number[];
+  sampleLineTexts: string[][];
 };
 
 export type ActiveRenderPass = {
   expectedParagraphs: number;
   sampleLineCounts: number[];
+  sampleLineTexts: string[][];
   seenParagraphs: Set<number>;
   startedAt: number;
   resolve: (observation: RenderPassObservation) => void;
@@ -63,10 +70,12 @@ export type ActiveRenderPass = {
 
 export type SummaryRecord = Record<BenchmarkMode, BenchmarkSummary | null>;
 export type WidthSampleLineCounts = Record<number, number[]>;
+export type WidthSampleLineTexts = Record<number, string[][]>;
 
 export type BaseTextResultState = {
   completedAt: string | null;
   sampleLineCountsByWidth: WidthSampleLineCounts | null;
+  sampleLineTextsByWidth: WidthSampleLineTexts | null;
   summary: BenchmarkSummary | null;
 };
 
@@ -81,12 +90,14 @@ export type PreparedViewResultState = {
 export type BenchmarkHarnessCompletion = {
   completedAt: string;
   sampleLineCountsByWidth?: WidthSampleLineCounts;
+  sampleLineTextsByWidth?: WidthSampleLineTexts;
   summaries: SummaryRecord;
 };
 
 export type BenchmarkHarnessArgs = {
   baselineInteractionMedianMs: number | null;
   baselineSampleLineCountsByWidth: WidthSampleLineCounts | null;
+  baselineSampleLineTextsByWidth: WidthSampleLineTexts | null;
   initialCompletedAt: string | null;
   initialSummaries: Partial<SummaryRecord>;
   modes: BenchmarkMode[];
@@ -98,7 +109,11 @@ export type BenchmarkHarnessArgs = {
 export type BenchmarkHarnessState = {
   activeMode: BenchmarkMode;
   handleParagraphLayout: (index: number) => void;
-  handleParagraphTextLayout: (index: number, lineCount: number) => void;
+  handleParagraphTextLayout: (
+    index: number,
+    lineCount: number,
+    lineTexts: string[],
+  ) => void;
   isRunning: boolean;
   lastCompletedAt: string | null;
   paragraphWidth: number;
@@ -114,7 +129,11 @@ export type SurfaceCardProps = {
   activeMode: BenchmarkMode;
   lastCompletedAt: string | null;
   onParagraphLayout: (index: number) => void;
-  onParagraphTextLayout: (index: number, lineCount: number) => void;
+  onParagraphTextLayout: (
+    index: number,
+    lineCount: number,
+    lineTexts: string[],
+  ) => void;
   paragraphWidth: number;
   texts: string[];
 };
@@ -131,6 +150,7 @@ export type PreparedParagraphSurfaceCardProps = {
 export const EMPTY_BASELINE_RESULTS: BaseTextResultState = {
   completedAt: null,
   sampleLineCountsByWidth: null,
+  sampleLineTextsByWidth: null,
   summary: null,
 };
 
