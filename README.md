@@ -300,22 +300,22 @@ Source artifacts:
 - [Benchmark suite summary](example/.maestro-artifacts/ios-suite/latest-summary.txt)
 - [Improvement report](docs/benchmark-improvement-report.md)
 
-| Metric | BaseText | Prepared view | Delta | Gain |
-| ------ | -------: | ------------: | ----: | ---: |
-| Interaction median | `232.58 ms` | `95.40 ms` | `-137.18 ms` | `59.0% faster` |
-| Interaction p95 | `366.54 ms` | `155.14 ms` | `-211.40 ms` | `57.7% faster` |
-| Layout-only median | `—` | `0.15 ms` | `—` | hot relayout isolated |
-| Prepare once | `—` | `47.73 ms` | `—` | amortized after about 1 relayout |
-| Native measure | `—` | `47.04 ms` | `—` | `98.6%` of prepare time |
+| Metric             |    BaseText | Prepared view |        Delta |                             Gain |
+| ------------------ | ----------: | ------------: | -----------: | -------------------------------: |
+| Interaction median | `232.58 ms` |    `95.40 ms` | `-137.18 ms` |                   `59.0% faster` |
+| Interaction p95    | `366.54 ms` |   `155.14 ms` | `-211.40 ms` |                   `57.7% faster` |
+| Layout-only median |         `—` |     `0.15 ms` |          `—` |            hot relayout isolated |
+| Prepare once       |         `—` |    `47.73 ms` |          `—` | amortized after about 1 relayout |
+| Native measure     |         `—` |    `47.04 ms` |          `—` |          `98.6%` of prepare time |
 
 Prepared path improvement versus the earlier pre-cache prepared-view run:
 
-| Metric | Before | After | Gain |
-| ------ | -----: | ----: | ---: |
-| Prepared render median | `145.96 ms` | `95.40 ms` | `34.6% faster` |
-| Prepared render p95 | `211.44 ms` | `155.14 ms` | `26.6% faster` |
-| Prepared layout-only median | `14.11 ms` | `0.15 ms` | `98.9% faster` |
-| Prepare once | `55.92 ms` | `47.73 ms` | `14.6% faster` |
+| Metric                      |      Before |       After |           Gain |
+| --------------------------- | ----------: | ----------: | -------------: |
+| Prepared render median      | `145.96 ms` |  `95.40 ms` | `34.6% faster` |
+| Prepared render p95         | `211.44 ms` | `155.14 ms` | `26.6% faster` |
+| Prepared layout-only median |  `14.11 ms` |   `0.15 ms` | `98.9% faster` |
+| Prepare once                |  `55.92 ms` |  `47.73 ms` | `14.6% faster` |
 
 Current reading of the numbers:
 

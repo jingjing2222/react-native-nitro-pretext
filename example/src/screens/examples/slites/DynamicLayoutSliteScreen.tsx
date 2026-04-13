@@ -8,7 +8,11 @@ import {
 } from "react-native-nitro-pretext";
 
 import { BENCHMARK_STYLE } from "../../../relayoutBenchmark";
-import { ExamplePageShell, useExampleWidthSelection, usePreparedParagraphExample } from "../shared";
+import {
+  ExamplePageShell,
+  useExampleWidthSelection,
+  usePreparedParagraphExample,
+} from "../shared";
 import {
   DYNAMIC_LAYOUT_TEXT,
   KeyStatRow,
@@ -24,7 +28,8 @@ const OBSTACLE_GAP = 14;
 const SHAPED_BANDS = [42, 42, 42];
 
 export function DynamicLayoutSliteScreen() {
-  const { selectedWidth, setSelectedWidth, widths } = useExampleWidthSelection();
+  const { selectedWidth, setSelectedWidth, widths } =
+    useExampleWidthSelection();
   const prepared = usePreparedParagraphExample(DYNAMIC_LAYOUT_TEXT);
   const [baselineLineCount, setBaselineLineCount] = useState<number | null>(
     null,
@@ -78,8 +83,8 @@ export function DynamicLayoutSliteScreen() {
 
     return (
       layoutParagraphsMetadataWithRequest(
-      prepared.prepared.id,
-      layoutRequest,
+        prepared.prepared.id,
+        layoutRequest,
       )[0] ?? null
     );
   }, [layoutRequest, prepared]);

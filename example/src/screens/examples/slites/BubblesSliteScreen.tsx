@@ -55,8 +55,11 @@ function findTightContentWidth(
 }
 
 export function BubblesSliteScreen() {
-  const { selectedWidth, setSelectedWidth, widths } = useExampleWidthSelection();
-  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(null);
+  const { selectedWidth, setSelectedWidth, widths } =
+    useExampleWidthSelection();
+  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
+    null,
+  );
 
   useEffect(() => {
     const nextPrepared = prepareParagraphsWithStats(BUBBLE_MESSAGES, {

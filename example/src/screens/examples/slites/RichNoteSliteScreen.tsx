@@ -7,7 +7,11 @@ import {
 } from "react-native-nitro-pretext";
 
 import { styles } from "../../../benchmark/constants";
-import { ExamplePageShell, useExampleWidthSelection, usePreparedInlineExample } from "../shared";
+import {
+  ExamplePageShell,
+  useExampleWidthSelection,
+  usePreparedInlineExample,
+} from "../shared";
 import {
   KeyStatRow,
   RICH_NOTE_BASELINE_SEGMENTS,
@@ -37,11 +41,15 @@ const RICH_NOTE_SEGMENTS = [
     lineHeight: 24,
     fontWeight: "700",
   },
-  { text: " public and route feedback to design sync.", breakBehavior: "normal" },
+  {
+    text: " public and route feedback to design sync.",
+    breakBehavior: "normal",
+  },
 ] as const;
 
 export function RichNoteSliteScreen() {
-  const { selectedWidth, setSelectedWidth, widths } = useExampleWidthSelection();
+  const { selectedWidth, setSelectedWidth, widths } =
+    useExampleWidthSelection();
   const inlineSegments = useMemo(
     () => RICH_NOTE_SEGMENTS.map((segment) => ({ ...segment })),
     [],
@@ -57,7 +65,9 @@ export function RichNoteSliteScreen() {
       return null;
     }
 
-    return layoutParagraphsMetadata(prepared.prepared.id, layoutWidth)[0] ?? null;
+    return (
+      layoutParagraphsMetadata(prepared.prepared.id, layoutWidth)[0] ?? null
+    );
   }, [layoutWidth, prepared]);
 
   return (
@@ -87,11 +97,11 @@ export function RichNoteSliteScreen() {
                 : `${Math.round(preparedMetrics.lineCount)}`
             }
           />
+          <KeyStatRow label="Baseline lines known before render" value="No" />
           <KeyStatRow
-            label="Baseline lines known before render"
-            value="No"
+            label="Break-never span"
+            value="@maya, layoutNextLine()"
           />
-          <KeyStatRow label="Break-never span" value="@maya, layoutNextLine()" />
         </View>
       </SliteCard>
 

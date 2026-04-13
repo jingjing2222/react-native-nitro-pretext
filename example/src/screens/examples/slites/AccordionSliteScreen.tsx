@@ -22,8 +22,11 @@ import {
 const ACCORDION_BODY_PADDING = 14;
 
 export function AccordionSliteScreen() {
-  const { selectedWidth, setSelectedWidth, widths } = useExampleWidthSelection();
-  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(null);
+  const { selectedWidth, setSelectedWidth, widths } =
+    useExampleWidthSelection();
+  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
+    null,
+  );
   const [baselineOpenId, setBaselineOpenId] = useState<string | null>(
     ACCORDION_ITEMS[0]?.id ?? null,
   );
@@ -118,7 +121,10 @@ export function AccordionSliteScreen() {
             const measuredHeight = baselineMeasuredHeights[item.id] ?? null;
 
             return (
-              <View key={`baseline-accordion-${item.id}`} style={styles.summaryCard}>
+              <View
+                key={`baseline-accordion-${item.id}`}
+                style={styles.summaryCard}
+              >
                 <Pressable
                   accessibilityRole="button"
                   onPress={() =>
@@ -173,7 +179,10 @@ export function AccordionSliteScreen() {
             const metrics = preparedMetrics[index];
 
             return (
-              <View key={`prepared-accordion-${item.id}`} style={styles.summaryCard}>
+              <View
+                key={`prepared-accordion-${item.id}`}
+                style={styles.summaryCard}
+              >
                 <Pressable
                   accessibilityRole="button"
                   onPress={() =>

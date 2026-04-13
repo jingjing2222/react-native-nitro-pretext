@@ -65,13 +65,7 @@ export function SliteCard({
   );
 }
 
-export function KeyStatRow({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+export function KeyStatRow({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.summaryMetricRow}>
       <Text style={styles.summaryMetricLabel}>{label}</Text>
