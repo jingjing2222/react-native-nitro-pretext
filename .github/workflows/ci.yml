@@ -238,8 +238,8 @@ jobs:
 
       - name: Create benchmark simulator
         run: |
-          DEVICE_TYPE_ID="$(xcrun simctl list devicetypes -j | node -e 'const fs=require(\"node:fs\"); const data=JSON.parse(fs.readFileSync(0, \"utf8\")); const device=data.devicetypes.find((entry) => entry.name === \"iPhone 16\"); if (!device) { process.exit(1); } process.stdout.write(device.identifier);')"
-          RUNTIME_ID="$(xcrun simctl list runtimes -j | node -e 'const fs=require(\"node:fs\"); const data=JSON.parse(fs.readFileSync(0, \"utf8\")); const runtimes=data.runtimes.filter((entry) => entry.platform === \"iOS\" && entry.isAvailable !== false); runtimes.sort((left, right) => String(left.version ?? \"\").localeCompare(String(right.version ?? \"\"), undefined, { numeric: true })); const runtime=runtimes.at(-1); if (!runtime) { process.exit(1); } process.stdout.write(runtime.identifier);')"
+          DEVICE_TYPE_ID="$(xcrun simctl list devicetypes -j | node -e 'const fs=require("node:fs"); const data=JSON.parse(fs.readFileSync(0, "utf8")); const device=data.devicetypes.find((entry) => entry.name === "iPhone 16"); if (!device) { process.exit(1); } process.stdout.write(device.identifier);')"
+          RUNTIME_ID="$(xcrun simctl list runtimes -j | node -e 'const fs=require("node:fs"); const data=JSON.parse(fs.readFileSync(0, "utf8")); const runtimes=data.runtimes.filter((entry) => entry.platform === "iOS" && entry.isAvailable !== false); runtimes.sort((left, right) => String(left.version ?? "").localeCompare(String(right.version ?? ""), undefined, { numeric: true })); const runtime=runtimes.at(-1); if (!runtime) { process.exit(1); } process.stdout.write(runtime.identifier);')"
           DEVICE_NAME="pretext-benchmark-${GITHUB_RUN_ID}"
           DEVICE_ID="$(xcrun simctl create "$DEVICE_NAME" "$DEVICE_TYPE_ID" "$RUNTIME_ID")"
           echo "BENCHMARK_SIMULATOR_NAME=$DEVICE_NAME" >> "$GITHUB_ENV"
