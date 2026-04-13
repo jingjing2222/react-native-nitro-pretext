@@ -78,7 +78,7 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open examples/*"
           buttonTestID="home.open-examples"
-          description="Browse PreparedParagraphView, PreparedParagraphText, Inline Segments, and Line Cursor as dedicated example screens under screens/examples/*."
+          description="Browse PreparedParagraphView, PreparedParagraphLinesView, PreparedParagraphText, Inline Segments, and Line Cursor as dedicated example screens under screens/examples/*."
           onPress={() => navigation.navigate("ExampleIndex")}
           title="Examples"
         />

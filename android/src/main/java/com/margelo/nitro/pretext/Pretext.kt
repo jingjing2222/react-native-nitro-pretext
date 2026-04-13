@@ -127,8 +127,15 @@ class Pretext : HybridPretextSpec() {
         val segmentJson = paragraphJson.getJSONObject(segmentIndex)
         paragraph.add(
           InlineSegment(
-            segmentJson.optString("text"),
-            segmentJson.optString("breakBehavior"),
+            text = segmentJson.optString("text"),
+            breakBehavior = segmentJson.optString("breakBehavior"),
+            fontFamily = segmentJson.optString("fontFamily").takeIf { it.isNotEmpty() },
+            fontSize = segmentJson.optDoubleOrNull("fontSize"),
+            lineHeight = segmentJson.optDoubleOrNull("lineHeight"),
+            letterSpacing = segmentJson.optDoubleOrNull("letterSpacing"),
+            locale = segmentJson.optString("locale").takeIf { it.isNotEmpty() },
+            fontWeight = segmentJson.optString("fontWeight").takeIf { it.isNotEmpty() },
+            fontStyle = segmentJson.optString("fontStyle").takeIf { it.isNotEmpty() },
           ),
         )
       }
@@ -137,5 +144,9 @@ class Pretext : HybridPretextSpec() {
     }
 
     return paragraphs.toTypedArray()
+  }
+
+  private fun org.json.JSONObject.optDoubleOrNull(key: String): Double? {
+    return if (has(key) && !isNull(key)) getDouble(key) else null
   }
 }

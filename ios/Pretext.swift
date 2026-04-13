@@ -140,9 +140,24 @@ class Pretext: HybridPretextSpec {
 
                 return InlineSegment(
                     text: segmentObject["text"] as? String ?? "",
-                    breakBehavior: segmentObject["breakBehavior"] as? String ?? ""
+                    breakBehavior: segmentObject["breakBehavior"] as? String ?? "",
+                    fontFamily: segmentObject["fontFamily"] as? String,
+                    fontSize: numberValue(segmentObject["fontSize"]),
+                    lineHeight: numberValue(segmentObject["lineHeight"]),
+                    letterSpacing: numberValue(segmentObject["letterSpacing"]),
+                    locale: segmentObject["locale"] as? String,
+                    fontWeight: segmentObject["fontWeight"] as? String,
+                    fontStyle: segmentObject["fontStyle"] as? String
                 )
             }
         }
+    }
+
+    private func numberValue(_ value: Any?) -> Double? {
+        if let number = value as? NSNumber {
+            return number.doubleValue
+        }
+
+        return nil
     }
 }

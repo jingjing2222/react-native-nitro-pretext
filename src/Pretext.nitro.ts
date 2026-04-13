@@ -6,6 +6,8 @@ export interface ParagraphStyle {
   lineHeight: number;
   letterSpacing: number;
   locale: string;
+  fontWeight?: string;
+  fontStyle?: string;
 }
 
 export interface PrepareParagraphStats {
@@ -21,6 +23,13 @@ export interface PrepareParagraphStats {
 export interface InlineSegment {
   text: string;
   breakBehavior: string;
+  fontFamily?: string;
+  fontSize?: number;
+  lineHeight?: number;
+  letterSpacing?: number;
+  locale?: string;
+  fontWeight?: string;
+  fontStyle?: string;
 }
 
 export interface InlineParagraphSegments {

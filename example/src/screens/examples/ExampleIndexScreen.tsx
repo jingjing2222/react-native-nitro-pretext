@@ -39,6 +39,13 @@ export function ExampleIndexScreen({ navigation }: Props) {
         />
 
         <CatalogCard
+          buttonLabel="Open examples/prepared-lines"
+          description="JS renderer that consumes explicit line ranges and positions one text node per line."
+          onPress={() => navigation.navigate("ExamplePreparedLines")}
+          title="examples/prepared-lines"
+        />
+
+        <CatalogCard
           buttonLabel="Open examples/prepared-text"
           description="React Native <Text> renderer backed by prepared paragraph breaks."
           onPress={() => navigation.navigate("ExamplePreparedText")}
@@ -47,7 +54,7 @@ export function ExampleIndexScreen({ navigation }: Props) {
 
         <CatalogCard
           buttonLabel="Open examples/inline-segments"
-          description="Inline paragraph preparation with a non-breakable handle span."
+          description="Inline paragraph preparation with mixed style runs and a non-breakable handle span."
           onPress={() => navigation.navigate("ExampleInlineSegments")}
           title="examples/inline-segments"
         />

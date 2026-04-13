@@ -23,45 +23,62 @@ internal object PretextShared {
   private val lineCursors = ConcurrentHashMap<Long, NativeLineCursor>()
 
   fun measure(text: String, fontFamily: String, fontSize: Double): Double {
-    val paint = createPaint(
-      ParagraphStyle(
+    return measureToken(
+      text,
+      NativeTextStyle(
         fontFamily = fontFamily,
         fontSize = fontSize,
         lineHeight = fontSize,
         letterSpacing = 0.0,
         locale = "",
+        fontWeight = "",
+        fontStyle = FONT_STYLE_NORMAL,
       ),
-    )
-    return paint.measureText(text).toDouble()
+    ).width
   }
 
   fun measureBatch(texts: Array<String>, fontFamily: String, fontSize: Double): DoubleArray {
-    val paint = createPaint(
-      ParagraphStyle(
+    val style =
+      NativeTextStyle(
         fontFamily = fontFamily,
         fontSize = fontSize,
         lineHeight = fontSize,
         letterSpacing = 0.0,
         locale = "",
-      ),
-    )
-    return DoubleArray(texts.size) { index -> paint.measureText(texts[index]).toDouble() }
+        fontWeight = "",
+        fontStyle = FONT_STYLE_NORMAL,
+      )
+    return DoubleArray(texts.size) { index ->
+      measureToken(texts[index], style).width
+    }
   }
 
   fun prepareParagraphsWithStats(
     texts: Array<String>,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
-    val locale = resolveLocale(style.locale)
+    val baseStyle = defaultTextStyle(style)
     val analyzedParagraphs = texts.map { text ->
-      val tokens = tokenize(text)
-      val breakUnits = tokenizeBreakUnits(text, locale)
+      val textUnits = text.length
       NativePreparedParagraphSeed(
         text = text,
-        tokens = tokens,
-        breakUnits = breakUnits,
-        textUnits = text.length,
+        tokens = tokenize(text, baseStyle),
+        breakUnits = tokenizeBreakUnits(text, baseStyle),
+        runs =
+          if (textUnits > 0) {
+            listOf(
+              NativeTextRun(
+                start = 0,
+                end = textUnits,
+                style = baseStyle,
+              ),
+            )
+          } else {
+            emptyList()
+          },
+        textUnits = textUnits,
         forceTokenLayout = false,
+        hasStyledRuns = false,
       )
     }
     return prepareParagraphSeedsWithStats(analyzedParagraphs, style)
@@ -71,9 +88,9 @@ internal object PretextShared {
     paragraphs: Array<Array<InlineSegment>>,
     style: ParagraphStyle,
   ): PreparedParagraphResult {
-    val locale = resolveLocale(style.locale)
+    val baseStyle = defaultTextStyle(style)
     val analyzedParagraphs = paragraphs.map { paragraph ->
-      prepareInlineParagraphSeed(paragraph, locale)
+      prepareInlineParagraphSeed(paragraph, baseStyle)
     }
     return prepareParagraphSeedsWithStats(analyzedParagraphs, style)
   }
@@ -83,108 +100,110 @@ internal object PretextShared {
     style: ParagraphStyle,
   ): PreparedParagraphResult {
     val prepareStartedAt = nowMs()
-    val paint = createPaint(style)
+    val baseStyle = defaultTextStyle(style)
+    val basePaint = createTextPaint(baseStyle)
     val analyzeStartedAt = nowMs()
-    val lineHeight = resolveLineHeight(style.lineHeight, paint)
+    val lineHeight = resolveLineHeightValue(baseStyle.lineHeight, basePaint)
     val analyzeMs = nowMs() - analyzeStartedAt
     val totalTokenCount = analyzedParagraphs.sumOf { it.textUnits }
-    val uniqueTokenCount = orderedUniqueTexts(
-      analyzedParagraphs.flatMap { paragraph ->
-        listOf(paragraph.tokens, paragraph.breakUnits)
-      },
-    ).size
 
     val measurementStartedAt = nowMs()
-    val uniqueUnits = orderedUniqueTexts(
-      analyzedParagraphs.flatMap { paragraph ->
-        listOf(paragraph.tokens, paragraph.breakUnits)
-      },
-    )
-    val widthsByText = uniqueUnits.associateWith { token ->
-      if (token == NEWLINE_TOKEN) {
-        0.0
-      } else {
-        paint.measureText(token).toDouble()
-      }
-    }
-    val preparedParagraphs = analyzedParagraphs.map { paragraph ->
+    val measurementCache = LinkedHashMap<String, NativeTokenMetrics>()
+    val preparedParagraphs =
+      analyzedParagraphs.map { paragraph ->
+        val styledText = buildStyledText(paragraph.text, paragraph.runs)
         NativePreparedParagraph(
           text = paragraph.text,
-          measuredText = if (
-            !paragraph.forceTokenLayout &&
-              Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q
-          ) {
-            Api29LineLayout.buildMeasuredText(paragraph.text, paint)
-          } else {
-            null
-        },
-        tokens = paragraph.tokens.map { token ->
-          NativePreparedToken(
-            text = token.text,
-            start = token.start,
-            end = token.end,
-            width = widthsByText[token.text] ?: 0.0,
-          )
-        },
-        breakUnits = paragraph.breakUnits.map { token ->
-          NativePreparedToken(
-            text = token.text,
-            start = token.start,
-            end = token.end,
-            width = widthsByText[token.text] ?: 0.0,
-          )
-        },
-        forceTokenLayout = paragraph.forceTokenLayout,
-      )
-    }
+          styledText = styledText,
+          measuredText =
+            if (!paragraph.forceTokenLayout && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+              buildMeasuredText(paragraph.text, paragraph.runs)
+            } else {
+              null
+            },
+          tokens =
+            paragraph.tokens.map { token ->
+              prepareMeasuredToken(token, measurementCache)
+            },
+          breakUnits =
+            paragraph.breakUnits.map { token ->
+              prepareMeasuredToken(token, measurementCache)
+            },
+          runs = paragraph.runs,
+          forceTokenLayout = paragraph.forceTokenLayout,
+          hasStyledRuns = paragraph.hasStyledRuns,
+        )
+      }
     val measurementMs = nowMs() - measurementStartedAt
 
     val buildPreparedStartedAt = nowMs()
-    val prepared = NativePreparedCorpus(
-      paragraphs = preparedParagraphs,
-      lineHeight = lineHeight,
-      textPaint = paint,
-      lineBreaker = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-        Api29LineLayout.createLineBreaker()
-      } else {
-        null
-      },
-    )
+    val prepared =
+      NativePreparedCorpus(
+        paragraphs = preparedParagraphs,
+        lineHeight = lineHeight,
+        textPaint = basePaint,
+        lineBreaker =
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            Api29LineLayout.createLineBreaker()
+          } else {
+            null
+          },
+      )
     val buildPreparedMs = nowMs() - buildPreparedStartedAt
     val id = nextPreparedCorpusId.getAndIncrement()
     preparedCorpora[id] = prepared
-    val preparedState = PreparedParagraphState(
-      id = id.toDouble(),
-      paragraphCount = prepared.paragraphs.size.toDouble(),
-    )
+    val preparedState =
+      PreparedParagraphState(
+        id = id.toDouble(),
+        paragraphCount = prepared.paragraphs.size.toDouble(),
+      )
 
     return PreparedParagraphResult(
       prepared = preparedState,
-      stats = PrepareParagraphStats(
-        tokenizeMs = analyzeMs,
-        measurementMs = measurementMs,
-        buildPreparedMs = buildPreparedMs,
-        totalMs = nowMs() - prepareStartedAt,
-        paragraphCount = prepared.paragraphs.size.toDouble(),
-        totalTokenCount = totalTokenCount.toDouble(),
-        uniqueTokenCount = uniqueTokenCount.toDouble(),
-      ),
+      stats =
+        PrepareParagraphStats(
+          tokenizeMs = analyzeMs,
+          measurementMs = measurementMs,
+          buildPreparedMs = buildPreparedMs,
+          totalMs = nowMs() - prepareStartedAt,
+          paragraphCount = prepared.paragraphs.size.toDouble(),
+          totalTokenCount = totalTokenCount.toDouble(),
+          uniqueTokenCount = measurementCache.size.toDouble(),
+        ),
     )
   }
 
   private fun prepareInlineParagraphSeed(
     paragraph: Array<InlineSegment>,
-    locale: Locale,
+    baseStyle: NativeTextStyle,
   ): NativePreparedParagraphSeed {
     val textBuilder = StringBuilder()
     val tokens = ArrayList<NativeTokenDescriptor>()
     val breakUnits = ArrayList<NativeTokenDescriptor>()
+    val runs = ArrayList<NativeTextRun>()
+    var forceTokenLayout = false
+    var hasStyledRuns = false
 
     paragraph.forEach { segment ->
+      val start = textBuilder.length
+      val resolvedStyle = resolveTextStyle(segment, baseStyle)
+      textBuilder.append(segment.text)
+      val end = textBuilder.length
+      if (end > start) {
+        runs +=
+          NativeTextRun(
+            start = start,
+            end = end,
+            style = resolvedStyle,
+          )
+      }
+      hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
+      forceTokenLayout =
+        forceTokenLayout || segment.breakBehavior.lowercase() == BREAK_BEHAVIOR_NEVER
       appendInlineSegmentTokens(
         segment = segment,
-        locale = locale,
-        textBuilder = textBuilder,
+        resolvedStyle = resolvedStyle,
+        baseOffset = start,
         tokens = tokens,
         breakUnits = breakUnits,
       )
@@ -194,8 +213,10 @@ internal object PretextShared {
       text = textBuilder.toString(),
       tokens = tokens,
       breakUnits = breakUnits,
+      runs = mergeAdjacentRuns(runs),
       textUnits = textBuilder.length,
-      forceTokenLayout = true,
+      forceTokenLayout = forceTokenLayout,
+      hasStyledRuns = hasStyledRuns,
     )
   }
 
@@ -295,11 +316,25 @@ internal object PretextShared {
     paragraphIndex: Int,
     width: Double,
   ): NativeParagraphDrawing? {
+    return resolveParagraphDrawing(
+      preparedId = preparedId,
+      paragraphIndex = paragraphIndex,
+      request = defaultLayoutRequest(width),
+    )
+  }
+
+  fun resolveParagraphDrawing(
+    preparedId: Double,
+    paragraphIndex: Int,
+    request: NativeLayoutRequest,
+  ): NativeParagraphDrawing? {
     val prepared = preparedCorpora[preparedId.toLong()] ?: return null
     val paragraph = prepared.paragraphs.getOrNull(paragraphIndex) ?: return null
-    val lineLayouts = layoutLineLayouts(paragraph, prepared, defaultLayoutRequest(width))
+    val lineLayouts = layoutLineLayouts(paragraph, prepared, request)
     return NativeParagraphDrawing(
       text = paragraph.text,
+      styledText = paragraph.styledText,
+      hasStyledRuns = paragraph.hasStyledRuns,
       lines = buildNativeParagraphLineRanges(lineLayouts),
     )
   }
@@ -444,68 +479,77 @@ internal object PretextShared {
     return lineLayouts.lastOrNull()?.let { it.top + it.height } ?: 0.0
   }
 
-  private fun createPaint(style: ParagraphStyle): TextPaint {
-    return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-      textSize = style.fontSize.toFloat()
-      typeface = resolveTypeface(style.fontFamily)
-      if (style.fontSize > 0 && style.letterSpacing != 0.0) {
-        letterSpacing = (style.letterSpacing / style.fontSize).toFloat()
-      }
-      textLocale = resolveLocale(style.locale)
-    }
-  }
-
   private fun nowMs(): Double {
     return System.nanoTime() / 1_000_000.0
   }
 
-  private fun resolveLineHeight(lineHeight: Double, paint: Paint): Double {
-    return if (lineHeight > 0) lineHeight else paint.fontSpacing.toDouble()
-  }
-
-  private fun resolveTypeface(fontFamily: String): Typeface {
-    return when (fontFamily.lowercase()) {
-      "system", "default", "" -> Typeface.DEFAULT
-      "serif" -> Typeface.SERIF
-      "monospace" -> Typeface.MONOSPACE
-      else ->
-        try {
-          Typeface.create(fontFamily, Typeface.NORMAL)
-        } catch (_: Exception) {
-          Typeface.DEFAULT
-        }
-    }
-  }
-
-  private fun resolveLocale(localeTag: String): Locale {
-    if (localeTag.isBlank()) {
-      return Locale.getDefault()
+  private fun prepareMeasuredToken(
+    token: NativeTokenDescriptor,
+    cache: MutableMap<String, NativeTokenMetrics>,
+  ): NativePreparedToken {
+    if (token.text == NEWLINE_TOKEN) {
+      return NativePreparedToken(
+        text = token.text,
+        start = token.start,
+        end = token.end,
+        width = 0.0,
+        lineHeight = 0.0,
+        ascent = 0.0,
+        descent = 0.0,
+      )
     }
 
-    val locale = Locale.forLanguageTag(localeTag)
-    return if (locale.toLanguageTag().isBlank() || locale.toLanguageTag() == "und") {
-      Locale.getDefault()
-    } else {
-      locale
-    }
+    val cacheKey = measurementCacheKey(token.text, token.style)
+    val metrics = cache.getOrPut(cacheKey) { measureToken(token.text, token.style) }
+    return NativePreparedToken(
+      text = token.text,
+      start = token.start,
+      end = token.end,
+      width = metrics.width,
+      lineHeight = metrics.lineHeight,
+      ascent = metrics.ascent,
+      descent = metrics.descent,
+    )
   }
 
-  private fun orderedUniqueTexts(paragraphs: List<List<NativeTokenDescriptor>>): List<String> {
-    val uniqueTokens = ArrayList<String>()
-    val seen = HashSet<String>()
+  private fun measurementCacheKey(text: String, style: NativeTextStyle): String {
+    return listOf(
+      text,
+      style.fontFamily,
+      style.fontSize.toString(),
+      style.lineHeight.toString(),
+      style.letterSpacing.toString(),
+      style.locale,
+      style.fontWeight,
+      style.fontStyle,
+    ).joinToString(separator = "\u001F")
+  }
 
-    paragraphs.forEach { paragraph ->
-      paragraph.forEach { token ->
-        if (seen.add(token.text)) {
-          uniqueTokens += token.text
-        }
+  private fun mergeAdjacentRuns(runs: List<NativeTextRun>): List<NativeTextRun> {
+    if (runs.isEmpty()) {
+      return emptyList()
+    }
+
+    val merged = ArrayList<NativeTextRun>(runs.size)
+    merged += runs.first()
+    for (index in 1 until runs.size) {
+      val run = runs[index]
+      val previous = merged.last()
+      if (previous.style == run.style && previous.end == run.start) {
+        merged[merged.lastIndex] =
+          NativeTextRun(
+            start = previous.start,
+            end = run.end,
+            style = run.style,
+          )
+      } else {
+        merged += run
       }
     }
-
-    return uniqueTokens
+    return merged
   }
 
-  private fun tokenize(text: String): List<NativeTokenDescriptor> {
+  private fun tokenize(text: String, style: NativeTextStyle): List<NativeTokenDescriptor> {
     val tokens = ArrayList<NativeTokenDescriptor>()
     val current = StringBuilder()
     var currentStart = -1
@@ -522,6 +566,7 @@ internal object PretextShared {
         text = current.toString(),
         start = currentStart,
         end = currentEnd,
+        style = style,
       )
       current.setLength(0)
       currentStart = -1
@@ -541,6 +586,7 @@ internal object PretextShared {
           text = NEWLINE_TOKEN,
           start = cursor,
           end = nextCursor,
+          style = style,
         )
         cursor = nextCursor
         continue
@@ -565,12 +611,12 @@ internal object PretextShared {
     return tokens
   }
 
-  private fun tokenizeBreakUnits(text: String, locale: Locale): List<NativeTokenDescriptor> {
+  private fun tokenizeBreakUnits(text: String, style: NativeTextStyle): List<NativeTokenDescriptor> {
     if (text.isEmpty()) {
       return emptyList()
     }
 
-    val breaker = BreakIterator.getCharacterInstance(locale)
+    val breaker = BreakIterator.getCharacterInstance(resolveTextLocale(style.locale))
     breaker.setText(text)
     val units = ArrayList<NativeTokenDescriptor>()
     var start = breaker.first()
@@ -581,6 +627,7 @@ internal object PretextShared {
         text = text.substring(start, end),
         start = start,
         end = end,
+        style = style,
       )
       start = end
       end = breaker.next()
@@ -591,32 +638,32 @@ internal object PretextShared {
 
   private fun appendInlineSegmentTokens(
     segment: InlineSegment,
-    locale: Locale,
-    textBuilder: StringBuilder,
+    resolvedStyle: NativeTextStyle,
+    baseOffset: Int,
     tokens: MutableList<NativeTokenDescriptor>,
     breakUnits: MutableList<NativeTokenDescriptor>,
   ) {
-    val baseOffset = textBuilder.length
-    textBuilder.append(segment.text)
     val breakBehavior = segment.breakBehavior.lowercase()
     if (breakBehavior == BREAK_BEHAVIOR_NEVER) {
-      appendNeverBreakTokens(segment.text, baseOffset, tokens)
-      appendNeverBreakTokens(segment.text, baseOffset, breakUnits)
+      appendNeverBreakTokens(segment.text, baseOffset, resolvedStyle, tokens)
+      appendNeverBreakTokens(segment.text, baseOffset, resolvedStyle, breakUnits)
       return
     }
 
-    tokens += tokenize(segment.text).map { token ->
+    tokens += tokenize(segment.text, resolvedStyle).map { token ->
       NativeTokenDescriptor(
         text = token.text,
         start = token.start + baseOffset,
         end = token.end + baseOffset,
+        style = token.style,
       )
     }
-    breakUnits += tokenizeBreakUnits(segment.text, locale).map { token ->
+    breakUnits += tokenizeBreakUnits(segment.text, resolvedStyle).map { token ->
       NativeTokenDescriptor(
         text = token.text,
         start = token.start + baseOffset,
         end = token.end + baseOffset,
+        style = token.style,
       )
     }
   }
@@ -624,6 +671,7 @@ internal object PretextShared {
   private fun appendNeverBreakTokens(
     text: String,
     baseOffset: Int,
+    style: NativeTextStyle,
     output: MutableList<NativeTokenDescriptor>,
   ) {
     var localStart = 0
@@ -635,6 +683,7 @@ internal object PretextShared {
             text = text.substring(localStart),
             start = baseOffset + localStart,
             end = baseOffset + text.length,
+            style = style,
           )
         }
         break
@@ -645,12 +694,14 @@ internal object PretextShared {
           text = text.substring(localStart, newlineIndex),
           start = baseOffset + localStart,
           end = baseOffset + newlineIndex,
+          style = style,
         )
       }
       output += NativeTokenDescriptor(
         text = NEWLINE_TOKEN,
         start = baseOffset + newlineIndex,
         end = baseOffset + newlineIndex + 1,
+        style = style,
       )
       localStart = newlineIndex + 1
       if (localStart == text.length) {
@@ -672,8 +723,9 @@ internal object PretextShared {
 
     if (canUseStaticLayout) {
       return StaticLayoutLineLayout.layoutLineLayouts(
-        text = prepared.text,
+        text = prepared.styledText,
         textPaint = corpus.textPaint,
+        runs = prepared.runs,
         width = request.width,
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
@@ -696,6 +748,7 @@ internal object PretextShared {
         text = prepared.text,
         measuredText = measuredText,
         lineBreaker = lineBreaker,
+        runs = prepared.runs,
         width = request.width,
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
@@ -804,11 +857,11 @@ internal object PretextShared {
           width = 0.0,
           left = constraint.left,
           top = top,
-          height = defaultLineHeight,
-          ascent = 0.0,
-          descent = defaultLineHeight,
+          height = max(defaultLineHeight, newline.lineHeight),
+          ascent = newline.ascent,
+          descent = max(newline.descent, max(defaultLineHeight, newline.lineHeight) - newline.ascent),
         )
-        top += defaultLineHeight
+        top += max(defaultLineHeight, newline.lineHeight)
         cursor += 1
         continue
       }
@@ -855,30 +908,37 @@ internal object PretextShared {
       if (trimmedEnd == cursor) {
         val fallback = units[cursor]
         val hasVisibleText = fallback.text.trim().isNotEmpty()
+        val fallbackLineHeight =
+          if (fallback.lineHeight > 0.0) {
+            max(defaultLineHeight, fallback.lineHeight)
+          } else {
+            defaultLineHeight
+          }
         lines += NativeLineLayout(
           textStart = fallback.start,
           textEnd = if (hasVisibleText) fallback.end else fallback.start,
           width = fallback.width,
           left = constraint.left,
           top = top,
-          height = defaultLineHeight,
-          ascent = 0.0,
-          descent = defaultLineHeight,
+          height = fallbackLineHeight,
+          ascent = fallback.ascent,
+          descent = fallback.descent,
         )
-        top += defaultLineHeight
+        top += fallbackLineHeight
         cursor += 1
       } else {
+        val metrics = fallbackLineMetrics(units, cursor, trimmedEnd, defaultLineHeight)
         lines += NativeLineLayout(
           textStart = units[cursor].start,
           textEnd = units[trimmedEnd - 1].end,
           width = sumWidths(units, cursor, trimmedEnd),
           left = constraint.left,
           top = top,
-          height = defaultLineHeight,
-          ascent = 0.0,
-          descent = defaultLineHeight,
+          height = metrics.lineHeight,
+          ascent = metrics.ascent,
+          descent = metrics.descent,
         )
-        top += defaultLineHeight
+        top += metrics.lineHeight
         cursor = end
       }
 
@@ -951,6 +1011,56 @@ internal object PretextShared {
     return sum
   }
 
+  internal fun maxRequestedLineHeight(
+    runs: List<NativeTextRun>,
+    defaultLineHeight: Double,
+    start: Int,
+    end: Int,
+  ): Double {
+    var maxHeight = defaultLineHeight
+    runs.forEach { run ->
+      if (run.end > start && run.start < end) {
+        val requested = if (run.style.lineHeight > 0.0) run.style.lineHeight else defaultLineHeight
+        maxHeight = max(maxHeight, requested)
+      }
+    }
+    return maxHeight
+  }
+
+  private fun fallbackLineMetrics(
+    tokens: List<NativePreparedToken>,
+    start: Int,
+    end: Int,
+    defaultLineHeight: Double,
+  ): NativeTokenMetrics {
+    if (end <= start) {
+      return NativeTokenMetrics(
+        width = 0.0,
+        lineHeight = defaultLineHeight,
+        ascent = 0.0,
+        descent = defaultLineHeight,
+      )
+    }
+
+    var maxLineHeight = defaultLineHeight
+    var maxAscent = 0.0
+    var maxDescent = 0.0
+    for (index in start until end) {
+      val token = tokens[index]
+      maxLineHeight = max(maxLineHeight, token.lineHeight)
+      maxAscent = max(maxAscent, token.ascent)
+      maxDescent = max(maxDescent, token.descent)
+    }
+
+    maxLineHeight = max(maxLineHeight, maxAscent + maxDescent)
+    return NativeTokenMetrics(
+      width = sumWidths(tokens, start, end),
+      lineHeight = maxLineHeight,
+      ascent = maxAscent,
+      descent = maxDescent,
+    )
+  }
+
   private fun materializeBrokenText(text: String, lineLayouts: List<NativeLineLayout>): String {
     return lineLayouts.joinToString(NEWLINE_TOKEN) { line ->
       if (line.textEnd <= line.textStart) {
@@ -977,27 +1087,11 @@ private object Api29LineLayout {
       .build()
   }
 
-  fun buildMeasuredText(text: String, paint: Paint): Any {
-    val isRtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)
-    val builder = MeasuredText.Builder(text.toCharArray())
-      .setComputeLayout(false)
-
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      builder.setComputeHyphenation(MeasuredText.Builder.HYPHENATION_MODE_NONE)
-    } else {
-      @Suppress("DEPRECATION")
-      builder.setComputeHyphenation(false)
-    }
-
-    return builder
-      .appendStyleRun(paint, text.length, isRtl)
-      .build()
-  }
-
   fun layoutLineLayouts(
     text: String,
     measuredText: Any,
     lineBreaker: Any,
+    runs: List<NativeTextRun>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
@@ -1031,7 +1125,11 @@ private object Api29LineLayout {
       val ascent = result.getLineAscent(lineIndex).toDouble()
       val descent = result.getLineDescent(lineIndex).toDouble()
       val actualHeight = max(0.0, descent - ascent)
-      val lineHeight = max(defaultLineHeight, actualHeight)
+      val lineHeight =
+        max(
+          PretextShared.maxRequestedLineHeight(runs, defaultLineHeight, start, end),
+          actualHeight,
+        )
       lines += NativeLineLayout(
         textStart = start,
         textEnd = end,
@@ -1052,8 +1150,9 @@ private object Api29LineLayout {
 
 private object StaticLayoutLineLayout {
   fun layoutLineLayouts(
-    text: String,
+    text: CharSequence,
     textPaint: TextPaint,
+    runs: List<NativeTextRun>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
@@ -1101,7 +1200,11 @@ private object StaticLayoutLineLayout {
       val start = layout.getLineStart(lineIndex)
       val end = layout.getLineVisibleEnd(lineIndex)
       val actualHeight = max(0.0, (layout.getLineBottom(lineIndex) - layout.getLineTop(lineIndex)).toDouble())
-      val lineHeight = max(defaultLineHeight, actualHeight)
+      val lineHeight =
+        max(
+          PretextShared.maxRequestedLineHeight(runs, defaultLineHeight, start, end),
+          actualHeight,
+        )
       lines += NativeLineLayout(
         textStart = start,
         textEnd = end,
@@ -1123,14 +1226,17 @@ internal data class NativePreparedParagraphSeed(
   val text: String,
   val tokens: List<NativeTokenDescriptor>,
   val breakUnits: List<NativeTokenDescriptor>,
+  val runs: List<NativeTextRun>,
   val textUnits: Int,
   val forceTokenLayout: Boolean,
+  val hasStyledRuns: Boolean,
 )
 
 internal data class NativeTokenDescriptor(
   val text: String,
   val start: Int,
   val end: Int,
+  val style: NativeTextStyle,
 )
 
 internal data class NativePreparedToken(
@@ -1138,14 +1244,20 @@ internal data class NativePreparedToken(
   val start: Int,
   val end: Int,
   val width: Double,
+  val lineHeight: Double,
+  val ascent: Double,
+  val descent: Double,
 )
 
 internal data class NativePreparedParagraph(
   val text: String,
+  val styledText: CharSequence,
   val measuredText: Any?,
   val tokens: List<NativePreparedToken>,
   val breakUnits: List<NativePreparedToken>,
+  val runs: List<NativeTextRun>,
   val forceTokenLayout: Boolean,
+  val hasStyledRuns: Boolean,
 )
 
 internal data class NativePreparedCorpus(
@@ -1179,6 +1291,8 @@ internal data class NativePreparedLineRange(
 
 internal data class NativeParagraphDrawing(
   val text: String,
+  val styledText: CharSequence,
+  val hasStyledRuns: Boolean,
   val lines: List<NativePreparedLineRange>,
 )
 

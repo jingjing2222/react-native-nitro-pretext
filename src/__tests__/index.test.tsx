@@ -193,6 +193,9 @@ import {
   measureBatch,
   nextParagraphLine,
   ParagraphEngine,
+  PreparedParagraphLinesView,
+  PreparedParagraphText,
+  PreparedParagraphView,
   prepareInlineParagraphs,
   prepareInlineParagraphsWithStats,
   prepareParagraphs,
@@ -207,6 +210,12 @@ const nativeParagraphEngineMock = jest.mocked(NitroModules.createHybridObject)
   .mock.results[0]?.value as ReturnType<typeof mockCreateParagraphEngine>;
 
 describe("react-native-nitro-pretext", () => {
+  it("exports renderer surfaces", () => {
+    expect(PreparedParagraphView).toBeDefined();
+    expect(PreparedParagraphLinesView).toBeDefined();
+    expect(PreparedParagraphText).toBeDefined();
+  });
+
   it("creates the Pretext hybrid object", () => {
     expect(NitroModules.createHybridObject).toHaveBeenCalledWith("Pretext");
   });
@@ -334,8 +343,18 @@ describe("react-native-nitro-pretext", () => {
       prepareInlineParagraphs(
         [
           [
-            { text: "@mention", breakBehavior: "never" },
-            { text: " moves with the next word", breakBehavior: "normal" },
+            {
+              text: "@mention",
+              breakBehavior: "never",
+              fontWeight: "700",
+              fontSize: 20,
+              lineHeight: 28,
+            },
+            {
+              text: " moves with the next word",
+              breakBehavior: "normal",
+              fontStyle: "italic",
+            },
           ],
         ],
         {
@@ -357,8 +376,18 @@ describe("react-native-nitro-pretext", () => {
     ).toEqual([
       JSON.stringify([
         [
-          { text: "@mention", breakBehavior: "never" },
-          { text: " moves with the next word", breakBehavior: "normal" },
+          {
+            text: "@mention",
+            breakBehavior: "never",
+            fontWeight: "700",
+            fontSize: 20,
+            lineHeight: 28,
+          },
+          {
+            text: " moves with the next word",
+            breakBehavior: "normal",
+            fontStyle: "italic",
+          },
         ],
       ]),
       {

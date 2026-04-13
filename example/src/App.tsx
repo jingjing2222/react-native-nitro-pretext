@@ -11,6 +11,7 @@ import { PreparedParagraphViewBenchmarkScreen } from "./screens/benchmark/Prepar
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { InlineSegmentsExampleScreen } from "./screens/examples/InlineSegmentsExampleScreen";
 import { LineCursorExampleScreen } from "./screens/examples/LineCursorExampleScreen";
+import { PreparedLinesExampleScreen } from "./screens/examples/PreparedLinesExampleScreen";
 import { PreparedTextExampleScreen } from "./screens/examples/PreparedTextExampleScreen";
 import { PreparedViewExampleScreen } from "./screens/examples/PreparedViewExampleScreen";
 
@@ -37,6 +38,7 @@ const linking = {
       BenchmarkPreparedView: "benchmark/prepared-view",
       ExampleIndex: "examples",
       ExamplePreparedView: "examples/prepared-view",
+      ExamplePreparedLines: "examples/prepared-lines",
       ExamplePreparedText: "examples/prepared-text",
       ExampleInlineSegments: "examples/inline-segments",
       ExampleLineCursor: "examples/line-cursor",
@@ -94,6 +96,11 @@ export default function App() {
               component={PreparedViewExampleScreen}
               name="ExamplePreparedView"
               options={{ title: "examples/prepared-view" }}
+            />
+            <Stack.Screen
+              component={PreparedLinesExampleScreen}
+              name="ExamplePreparedLines"
+              options={{ title: "examples/prepared-lines" }}
             />
             <Stack.Screen
               component={PreparedTextExampleScreen}

@@ -13,6 +13,7 @@ internal struct NativeTokenDescriptor {
     let text: String
     let startUTF16: Int
     let endUTF16: Int
+    let style: NativeTextStyle
 }
 
 internal struct NativePreparedToken {
@@ -20,35 +21,49 @@ internal struct NativePreparedToken {
     let startUTF16: Int
     let endUTF16: Int
     let width: Double
+    let lineHeight: Double
+    let ascent: Double
+    let descent: Double
 }
 
 internal struct NativePreparedParagraphSeed {
     let text: String
     let tokens: [NativeTokenDescriptor]
     let breakUnits: [NativeTokenDescriptor]
+    let runs: [NativeTextRun]
     let textUnits: Int
     let forceTokenLayout: Bool
+    let hasStyledRuns: Bool
 }
 
 internal final class NativePreparedParagraph {
     let text: NSString
+    let attributedText: NSAttributedString
     let typesetter: CTTypesetter?
     let tokens: [NativePreparedToken]
     let breakUnits: [NativePreparedToken]
+    let runs: [NativeTextRun]
     let forceTokenLayout: Bool
+    let hasStyledRuns: Bool
 
     init(
         text: String,
+        attributedText: NSAttributedString,
         typesetter: CTTypesetter?,
         tokens: [NativePreparedToken],
         breakUnits: [NativePreparedToken],
-        forceTokenLayout: Bool
+        runs: [NativeTextRun],
+        forceTokenLayout: Bool,
+        hasStyledRuns: Bool
     ) {
         self.text = text as NSString
+        self.attributedText = attributedText
         self.typesetter = typesetter
         self.tokens = tokens
         self.breakUnits = breakUnits
+        self.runs = runs
         self.forceTokenLayout = forceTokenLayout
+        self.hasStyledRuns = hasStyledRuns
     }
 }
 
@@ -81,6 +96,8 @@ internal struct NativePreparedLineRange {
 
 internal struct NativeParagraphDrawing {
     let text: NSString
+    let attributedText: NSAttributedString
+    let hasStyledRuns: Bool
     let lines: [NativePreparedLineRange]
 }
 
@@ -130,26 +147,50 @@ internal final class PretextShared {
     private init() {}
 
     func measure(text: String, fontFamily: String, fontSize: Double) -> Double {
-        let font = resolveFont(fontFamily: fontFamily, fontSize: fontSize)
-        return measureToken(text, font: font, letterSpacing: 0, locale: "")
+        measureToken(
+            text,
+            style: NativeTextStyle(
+                fontFamily: fontFamily,
+                fontSize: fontSize,
+                lineHeight: fontSize,
+                letterSpacing: 0,
+                locale: "",
+                fontWeight: "",
+                fontStyle: fontStyleNormal
+            )
+        ).width
     }
 
     func measureBatch(texts: [String], fontFamily: String, fontSize: Double) -> [Double] {
-        let font = resolveFont(fontFamily: fontFamily, fontSize: fontSize)
-        return texts.map { measureToken($0, font: font, letterSpacing: 0, locale: "") }
+        let style = NativeTextStyle(
+            fontFamily: fontFamily,
+            fontSize: fontSize,
+            lineHeight: fontSize,
+            letterSpacing: 0,
+            locale: "",
+            fontWeight: "",
+            fontStyle: fontStyleNormal
+        )
+        return texts.map { measureToken($0, style: style).width }
     }
 
     func prepareParagraphsWithStats(
         texts: [String],
         style: ParagraphStyle
     ) -> PreparedParagraphResult {
+        let baseStyle = defaultTextStyle(from: style)
         let analyzedParagraphs = texts.map { text in
-            NativePreparedParagraphSeed(
+            let textUnits = text.utf16.count
+            return NativePreparedParagraphSeed(
                 text: text,
-                tokens: tokenize(text),
-                breakUnits: tokenizeBreakUnits(text),
-                textUnits: text.utf16.count,
-                forceTokenLayout: false
+                tokens: tokenize(text, style: baseStyle),
+                breakUnits: tokenizeBreakUnits(text, style: baseStyle),
+                runs: textUnits > 0
+                    ? [NativeTextRun(startUTF16: 0, endUTF16: textUnits, style: baseStyle)]
+                    : [],
+                textUnits: textUnits,
+                forceTokenLayout: false,
+                hasStyledRuns: false
             )
         }
         return prepareParagraphSeedsWithStats(analyzedParagraphs, style: style)
@@ -159,8 +200,9 @@ internal final class PretextShared {
         paragraphs: [[InlineSegment]],
         style: ParagraphStyle
     ) -> PreparedParagraphResult {
+        let baseStyle = defaultTextStyle(from: style)
         let analyzedParagraphs = paragraphs.map { paragraph in
-            prepareInlineParagraphSeed(paragraph)
+            prepareInlineParagraphSeed(paragraph, baseStyle: baseStyle)
         }
         return prepareParagraphSeedsWithStats(analyzedParagraphs, style: style)
     }
@@ -170,8 +212,9 @@ internal final class PretextShared {
         style: ParagraphStyle
     ) -> PreparedParagraphResult {
         let prepareStartedAt = nowMs()
-        let font = resolveFont(fontFamily: style.fontFamily, fontSize: style.fontSize)
-        let lineHeight = resolvedLineHeight(style.lineHeight, font: font)
+        let baseTextStyle = defaultTextStyle(from: style)
+        let baseFont = resolveFont(style: baseTextStyle)
+        let lineHeight = resolvedLineHeightValue(baseTextStyle.lineHeight, font: baseFont)
 
         let analyzeStartedAt = nowMs()
         let totalTokenCount = analyzedParagraphs.reduce(0) { partialResult, paragraph in
@@ -180,46 +223,22 @@ internal final class PretextShared {
         let analyzeMs = nowMs() - analyzeStartedAt
 
         let measurementStartedAt = nowMs()
+        var measurementCache: [String: NativeTokenMetrics] = [:]
         let paragraphs = analyzedParagraphs.map { paragraph in
+            let attributedText = buildAttributedText(text: paragraph.text, runs: paragraph.runs)
             return NativePreparedParagraph(
                 text: paragraph.text,
-                typesetter: paragraph.forceTokenLayout ? nil : createTypesetter(
-                    text: paragraph.text,
-                    font: font,
-                    letterSpacing: style.letterSpacing,
-                    locale: style.locale
-                ),
+                attributedText: attributedText,
+                typesetter: paragraph.forceTokenLayout ? nil : createTypesetter(attributedText: attributedText),
                 tokens: paragraph.tokens.map { token in
-                    NativePreparedToken(
-                        text: token.text,
-                        startUTF16: token.startUTF16,
-                        endUTF16: token.endUTF16,
-                        width: token.text == newlineToken
-                            ? 0
-                            : measureToken(
-                                token.text,
-                                font: font,
-                                letterSpacing: style.letterSpacing,
-                                locale: style.locale
-                            )
-                    )
+                    prepareMeasuredToken(token, cache: &measurementCache)
                 },
                 breakUnits: paragraph.breakUnits.map { token in
-                    NativePreparedToken(
-                        text: token.text,
-                        startUTF16: token.startUTF16,
-                        endUTF16: token.endUTF16,
-                        width: token.text == newlineToken
-                            ? 0
-                            : measureToken(
-                                token.text,
-                                font: font,
-                                letterSpacing: style.letterSpacing,
-                                locale: style.locale
-                            )
-                    )
+                    prepareMeasuredToken(token, cache: &measurementCache)
                 },
-                forceTokenLayout: paragraph.forceTokenLayout
+                runs: paragraph.runs,
+                forceTokenLayout: paragraph.forceTokenLayout,
+                hasStyledRuns: paragraph.hasStyledRuns
             )
         }
         let measurementMs = nowMs() - measurementStartedAt
@@ -245,7 +264,7 @@ internal final class PretextShared {
             totalMs: nowMs() - prepareStartedAt,
             paragraphCount: Double(prepared.paragraphs.count),
             totalTokenCount: Double(totalTokenCount),
-            uniqueTokenCount: Double(prepared.paragraphs.count)
+            uniqueTokenCount: Double(measurementCache.count)
         )
 
         return PreparedParagraphResult(
@@ -255,16 +274,35 @@ internal final class PretextShared {
     }
 
     private func prepareInlineParagraphSeed(
-        _ paragraph: [InlineSegment]
+        _ paragraph: [InlineSegment],
+        baseStyle: NativeTextStyle
     ) -> NativePreparedParagraphSeed {
         var text = ""
         var tokens: [NativeTokenDescriptor] = []
         var breakUnits: [NativeTokenDescriptor] = []
+        var runs: [NativeTextRun] = []
+        var forceTokenLayout = false
+        var hasStyledRuns = false
 
         for segment in paragraph {
+            let baseOffset = (text as NSString).length
+            let resolvedStyle = resolveTextStyle(segment: segment, baseStyle: baseStyle)
+            text += segment.text
+            let endOffset = (text as NSString).length
+            if endOffset > baseOffset {
+                runs.append(
+                    NativeTextRun(
+                        startUTF16: baseOffset,
+                        endUTF16: endOffset,
+                        style: resolvedStyle
+                    )
+                )
+            }
+            hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
+            forceTokenLayout = forceTokenLayout || segment.breakBehavior.lowercased() == breakBehaviorNever
             appendInlineSegment(
                 segment,
-                text: &text,
+                resolvedStyle: resolvedStyle,
                 tokens: &tokens,
                 breakUnits: &breakUnits
             )
@@ -274,8 +312,10 @@ internal final class PretextShared {
             text: text,
             tokens: tokens,
             breakUnits: breakUnits,
+            runs: mergeAdjacentRuns(runs),
             textUnits: text.utf16.count,
-            forceTokenLayout: true
+            forceTokenLayout: forceTokenLayout,
+            hasStyledRuns: hasStyledRuns
         )
     }
 
@@ -383,6 +423,18 @@ internal final class PretextShared {
         paragraphIndex: Int,
         width: Double
     ) -> NativeParagraphDrawing? {
+        resolveParagraphDrawing(
+            preparedId: preparedId,
+            paragraphIndex: paragraphIndex,
+            request: defaultLayoutRequest(width: width)
+        )
+    }
+
+    func resolveParagraphDrawing(
+        preparedId: Double,
+        paragraphIndex: Int,
+        request: NativeLayoutRequest
+    ) -> NativeParagraphDrawing? {
         guard
             let prepared = preparedCorpora[Int64(preparedId)],
             paragraphIndex >= 0,
@@ -395,10 +447,12 @@ internal final class PretextShared {
         let lineLayouts = layoutLineLayouts(
             paragraph,
             lineHeight: prepared.lineHeight,
-            request: defaultLayoutRequest(width: width)
+            request: request
         )
         return NativeParagraphDrawing(
             text: paragraph.text,
+            attributedText: paragraph.attributedText,
+            hasStyledRuns: paragraph.hasStyledRuns,
             lines: buildPreparedLineRanges(lineLayouts: lineLayouts)
         )
     }
@@ -471,25 +525,83 @@ internal final class PretextShared {
     }
 
     private func createTypesetter(
-        text: String,
-        font: UIFont,
-        letterSpacing: Double,
-        locale: String
+        attributedText: NSAttributedString
     ) -> CTTypesetter {
-        var attributes: [NSAttributedString.Key: Any] = [
-            .font: font
-        ]
-
-        if letterSpacing != 0 {
-            attributes[.kern] = CGFloat(letterSpacing)
-        }
-
-        if !locale.isEmpty {
-            attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] = locale
-        }
-
-        let attributedText = NSAttributedString(string: text, attributes: attributes)
         return CTTypesetterCreateWithAttributedString(attributedText)
+    }
+
+    private func prepareMeasuredToken(
+        _ token: NativeTokenDescriptor,
+        cache: inout [String: NativeTokenMetrics]
+    ) -> NativePreparedToken {
+        if token.text == newlineToken {
+            return NativePreparedToken(
+                text: token.text,
+                startUTF16: token.startUTF16,
+                endUTF16: token.endUTF16,
+                width: 0,
+                lineHeight: 0,
+                ascent: 0,
+                descent: 0
+            )
+        }
+
+        let cacheKey = measurementCacheKey(text: token.text, style: token.style)
+        let metrics: NativeTokenMetrics
+        if let cached = cache[cacheKey] {
+            metrics = cached
+        } else {
+            let measured = measureToken(token.text, style: token.style)
+            cache[cacheKey] = measured
+            metrics = measured
+        }
+
+        return NativePreparedToken(
+            text: token.text,
+            startUTF16: token.startUTF16,
+            endUTF16: token.endUTF16,
+            width: metrics.width,
+            lineHeight: metrics.lineHeight,
+            ascent: metrics.ascent,
+            descent: metrics.descent
+        )
+    }
+
+    private func measurementCacheKey(
+        text: String,
+        style: NativeTextStyle
+    ) -> String {
+        [
+            text,
+            style.fontFamily,
+            String(style.fontSize),
+            String(style.lineHeight),
+            String(style.letterSpacing),
+            style.locale,
+            style.fontWeight,
+            style.fontStyle
+        ].joined(separator: "\u{1F}")
+    }
+
+    private func mergeAdjacentRuns(_ runs: [NativeTextRun]) -> [NativeTextRun] {
+        guard let first = runs.first else {
+            return []
+        }
+
+        var merged: [NativeTextRun] = [first]
+        for run in runs.dropFirst() {
+            let lastIndex = merged.count - 1
+            if merged[lastIndex].style == run.style && merged[lastIndex].endUTF16 == run.startUTF16 {
+                merged[lastIndex] = NativeTextRun(
+                    startUTF16: merged[lastIndex].startUTF16,
+                    endUTF16: run.endUTF16,
+                    style: run.style
+                )
+            } else {
+                merged.append(run)
+            }
+        }
+        return merged
     }
 
     private func buildParagraphLineRanges(
@@ -649,7 +761,16 @@ internal final class PretextShared {
             var leading: CGFloat = 0
             let typographicWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
             let actualHeight = max(0, Double(ascent + descent + leading))
-            let effectiveLineHeight = max(lineHeight, actualHeight)
+            let lineHeightFloor = max(
+                lineHeight,
+                maxRequestedLineHeight(
+                    runs: prepared.runs,
+                    defaultLineHeight: lineHeight,
+                    startUTF16: start,
+                    endUTF16: start + count
+                )
+            )
+            let effectiveLineHeight = max(lineHeightFloor, actualHeight)
 
             lines.append(
                 NativeLineLayout(
@@ -704,6 +825,7 @@ internal final class PretextShared {
 
             if tokens[cursor].text == newlineToken {
                 let newline = tokens[cursor]
+                let newlineHeight = max(lineHeight, newline.lineHeight)
                 lines.append(
                     NativeLineLayout(
                         textStartUTF16: newline.startUTF16,
@@ -711,12 +833,12 @@ internal final class PretextShared {
                         width: 0,
                         left: constraint.left,
                         top: top,
-                        height: lineHeight,
-                        ascent: 0,
-                        descent: lineHeight
+                        height: newlineHeight,
+                        ascent: newline.ascent,
+                        descent: max(newline.descent, newlineHeight - newline.ascent)
                     )
                 )
-                top += lineHeight
+                top += newlineHeight
                 cursor += 1
                 continue
             }
@@ -772,14 +894,15 @@ internal final class PretextShared {
                         width: fallback.width,
                         left: constraint.left,
                         top: top,
-                        height: lineHeight,
-                        ascent: 0,
-                        descent: lineHeight
+                        height: fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight,
+                        ascent: fallback.ascent,
+                        descent: fallback.descent
                     )
                 )
-                top += lineHeight
+                top += fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight
                 cursor += 1
             } else {
+                let metrics = fallbackLineMetrics(tokens, start: cursor, end: trimmedEnd, defaultLineHeight: lineHeight)
                 let lineWidth = sumWidths(tokens, start: cursor, end: trimmedEnd)
                 lines.append(
                     NativeLineLayout(
@@ -788,12 +911,12 @@ internal final class PretextShared {
                         width: lineWidth,
                         left: constraint.left,
                         top: top,
-                        height: lineHeight,
-                        ascent: 0,
-                        descent: lineHeight
+                        height: metrics.lineHeight,
+                        ascent: metrics.ascent,
+                        descent: metrics.descent
                     )
                 )
-                top += lineHeight
+                top += metrics.lineHeight
                 cursor = end
             }
 
@@ -821,7 +944,10 @@ internal final class PretextShared {
         return lines
     }
 
-    private func tokenize(_ text: String) -> [NativeTokenDescriptor] {
+    private func tokenize(
+        _ text: String,
+        style: NativeTextStyle
+    ) -> [NativeTokenDescriptor] {
         var tokens: [NativeTokenDescriptor] = []
         var current = ""
         var currentStart = -1
@@ -839,7 +965,8 @@ internal final class PretextShared {
                 NativeTokenDescriptor(
                     text: current,
                     startUTF16: currentStart,
-                    endUTF16: currentEnd
+                    endUTF16: currentEnd,
+                    style: style
                 )
             )
             current = ""
@@ -858,7 +985,8 @@ internal final class PretextShared {
                     NativeTokenDescriptor(
                         text: newlineToken,
                         startUTF16: range.location,
-                        endUTF16: range.location + range.length
+                        endUTF16: range.location + range.length,
+                        style: style
                     )
                 )
                 cursor = range.location + range.length
@@ -887,7 +1015,10 @@ internal final class PretextShared {
         return tokens
     }
 
-    private func tokenizeBreakUnits(_ text: String) -> [NativeTokenDescriptor] {
+    private func tokenizeBreakUnits(
+        _ text: String,
+        style: NativeTextStyle
+    ) -> [NativeTokenDescriptor] {
         let nsText = text as NSString
         guard nsText.length > 0 else {
             return []
@@ -901,7 +1032,8 @@ internal final class PretextShared {
                 NativeTokenDescriptor(
                     text: nsText.substring(with: range),
                     startUTF16: range.location,
-                    endUTF16: range.location + range.length
+                    endUTF16: range.location + range.length,
+                    style: style
                 )
             )
             cursor = range.location + range.length
@@ -911,31 +1043,43 @@ internal final class PretextShared {
 
     private func appendInlineSegment(
         _ segment: InlineSegment,
-        text: inout String,
+        resolvedStyle: NativeTextStyle,
         tokens: inout [NativeTokenDescriptor],
         breakUnits: inout [NativeTokenDescriptor]
     ) {
-        let baseOffset = (text as NSString).length
-        text += segment.text
+        let baseOffset = min(tokens.last?.endUTF16 ?? Int.max, breakUnits.last?.endUTF16 ?? Int.max)
+        let resolvedBaseOffset = baseOffset == Int.max ? 0 : baseOffset
 
         if segment.breakBehavior.lowercased() == breakBehaviorNever {
-            appendNeverBreakTokens(segment.text, baseOffset: baseOffset, output: &tokens)
-            appendNeverBreakTokens(segment.text, baseOffset: baseOffset, output: &breakUnits)
+            appendNeverBreakTokens(
+                segment.text,
+                baseOffset: resolvedBaseOffset,
+                style: resolvedStyle,
+                output: &tokens
+            )
+            appendNeverBreakTokens(
+                segment.text,
+                baseOffset: resolvedBaseOffset,
+                style: resolvedStyle,
+                output: &breakUnits
+            )
             return
         }
 
-        tokens += tokenize(segment.text).map { token in
+        tokens += tokenize(segment.text, style: resolvedStyle).map { token in
             NativeTokenDescriptor(
                 text: token.text,
-                startUTF16: token.startUTF16 + baseOffset,
-                endUTF16: token.endUTF16 + baseOffset
+                startUTF16: token.startUTF16 + resolvedBaseOffset,
+                endUTF16: token.endUTF16 + resolvedBaseOffset,
+                style: token.style
             )
         }
-        breakUnits += tokenizeBreakUnits(segment.text).map { token in
+        breakUnits += tokenizeBreakUnits(segment.text, style: resolvedStyle).map { token in
             NativeTokenDescriptor(
                 text: token.text,
-                startUTF16: token.startUTF16 + baseOffset,
-                endUTF16: token.endUTF16 + baseOffset
+                startUTF16: token.startUTF16 + resolvedBaseOffset,
+                endUTF16: token.endUTF16 + resolvedBaseOffset,
+                style: token.style
             )
         }
     }
@@ -943,6 +1087,7 @@ internal final class PretextShared {
     private func appendNeverBreakTokens(
         _ text: String,
         baseOffset: Int,
+        style: NativeTextStyle,
         output: inout [NativeTokenDescriptor]
     ) {
         let nsText = text as NSString
@@ -957,7 +1102,8 @@ internal final class PretextShared {
                     NativeTokenDescriptor(
                         text: nsText.substring(with: remainingRange),
                         startUTF16: baseOffset + localStart,
-                        endUTF16: baseOffset + nsText.length
+                        endUTF16: baseOffset + nsText.length,
+                        style: style
                     )
                 )
                 break
@@ -968,7 +1114,8 @@ internal final class PretextShared {
                     NativeTokenDescriptor(
                         text: nsText.substring(with: NSRange(location: localStart, length: nextNewline.location - localStart)),
                         startUTF16: baseOffset + localStart,
-                        endUTF16: baseOffset + nextNewline.location
+                        endUTF16: baseOffset + nextNewline.location,
+                        style: style
                     )
                 )
             }
@@ -977,7 +1124,8 @@ internal final class PretextShared {
                 NativeTokenDescriptor(
                     text: newlineToken,
                     startUTF16: baseOffset + nextNewline.location,
-                    endUTF16: baseOffset + nextNewline.location + nextNewline.length
+                    endUTF16: baseOffset + nextNewline.location + nextNewline.length,
+                    style: style
                 )
             )
             localStart = nextNewline.location + nextNewline.length
@@ -988,34 +1136,8 @@ internal final class PretextShared {
         lineLayouts.last.map { $0.top + $0.height } ?? 0
     }
 
-    private func resolveFont(fontFamily: String, fontSize: Double) -> UIFont {
-        UIFont(name: fontFamily, size: fontSize) ?? UIFont.systemFont(ofSize: fontSize)
-    }
-
     private func nowMs() -> Double {
         ProcessInfo.processInfo.systemUptime * 1000
-    }
-
-    private func resolvedLineHeight(_ lineHeight: Double, font: UIFont) -> Double {
-        lineHeight > 0 ? lineHeight : Double(font.lineHeight)
-    }
-
-    private func measureToken(
-        _ token: String,
-        font: UIFont,
-        letterSpacing: Double,
-        locale: String
-    ) -> Double {
-        var attributes: [NSAttributedString.Key: Any] = [
-            .font: font
-        ]
-        if letterSpacing != 0 {
-            attributes[.kern] = letterSpacing
-        }
-        if !locale.isEmpty {
-            attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] = locale
-        }
-        return (token as NSString).size(withAttributes: attributes).width
     }
 
     private func trimTrailingWhitespaceEnd(
@@ -1040,6 +1162,44 @@ internal final class PretextShared {
         return tokens[start..<end].reduce(0) { partialResult, token in
             partialResult + token.width
         }
+    }
+
+    private func maxRequestedLineHeight(
+        runs: [NativeTextRun],
+        defaultLineHeight: Double,
+        startUTF16: Int,
+        endUTF16: Int
+    ) -> Double {
+        var maxHeight = defaultLineHeight
+
+        for run in runs where run.endUTF16 > startUTF16 && run.startUTF16 < endUTF16 {
+            maxHeight = max(maxHeight, run.style.lineHeight > 0 ? run.style.lineHeight : defaultLineHeight)
+        }
+
+        return maxHeight
+    }
+
+    private func fallbackLineMetrics(
+        _ tokens: [NativePreparedToken],
+        start: Int,
+        end: Int,
+        defaultLineHeight: Double
+    ) -> (lineHeight: Double, ascent: Double, descent: Double) {
+        guard end > start else {
+            return (defaultLineHeight, 0, defaultLineHeight)
+        }
+
+        var ascent = 0.0
+        var descent = 0.0
+        var lineHeight = defaultLineHeight
+        for token in tokens[start..<end] {
+            ascent = max(ascent, token.ascent)
+            descent = max(descent, token.descent)
+            lineHeight = max(lineHeight, token.lineHeight)
+        }
+
+        lineHeight = max(lineHeight, ascent + descent)
+        return (lineHeight, ascent, descent)
     }
 
     private func materializeBrokenText(

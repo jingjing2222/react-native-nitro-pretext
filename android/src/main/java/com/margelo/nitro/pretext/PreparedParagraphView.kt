@@ -4,17 +4,26 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.graphics.Typeface
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextDirectionHeuristics
+import android.text.TextPaint
 import android.view.View
+import kotlin.math.ceil
 
 internal class PreparedParagraphView(context: Context) : View(context) {
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
   private var preparedId: Double = 0.0
   private var paragraphIndex: Int = 0
   private var layoutWidth: Double = 0.0
+  private var layoutRequest: NativeLayoutRequest? = null
   private var text: String = ""
+  private var styledText: CharSequence = ""
   private var lines: List<NativePreparedLineRange> = emptyList()
+  private var hasStyledRuns: Boolean = false
   private var fontFamily: String = "System"
+  private var fontWeight: String = ""
+  private var fontStyle: String = "normal"
   private var fontSize: Double = 14.0
   private var lineHeight: Double = 20.0
   private var letterSpacing: Double = 0.0
@@ -50,12 +59,38 @@ internal class PreparedParagraphView(context: Context) : View(context) {
     rebuildLayout()
   }
 
+  fun setLayoutRequest(nextLayoutRequest: NativeLayoutRequest?) {
+    if (layoutRequest == nextLayoutRequest) {
+      return
+    }
+    layoutRequest = nextLayoutRequest
+    rebuildLayout()
+  }
+
   fun setFontFamily(nextFontFamily: String?) {
     val resolvedFontFamily = nextFontFamily ?: "System"
     if (fontFamily == resolvedFontFamily) {
       return
     }
     fontFamily = resolvedFontFamily
+    updatePaint()
+  }
+
+  fun setFontWeight(nextFontWeight: String?) {
+    val resolvedFontWeight = nextFontWeight ?: ""
+    if (fontWeight == resolvedFontWeight) {
+      return
+    }
+    fontWeight = resolvedFontWeight
+    updatePaint()
+  }
+
+  fun setFontStyle(nextFontStyle: String?) {
+    val resolvedFontStyle = nextFontStyle ?: "normal"
+    if (fontStyle == resolvedFontStyle) {
+      return
+    }
+    fontStyle = resolvedFontStyle
     updatePaint()
   }
 
@@ -120,14 +155,46 @@ internal class PreparedParagraphView(context: Context) : View(context) {
       val effectiveLineHeight = if (line.height > 0.0) line.height else lineHeight
       val actualHeight = maxOf(0.0, line.descent - line.ascent)
       val centeredTop = contentInsetTop + line.top + maxOf(0.0, (effectiveLineHeight - actualHeight) / 2.0)
-      val baseline = (centeredTop - line.ascent).toFloat()
-      canvas.drawText(text, line.textStart, line.textEnd, x, baseline, paint)
+      if (hasStyledRuns) {
+        val lineText = styledText.subSequence(line.textStart, line.textEnd)
+        val layout =
+          StaticLayout.Builder.obtain(
+            lineText,
+            0,
+            lineText.length,
+            TextPaint(paint),
+            maxOf(1, ceil(maxOf(line.width, layoutWidth) + 4.0).toInt()),
+          )
+            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+            .setLineSpacing(0f, 1f)
+            .setIncludePad(false)
+            .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+            .build()
+        canvas.save()
+        canvas.translate(x, centeredTop.toFloat())
+        layout.draw(canvas)
+        canvas.restore()
+      } else {
+        val baseline = (centeredTop - line.ascent).toFloat()
+        canvas.drawText(text, line.textStart, line.textEnd, x, baseline, paint)
+      }
     }
   }
 
   private fun updatePaint() {
     paint.textSize = fontSize.toFloat()
-    paint.typeface = resolveTypeface(fontFamily)
+    paint.typeface =
+      resolveTypeface(
+        NativeTextStyle(
+          fontFamily = fontFamily,
+          fontSize = fontSize,
+          lineHeight = lineHeight,
+          letterSpacing = letterSpacing,
+          locale = "",
+          fontWeight = fontWeight,
+          fontStyle = fontStyle,
+        ),
+      )
     paint.color = textColor
     paint.letterSpacing = if (fontSize > 0.0 && letterSpacing != 0.0) {
       (letterSpacing / fontSize).toFloat()
@@ -138,7 +205,9 @@ internal class PreparedParagraphView(context: Context) : View(context) {
   }
 
   private fun rebuildLayout() {
-    if (preparedId <= 0.0 || layoutWidth <= 0.0) {
+    val resolvedRequest = layoutRequest ?: defaultLayoutRequest(layoutWidth)
+
+    if (preparedId <= 0.0 || resolvedRequest.width <= 0.0) {
       text = ""
       lines = emptyList()
       invalidate()
@@ -148,24 +217,22 @@ internal class PreparedParagraphView(context: Context) : View(context) {
     val drawing = PretextShared.resolveParagraphDrawing(
       preparedId = preparedId,
       paragraphIndex = paragraphIndex,
-      width = layoutWidth,
+      request = resolvedRequest,
     )
     text = drawing?.text.orEmpty()
+    styledText = drawing?.styledText ?: ""
     lines = drawing?.lines ?: emptyList()
+    hasStyledRuns = drawing?.hasStyledRuns == true
     invalidate()
   }
 
-  private fun resolveTypeface(resolvedFontFamily: String): Typeface {
-    return when (resolvedFontFamily.lowercase()) {
-      "system", "default", "" -> Typeface.DEFAULT
-      "serif" -> Typeface.SERIF
-      "monospace" -> Typeface.MONOSPACE
-      else ->
-        try {
-          Typeface.create(resolvedFontFamily, Typeface.NORMAL)
-        } catch (_: Exception) {
-          Typeface.DEFAULT
-        }
-    }
+  private fun defaultLayoutRequest(width: Double): NativeLayoutRequest {
+    return NativeLayoutRequest(
+      width = maxOf(1.0, width),
+      left = 0.0,
+      whiteSpace = WHITE_SPACE_NORMAL,
+      wordBreak = WORD_BREAK_NORMAL,
+      shapeSlices = emptyList(),
+    )
   }
 }

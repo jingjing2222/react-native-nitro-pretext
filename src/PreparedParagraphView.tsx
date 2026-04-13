@@ -6,13 +6,23 @@ import {
   type ViewStyle,
 } from "react-native";
 
-import type { ParagraphStyle, PreparedParagraphState } from "./Pretext.nitro";
+import { useMemo } from "react";
+
+import type {
+  ParagraphLayoutRequest,
+  ParagraphStyle,
+  PreparedParagraphState,
+} from "./Pretext.nitro";
+import { createParagraphLayoutRequest } from "./TextMeasure";
 
 type NativePreparedParagraphViewProps = ViewProps & {
   contentInsetLeft: number;
   contentInsetTop: number;
   fontFamily: string;
+  fontStyle?: string;
   fontSize: number;
+  fontWeight?: string;
+  layoutRequest: ParagraphLayoutRequest;
   letterSpacing: number;
   layoutWidth: number;
   lineHeight: number;
@@ -25,6 +35,7 @@ type NativePreparedParagraphViewProps = ViewProps & {
 export type PreparedParagraphViewProps = ViewProps & {
   contentInsetHorizontal?: number;
   contentInsetVertical?: number;
+  layoutRequest?: Partial<ParagraphLayoutRequest>;
   layoutWidth: number;
   paragraphHeight: number;
   paragraphIndex: number;
@@ -51,6 +62,7 @@ function getNativePreparedParagraphView(): HostComponent<NativePreparedParagraph
 export function PreparedParagraphView({
   contentInsetHorizontal = 0,
   contentInsetVertical = 0,
+  layoutRequest,
   layoutWidth,
   onLayout,
   paragraphHeight,
@@ -62,13 +74,20 @@ export function PreparedParagraphView({
   ...viewProps
 }: PreparedParagraphViewProps) {
   const NativePreparedParagraphView = getNativePreparedParagraphView();
+  const resolvedLayoutRequest = useMemo(
+    () => createParagraphLayoutRequest(layoutWidth, layoutRequest),
+    [layoutRequest, layoutWidth],
+  );
 
   return (
     <NativePreparedParagraphView
       contentInsetLeft={contentInsetHorizontal}
       contentInsetTop={contentInsetVertical}
       fontFamily={paragraphStyle.fontFamily}
+      fontStyle={paragraphStyle.fontStyle}
       fontSize={paragraphStyle.fontSize}
+      fontWeight={paragraphStyle.fontWeight}
+      layoutRequest={resolvedLayoutRequest}
       layoutWidth={layoutWidth}
       letterSpacing={paragraphStyle.letterSpacing}
       lineHeight={paragraphStyle.lineHeight}

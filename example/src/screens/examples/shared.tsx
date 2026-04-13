@@ -8,9 +8,11 @@ import {
   useWindowDimensions,
 } from "react-native";
 import {
+  createParagraphLayoutRequest,
   prepareInlineParagraphsWithStats,
   prepareParagraphsWithStats,
   releaseParagraphs,
+  type ParagraphLayoutRequest,
   type InlineSegment,
   type PreparedParagraphResult,
 } from "react-native-nitro-pretext";
@@ -27,14 +29,69 @@ import { BENCHMARK_STYLE } from "../../relayoutBenchmark";
 export const EXAMPLE_TEXT =
   "Prepared paragraph state stays stable while the width changes. The example view is for API inspection, not for benchmark timing.";
 export const INLINE_EXAMPLE: InlineSegment[] = [
-  { text: "@pretext_handle", breakBehavior: "never" },
   {
-    text: " stays together while the surrounding paragraph can still wrap across narrower widths.",
+    text: "Prepared paragraph state can carry ",
+    breakBehavior: "normal",
+  },
+  {
+    text: "weighted inline runs",
+    breakBehavior: "normal",
+    fontWeight: "700",
+  },
+  {
+    text: ", ",
+    breakBehavior: "normal",
+  },
+  {
+    text: "italic emphasis",
+    breakBehavior: "normal",
+    fontStyle: "italic",
+  },
+  {
+    text: ", and ",
+    breakBehavior: "normal",
+  },
+  {
+    text: "@pretext_handle",
+    breakBehavior: "never",
+    fontWeight: "700",
+    fontSize: 20,
+    lineHeight: 30,
+  },
+  {
+    text: " while the rest of the paragraph keeps native shaping and line breaking across narrower widths.",
     breakBehavior: "normal",
   },
 ];
 export const CURSOR_TEXT =
   "Cursor output is useful when a custom renderer wants line ranges one by one instead of a fully materialized paragraph result.";
+
+export function buildShapedExampleRequest(
+  layoutWidth: number,
+): ParagraphLayoutRequest {
+  return createParagraphLayoutRequest(layoutWidth, {
+    shapeSlices: [
+      {
+        top: 0,
+        height: BENCHMARK_STYLE.lineHeight,
+        left: 0,
+        width: layoutWidth,
+      },
+      {
+        top: BENCHMARK_STYLE.lineHeight,
+        height: BENCHMARK_STYLE.lineHeight * 2,
+        left: 44,
+        width: Math.max(120, layoutWidth - 44),
+      },
+      {
+        top: BENCHMARK_STYLE.lineHeight * 3,
+        height: BENCHMARK_STYLE.lineHeight * 2,
+        left: 12,
+        width: Math.max(120, layoutWidth - 12),
+      },
+    ],
+  });
+}
 
 export function useExampleWidthSelection() {
   const { width: windowWidth } = useWindowDimensions();

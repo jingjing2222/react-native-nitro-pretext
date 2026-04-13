@@ -23,9 +23,30 @@ final class PreparedParagraphView: UIView {
         }
     }
 
+    @objc var layoutRequest: NSDictionary = [:] {
+        didSet {
+            guard !layoutRequest.isEqual(to: oldValue as? [AnyHashable: Any] ?? [:]) else { return }
+            rebuildLayout()
+        }
+    }
+
     @objc var fontFamily: NSString = "System" {
         didSet {
             guard !fontFamily.isEqual(to: oldValue as String) else { return }
+            updateTextAttributes()
+        }
+    }
+
+    @objc var fontWeight: NSString = "" {
+        didSet {
+            guard !fontWeight.isEqual(to: oldValue as String) else { return }
+            updateTextAttributes()
+        }
+    }
+
+    @objc var fontStyle: NSString = "normal" {
+        didSet {
+            guard !fontStyle.isEqual(to: oldValue as String) else { return }
             updateTextAttributes()
         }
     }
@@ -73,7 +94,9 @@ final class PreparedParagraphView: UIView {
     }
 
     private var resolvedText: NSString = ""
+    private var resolvedAttributedText: NSAttributedString = NSAttributedString(string: "")
     private var resolvedLines: [NativePreparedLineRange] = []
+    private var hasStyledRuns = false
     private var cachedFont: UIFont = .systemFont(ofSize: 14)
     private var cachedAttributes: [NSAttributedString.Key: Any] = [:]
 
@@ -113,20 +136,34 @@ final class PreparedParagraphView: UIView {
                 width: max(CGFloat(line.width), 1),
                 height: max(CGFloat(line.height), resolvedLineHeight)
             )
-            let lineText = resolvedText.substring(
-                with: NSRange(
-                    location: line.textStartUTF16,
-                    length: line.textEndUTF16 - line.textStartUTF16
+            let range = NSRange(
+                location: line.textStartUTF16,
+                length: line.textEndUTF16 - line.textStartUTF16
+            )
+            if hasStyledRuns {
+                resolvedAttributedText.attributedSubstring(from: range).draw(
+                    with: lineRect,
+                    options: [.usesLineFragmentOrigin, .usesFontLeading],
+                    context: nil
                 )
-            ) as NSString
-            lineText.draw(in: lineRect, withAttributes: cachedAttributes)
+            } else {
+                let lineText = resolvedText.substring(with: range) as NSString
+                lineText.draw(in: lineRect, withAttributes: cachedAttributes)
+            }
         }
     }
 
     private func updateTextAttributes() {
-        let resolvedFontSize = CGFloat(truncating: fontSize)
-        cachedFont = UIFont(name: fontFamily as String, size: resolvedFontSize)
-            ?? UIFont.systemFont(ofSize: resolvedFontSize)
+        let resolvedStyle = NativeTextStyle(
+            fontFamily: fontFamily as String,
+            fontSize: fontSize.doubleValue,
+            lineHeight: lineHeight.doubleValue,
+            letterSpacing: letterSpacing.doubleValue,
+            locale: "",
+            fontWeight: fontWeight as String,
+            fontStyle: fontStyle as String
+        )
+        cachedFont = resolveFont(style: resolvedStyle)
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.lineBreakMode = .byClipping
@@ -146,10 +183,10 @@ final class PreparedParagraphView: UIView {
 
     private func rebuildLayout() {
         let resolvedPreparedId = preparedId.doubleValue
-        let resolvedLayoutWidth = layoutWidth.doubleValue
         let resolvedParagraphIndex = paragraphIndex.intValue
+        let resolvedRequest = resolveLayoutRequest()
 
-        guard resolvedPreparedId > 0, resolvedLayoutWidth > 0 else {
+        guard resolvedPreparedId > 0, resolvedRequest.width > 0 else {
             resolvedText = ""
             resolvedLines = []
             setNeedsDisplay()
@@ -159,10 +196,71 @@ final class PreparedParagraphView: UIView {
         let drawing = PretextShared.shared.resolveParagraphDrawing(
             preparedId: resolvedPreparedId,
             paragraphIndex: resolvedParagraphIndex,
-            width: resolvedLayoutWidth
+            request: resolvedRequest
         )
         resolvedText = drawing?.text ?? ("" as NSString)
+        resolvedAttributedText = drawing?.attributedText ?? NSAttributedString(string: "")
         resolvedLines = drawing?.lines ?? []
+        hasStyledRuns = drawing?.hasStyledRuns ?? false
         setNeedsDisplay()
+    }
+
+    private func resolveLayoutRequest() -> NativeLayoutRequest {
+        let defaultRequest = NativeLayoutRequest(
+            width: max(1, layoutWidth.doubleValue),
+            left: 0,
+            whiteSpace: whiteSpaceNormal,
+            wordBreak: wordBreakNormal,
+            shapeSlices: []
+        )
+
+        guard layoutRequest.count > 0 else {
+            return defaultRequest
+        }
+
+        let shapeSlices = (layoutRequest["shapeSlices"] as? [Any] ?? [])
+            .compactMap { item -> NativeShapeSlice? in
+                guard let slice = item as? [String: Any] else {
+                    return nil
+                }
+
+                return NativeShapeSlice(
+                    top: numberValue(slice["top"]) ?? 0,
+                    height: max(0, numberValue(slice["height"]) ?? 0),
+                    left: numberValue(slice["left"]) ?? 0,
+                    width: max(1, numberValue(slice["width"]) ?? 1)
+                )
+            }
+            .sorted { left, right in
+                left.top < right.top
+            }
+
+        return NativeLayoutRequest(
+            width: max(1, numberValue(layoutRequest["width"]) ?? layoutWidth.doubleValue),
+            left: numberValue(layoutRequest["left"]) ?? 0,
+            whiteSpace: stringValue(layoutRequest["whiteSpace"])?.lowercased() ?? whiteSpaceNormal,
+            wordBreak: stringValue(layoutRequest["wordBreak"])?.lowercased() ?? wordBreakNormal,
+            shapeSlices: shapeSlices
+        )
+    }
+
+    private func numberValue(_ value: Any?) -> Double? {
+        if let number = value as? NSNumber {
+            return number.doubleValue
+        }
+
+        return nil
+    }
+
+    private func stringValue(_ value: Any?) -> String? {
+        if let string = value as? NSString {
+            return string as String
+        }
+
+        if let string = value as? String {
+            return string
+        }
+
+        return nil
     }
 }

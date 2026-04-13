@@ -26,6 +26,10 @@ export {
 export { PreparedParagraphView } from "./PreparedParagraphView";
 export type { PreparedParagraphViewProps } from "./PreparedParagraphView";
 export {
+  PreparedParagraphLinesView,
+  type PreparedParagraphLinesViewProps,
+} from "./PreparedParagraphLinesView";
+export {
   PreparedParagraphText,
   type PreparedParagraphTextProps,
 } from "./PreparedParagraphText";
