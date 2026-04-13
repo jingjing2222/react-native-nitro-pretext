@@ -285,7 +285,20 @@ jobs:
       - name: Install example app on simulator
         run: |
           cd example
-          npx react-native run-ios --udid "$MAESTRO_IOS_DEVICE_ID" --no-packager
+          APP_PATH="$PWD/ios/build-benchmark/Build/Products/Debug-iphonesimulator/PretextExample.app"
+
+          set -o pipefail
+          xcodebuild \
+            -workspace ios/PretextExample.xcworkspace \
+            -scheme PretextExample \
+            -configuration Debug \
+            -destination "id=$MAESTRO_IOS_DEVICE_ID" \
+            -derivedDataPath ios/build-benchmark \
+            build | bundle exec xcbeautify
+
+          xcrun simctl uninstall "$MAESTRO_IOS_DEVICE_ID" pretext.example >/dev/null 2>&1 || true
+          xcrun simctl install "$MAESTRO_IOS_DEVICE_ID" "$APP_PATH"
+          xcrun simctl launch "$MAESTRO_IOS_DEVICE_ID" pretext.example >/dev/null
 
       - name: Run iOS benchmark suite
         run: yarn benchmark:ios
