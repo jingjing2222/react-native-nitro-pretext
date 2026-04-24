@@ -109,9 +109,16 @@ if (routePath === "examples/use-case/use-pretext-layout") {
 }
 
 if (routePath === "examples/use-case/namespace-and-types") {
+  assertReport(report.ready === true, "must finish namespace comparison");
+  assertReport(report.error === null, "must not report namespace errors");
   assertReport(
     report.sameMetrics === true,
     "namespace and named metrics must match",
+  );
+  assertReport(
+    isPositiveNumber(report.namedHeight) &&
+      isPositiveNumber(report.namespaceHeight),
+    "must expose positive named and namespace heights",
   );
   assertReport(
     Object.values(report.functionMatches || {}).every(Boolean),
@@ -125,9 +132,31 @@ if (routePath === "examples/use-case/namespace-and-types") {
 
 if (routePath.startsWith("examples/non-use-case/")) {
   assertReport(report.renderPassCount > 0, "must expose renderPassCount");
+  const hiddenNodeCount =
+    typeof report.hiddenNodeCount === "number" &&
+    Number.isFinite(report.hiddenNodeCount)
+      ? report.hiddenNodeCount
+      : 0;
+
+  if ("ready" in report) {
+    assertReport(report.ready === true, "must finish hidden measurement");
+  }
+
+  if ("readyCount" in report && hiddenNodeCount > 0) {
+    assertReport(
+      report.readyCount === hiddenNodeCount,
+      "must measure every hidden node",
+    );
+  }
 
   if ("callbackCount" in report) {
     assertReport(report.callbackCount > 0, "must receive callbacks");
+    if (hiddenNodeCount > 0) {
+      assertReport(
+        report.callbackCount >= hiddenNodeCount,
+        "must receive every hidden onLayout callback",
+      );
+    }
   }
 
   if ("layoutCallbackCount" in report) {
@@ -135,6 +164,12 @@ if (routePath.startsWith("examples/non-use-case/")) {
       report.layoutCallbackCount > 0,
       "must receive onLayout callbacks",
     );
+    if (hiddenNodeCount > 0) {
+      assertReport(
+        report.layoutCallbackCount >= hiddenNodeCount,
+        "must receive every hidden onLayout callback",
+      );
+    }
   }
 
   if ("textLayoutCallbackCount" in report) {

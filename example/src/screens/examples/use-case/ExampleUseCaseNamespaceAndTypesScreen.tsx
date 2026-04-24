@@ -160,15 +160,28 @@ export function ExampleUseCaseNamespaceAndTypesScreen() {
     }
   }, []);
 
+  const hasReadyMetrics =
+    comparison.error === null &&
+    typeof comparison.namedHeight === "number" &&
+    comparison.namedHeight > 0 &&
+    typeof comparison.namespaceHeight === "number" &&
+    comparison.namespaceHeight > 0 &&
+    typeof comparison.namedLineCount === "number" &&
+    comparison.namedLineCount > 0 &&
+    typeof comparison.namespaceLineCount === "number" &&
+    comparison.namespaceLineCount > 0;
   const sameMetrics =
+    hasReadyMetrics &&
     comparison.namedHeight === comparison.namespaceHeight &&
     comparison.namedLineCount === comparison.namespaceLineCount;
   const report = `API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::${JSON.stringify(
     {
+      error: comparison.error,
       exportedTypes: EXPORTED_TYPE_NAMES,
       functionMatches,
       namedHeight: comparison.namedHeight,
       namespaceHeight: comparison.namespaceHeight,
+      ready: sameMetrics,
       routeCount: routes.length,
       sameMetrics,
     },

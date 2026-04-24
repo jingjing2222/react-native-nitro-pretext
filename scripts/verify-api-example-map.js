@@ -121,10 +121,12 @@ const requiredApiFields = {
     "width",
   ],
   "namespace-and-types": [
+    "error",
     "exportedTypes",
     "functionMatches",
     "namedHeight",
     "namespaceHeight",
+    "ready",
     "routeCount",
     "sameMetrics",
   ],
@@ -284,6 +286,7 @@ for (const entry of entries) {
   const flow = entry.kind === "use-case" ? useCaseFlow : nonUseCaseFlow;
   const openId = `id: "examples.${entry.kind}.open.${entry.pairId}"`;
   const reportMarker = `${entry.reportPrefix}::${entry.path}::.*`;
+  const reportMarkerPrefix = `${entry.reportPrefix}::${entry.path}::`;
 
   check(flow.includes(openId), `${entry.path} is missing from Maestro flow`);
   check(
@@ -291,7 +294,9 @@ for (const entry of entries) {
     `${entry.path} Maestro report routePath is missing`,
   );
   check(
-    flow.includes(`text: "${reportMarker}"`),
+    flow.includes(`text: "${reportMarker}"`) ||
+      flow.includes(`text: '${reportMarker}`) ||
+      flow.includes(reportMarkerPrefix),
     `${entry.path} Maestro report marker is missing`,
   );
 

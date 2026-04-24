@@ -301,6 +301,7 @@ internal struct NativeLineConstraint {
 internal final class PretextShared {
     static let shared = PretextShared()
 
+    private let preparedCorporaLock = NSLock()
     private var nextPreparedCorpusId: Int64 = 1
     private var preparedCorpora: [Int64: NativePreparedCorpus] = [:]
 
@@ -388,9 +389,7 @@ internal final class PretextShared {
             lineHeight: lineHeight
         )
         let buildPreparedMs = nowMs() - buildPreparedStartedAt
-        let id = nextPreparedCorpusId
-        nextPreparedCorpusId += 1
-        preparedCorpora[id] = prepared
+        let id = storePreparedCorpus(prepared)
 
         let preparedState = PreparedParagraphState(
             id: Double(id),
@@ -560,7 +559,9 @@ internal final class PretextShared {
     }
 
     func releaseParagraphs(preparedId: Double) {
+        preparedCorporaLock.lock()
         preparedCorpora.removeValue(forKey: Int64(preparedId))
+        preparedCorporaLock.unlock()
     }
 
     private func layoutParagraphsMetadata(
@@ -666,7 +667,11 @@ internal final class PretextShared {
 
     private func requirePreparedCorpus(preparedId: Double) throws -> NativePreparedCorpus {
         let handle = Int64(preparedId)
-        guard let prepared = preparedCorpora[handle] else {
+        preparedCorporaLock.lock()
+        let prepared = preparedCorpora[handle]
+        preparedCorporaLock.unlock()
+
+        guard let prepared = prepared else {
             throw NSError(
                 domain: "Pretext",
                 code: 404,
@@ -674,6 +679,15 @@ internal final class PretextShared {
             )
         }
         return prepared
+    }
+
+    private func storePreparedCorpus(_ prepared: NativePreparedCorpus) -> Int64 {
+        preparedCorporaLock.lock()
+        let id = nextPreparedCorpusId
+        nextPreparedCorpusId += 1
+        preparedCorpora[id] = prepared
+        preparedCorporaLock.unlock()
+        return id
     }
 
     private func createTypesetter(
@@ -966,19 +980,30 @@ internal final class PretextShared {
         line: NativeLineLayout,
         textDirection: ParagraphTextDirection
     ) -> Bool {
+        let length = max(0, line.textEndUTF16 - line.textStartUTF16)
+        guard length > 0 else {
+            return textDirection == .rtl
+        }
+
+        let text = paragraph.text.substring(
+            with: NSRange(location: line.textStartUTF16, length: length)
+        )
+        return isRtlText(text, textDirection: textDirection)
+    }
+
+    private func isRtlText(
+        _ text: String,
+        textDirection: ParagraphTextDirection
+    ) -> Bool {
         switch textDirection {
         case .ltr:
             return false
         case .rtl:
             return true
         case .auto:
-            let length = max(0, line.textEndUTF16 - line.textStartUTF16)
-            guard length > 0 else {
+            guard !text.isEmpty else {
                 return false
             }
-            let text = paragraph.text.substring(
-                with: NSRange(location: line.textStartUTF16, length: length)
-            )
             for scalar in text.unicodeScalars {
                 if isRtlScalar(scalar) {
                     return true
@@ -1386,6 +1411,7 @@ internal final class PretextShared {
                 layoutLineLayouts(
                     paragraph,
                     lineHeight: prepared.lineHeight,
+                    textDirection: prepared.baseStyle.textDirection,
                     request: request
                 )
             }
@@ -1403,9 +1429,44 @@ internal final class PretextShared {
         return NativeLineConstraint(left: request.left, width: request.width)
     }
 
+    private func resolveCoreTextLineLeft(
+        constraint: NativeLineConstraint,
+        lineWidth: Double,
+        lineText: String,
+        textDirection: ParagraphTextDirection,
+        line: CTLine
+    ) -> Double {
+        let flushFactor: CGFloat = isRtlText(lineText, textDirection: textDirection) ? 1 : 0
+        let penOffset = Double(CTLineGetPenOffsetForFlush(line, flushFactor, constraint.width))
+        if penOffset.isFinite {
+            return constraint.left + penOffset
+        }
+
+        return resolveFallbackLineLeft(
+            constraint: constraint,
+            lineWidth: lineWidth,
+            lineText: lineText,
+            textDirection: textDirection
+        )
+    }
+
+    private func resolveFallbackLineLeft(
+        constraint: NativeLineConstraint,
+        lineWidth: Double,
+        lineText: String,
+        textDirection: ParagraphTextDirection
+    ) -> Double {
+        guard isRtlText(lineText, textDirection: textDirection) else {
+            return constraint.left
+        }
+
+        return constraint.left + max(0, constraint.width - max(0, lineWidth))
+    }
+
     private func layoutLineLayouts(
         _ prepared: NativePreparedParagraph,
         lineHeight: Double,
+        textDirection: ParagraphTextDirection,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout else {
@@ -1413,12 +1474,18 @@ internal final class PretextShared {
                 return layoutPreformattedLineLayoutsFallback(
                     prepared.breakUnits,
                     lineHeight: lineHeight,
+                    textDirection: textDirection,
                     request: request
                 )
             }
 
             let tokens = request.wordBreak == wordBreakBreakAll ? prepared.breakUnits : prepared.tokens
-            return layoutLineLayoutsFallback(tokens, lineHeight: lineHeight, request: request)
+            return layoutLineLayoutsFallback(
+                tokens,
+                lineHeight: lineHeight,
+                textDirection: textDirection,
+                request: request
+            )
         }
 
         var lines: [NativeLineLayout] = []
@@ -1433,7 +1500,12 @@ internal final class PretextShared {
                     textStartUTF16: position,
                     textEndUTF16: position,
                     width: 0,
-                    left: constraint.left,
+                    left: resolveFallbackLineLeft(
+                        constraint: constraint,
+                        lineWidth: 0,
+                        lineText: "",
+                        textDirection: textDirection
+                    ),
                     top: top,
                     height: lineHeight,
                     ascent: 0,
@@ -1486,6 +1558,9 @@ internal final class PretextShared {
             var descent: CGFloat = 0
             var leading: CGFloat = 0
             let typographicWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+            let lineText = prepared.text.substring(
+                with: NSRange(location: start, length: count)
+            )
             let actualHeight = max(0, Double(ascent + descent + leading))
             let normalizedAscent = -max(0, Double(ascent))
             let normalizedDescent = max(0, Double(descent))
@@ -1506,7 +1581,13 @@ internal final class PretextShared {
                     textStartUTF16: start,
                     textEndUTF16: start + count,
                     width: typographicWidth,
-                    left: constraint.left,
+                    left: resolveCoreTextLineLeft(
+                        constraint: constraint,
+                        lineWidth: typographicWidth,
+                        lineText: lineText,
+                        textDirection: textDirection,
+                        line: line
+                    ),
                     top: top,
                     height: effectiveLineHeight,
                     ascent: normalizedAscent,
@@ -1534,7 +1615,12 @@ internal final class PretextShared {
                     textStartUTF16: 0,
                     textEndUTF16: 0,
                     width: 0,
-                    left: constraint.left,
+                    left: resolveFallbackLineLeft(
+                        constraint: constraint,
+                        lineWidth: 0,
+                        lineText: "",
+                        textDirection: textDirection
+                    ),
                     top: 0,
                     height: lineHeight,
                     ascent: 0,
@@ -1551,6 +1637,7 @@ internal final class PretextShared {
     private func layoutPreformattedLineLayoutsFallback(
         _ tokens: [NativePreparedToken],
         lineHeight: Double,
+        textDirection: ParagraphTextDirection,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         guard !tokens.isEmpty else {
@@ -1560,7 +1647,12 @@ internal final class PretextShared {
                     textStartUTF16: 0,
                     textEndUTF16: 0,
                     width: 0,
-                    left: constraint.left,
+                    left: resolveFallbackLineLeft(
+                        constraint: constraint,
+                        lineWidth: 0,
+                        lineText: "",
+                        textDirection: textDirection
+                    ),
                     top: 0,
                     height: lineHeight,
                     ascent: 0,
@@ -1588,7 +1680,12 @@ internal final class PretextShared {
                         textStartUTF16: position,
                         textEndUTF16: position,
                         width: 0,
-                        left: constraint.left,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: 0,
+                            lineText: "",
+                            textDirection: textDirection
+                        ),
                         top: top,
                         height: metrics.lineHeight,
                         ascent: metrics.ascent,
@@ -1597,12 +1694,18 @@ internal final class PretextShared {
                 )
             } else {
                 let metrics = fallbackLineMetrics(tokens, start: start, end: end, defaultLineHeight: lineHeight)
+                let lineWidth = sumWidths(tokens, start: start, end: end)
                 lines.append(
                     NativeLineLayout(
                         textStartUTF16: tokens[start].startUTF16,
                         textEndUTF16: tokens[end - 1].endUTF16,
-                        width: sumWidths(tokens, start: start, end: end),
-                        left: constraint.left,
+                        width: lineWidth,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: lineWidth,
+                            lineText: lineTextFromTokens(tokens, start: start, end: end),
+                            textDirection: textDirection
+                        ),
                         top: top,
                         height: metrics.lineHeight,
                         ascent: metrics.ascent,
@@ -1621,7 +1724,12 @@ internal final class PretextShared {
                         textStartUTF16: newline.endUTF16,
                         textEndUTF16: newline.endUTF16,
                         width: 0,
-                        left: trailingConstraint.left,
+                        left: resolveFallbackLineLeft(
+                            constraint: trailingConstraint,
+                            lineWidth: 0,
+                            lineText: "",
+                            textDirection: textDirection
+                        ),
                         top: top,
                         height: trailingHeight,
                         ascent: 0,
@@ -1642,6 +1750,7 @@ internal final class PretextShared {
     private func layoutLineLayoutsFallback(
         _ tokens: [NativePreparedToken],
         lineHeight: Double,
+        textDirection: ParagraphTextDirection,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         var lines: [NativeLineLayout] = []
@@ -1655,7 +1764,12 @@ internal final class PretextShared {
                     textStartUTF16: position,
                     textEndUTF16: position,
                     width: 0,
-                    left: constraint.left,
+                    left: resolveFallbackLineLeft(
+                        constraint: constraint,
+                        lineWidth: 0,
+                        lineText: "",
+                        textDirection: textDirection
+                    ),
                     top: top,
                     height: height,
                     ascent: 0,
@@ -1728,7 +1842,12 @@ internal final class PretextShared {
                         textStartUTF16: fallbackRange.lowerBound,
                         textEndUTF16: fallbackRange.upperBound,
                         width: fallback.width,
-                        left: constraint.left,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: fallback.width,
+                            lineText: fallback.text,
+                            textDirection: textDirection
+                        ),
                         top: top,
                         height: fallbackLineHeight,
                         ascent: fallback.ascent,
@@ -1745,7 +1864,12 @@ internal final class PretextShared {
                         textStartUTF16: tokens[cursor].startUTF16,
                         textEndUTF16: tokens[trimmedEnd - 1].endUTF16,
                         width: lineWidth,
-                        left: constraint.left,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: lineWidth,
+                            lineText: lineTextFromTokens(tokens, start: cursor, end: trimmedEnd),
+                            textDirection: textDirection
+                        ),
                         top: top,
                         height: metrics.lineHeight,
                         ascent: metrics.ascent,
@@ -1775,7 +1899,12 @@ internal final class PretextShared {
                     textStartUTF16: 0,
                     textEndUTF16: 0,
                     width: 0,
-                    left: constraint.left,
+                    left: resolveFallbackLineLeft(
+                        constraint: constraint,
+                        lineWidth: 0,
+                        lineText: "",
+                        textDirection: textDirection
+                    ),
                     top: 0,
                     height: lineHeight,
                     ascent: 0,
@@ -2005,6 +2134,14 @@ internal final class PretextShared {
         return tokens[start..<end].reduce(0) { partialResult, token in
             partialResult + token.width
         }
+    }
+
+    private func lineTextFromTokens(_ tokens: [NativePreparedToken], start: Int, end: Int) -> String {
+        guard end > start else {
+            return ""
+        }
+
+        return tokens[start..<end].map(\.text).joined()
     }
 
     private func maxRequestedLineHeight(

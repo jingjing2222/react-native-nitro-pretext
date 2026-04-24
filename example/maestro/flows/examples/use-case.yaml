@@ -191,11 +191,11 @@ appId: pretext.example
 - scrollUntilVisible:
     direction: DOWN
     element:
-      text: "API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"
+      text: 'API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"isPreparing":false.*"layoutOutput":"metrics".*'
     timeout: 20000
     visibilityPercentage: 1
 - copyTextFrom:
-    text: "API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"
+    text: 'API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"isPreparing":false.*"layoutOutput":"metrics".*'
 - runScript:
     file: ../../scripts/log-api-example-report.js
     env:
@@ -219,14 +219,14 @@ appId: pretext.example
 - scrollUntilVisible:
     direction: DOWN
     element:
-      text: "API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"
+      text: 'API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"ready":true.*'
     timeout: 20000
     visibilityPercentage: 1
 - copyTextFrom:
-    text: "API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"
+    text: 'API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"ready":true.*'
 - runScript:
     file: ../../scripts/log-api-example-report.js
     env:
       reportPrefix: API_EXAMPLE_REPORT
       routePath: examples/use-case/namespace-and-types
-      requiredFields: exportedTypes,functionMatches,namedHeight,namespaceHeight,routeCount,sameMetrics
+      requiredFields: error,exportedTypes,functionMatches,namedHeight,namespaceHeight,ready,routeCount,sameMetrics

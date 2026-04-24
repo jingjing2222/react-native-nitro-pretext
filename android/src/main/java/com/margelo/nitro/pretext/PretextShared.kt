@@ -1307,7 +1307,14 @@ internal object PretextShared {
     }
 
     return when (request.whiteSpace) {
-      WHITE_SPACE_PRE -> layoutPreformattedLineLayouts(prepared.breakUnits, corpus.lineHeight, request)
+      WHITE_SPACE_PRE ->
+        layoutPreformattedLineLayouts(
+          prepared.breakUnits,
+          corpus.lineHeight,
+          request,
+          corpus.baseStyle.textDirection,
+          corpus.baseStyle.locale,
+        )
       else -> {
         val useBreakUnits = request.wordBreak == WORD_BREAK_BREAK_ALL
         val units = if (useBreakUnits) prepared.breakUnits else prepared.tokens
@@ -1316,6 +1323,8 @@ internal object PretextShared {
           defaultLineHeight = corpus.lineHeight,
           request = request,
           allowBreakAfterEveryUnit = useBreakUnits,
+          textDirection = corpus.baseStyle.textDirection,
+          textLocale = corpus.baseStyle.locale,
         )
       }
     }
@@ -1325,6 +1334,8 @@ internal object PretextShared {
     units: List<NativePreparedToken>,
     defaultLineHeight: Double,
     request: NativeLayoutRequest,
+    textDirection: ParagraphTextDirection,
+    textLocale: String,
   ): List<NativeLineLayout> {
     if (units.isEmpty()) {
       val constraint = resolveLineConstraint(request, 0.0)
@@ -1333,7 +1344,15 @@ internal object PretextShared {
           textStart = 0,
           textEnd = 0,
           width = 0.0,
-          left = constraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = 0.0,
           height = defaultLineHeight,
           ascent = 0.0,
@@ -1360,7 +1379,15 @@ internal object PretextShared {
           textStart = position,
           textEnd = position,
           width = 0.0,
-          left = constraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = metrics.lineHeight,
           ascent = metrics.ascent,
@@ -1368,11 +1395,20 @@ internal object PretextShared {
         )
       } else {
         val metrics = fallbackLineMetrics(units, start, end, defaultLineHeight)
+        val lineWidth = sumWidths(units, start, end)
         lines += NativeLineLayout(
           textStart = units[start].start,
           textEnd = units[end - 1].end,
-          width = sumWidths(units, start, end),
-          left = constraint.left,
+          width = lineWidth,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = lineWidth,
+              lineText = lineTextFromTokens(units, start, end),
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = metrics.lineHeight,
           ascent = metrics.ascent,
@@ -1389,7 +1425,15 @@ internal object PretextShared {
           textStart = newline.end,
           textEnd = newline.end,
           width = 0.0,
-          left = trailingConstraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = trailingConstraint.left,
+              constraintWidth = trailingConstraint.width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = newlineHeight,
           ascent = 0.0,
@@ -1411,6 +1455,8 @@ internal object PretextShared {
     defaultLineHeight: Double,
     request: NativeLayoutRequest,
     allowBreakAfterEveryUnit: Boolean,
+    textDirection: ParagraphTextDirection,
+    textLocale: String,
   ): List<NativeLineLayout> {
     val lines = ArrayList<NativeLineLayout>()
     var cursor = 0
@@ -1424,7 +1470,15 @@ internal object PretextShared {
           textStart = newline.start,
           textEnd = newline.start,
           width = 0.0,
-          left = constraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = max(defaultLineHeight, newline.lineHeight),
           ascent = newline.ascent,
@@ -1439,7 +1493,15 @@ internal object PretextShared {
             textStart = newline.end,
             textEnd = newline.end,
             width = 0.0,
-            left = trailingConstraint.left,
+            left =
+              resolveAlignedLineLeft(
+                constraintLeft = trailingConstraint.left,
+                constraintWidth = trailingConstraint.width,
+                lineWidth = 0.0,
+                lineText = "",
+                textDirection = textDirection,
+                textLocale = textLocale,
+              ),
             top = top,
             height = trailingHeight,
             ascent = 0.0,
@@ -1501,7 +1563,15 @@ internal object PretextShared {
           textStart = fallback.start,
           textEnd = if (hasVisibleText) fallback.end else fallback.start,
           width = fallback.width,
-          left = constraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = fallback.width,
+              lineText = fallback.text,
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = fallbackLineHeight,
           ascent = fallback.ascent,
@@ -1511,11 +1581,20 @@ internal object PretextShared {
         cursor += 1
       } else {
         val metrics = fallbackLineMetrics(units, cursor, trimmedEnd, defaultLineHeight)
+        val lineWidth = sumWidths(units, cursor, trimmedEnd)
         lines += NativeLineLayout(
           textStart = units[cursor].start,
           textEnd = units[trimmedEnd - 1].end,
-          width = sumWidths(units, cursor, trimmedEnd),
-          left = constraint.left,
+          width = lineWidth,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = lineWidth,
+              lineText = lineTextFromTokens(units, cursor, trimmedEnd),
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = top,
           height = metrics.lineHeight,
           ascent = metrics.ascent,
@@ -1535,7 +1614,15 @@ internal object PretextShared {
             textStart = newline.end,
             textEnd = newline.end,
             width = 0.0,
-            left = trailingConstraint.left,
+            left =
+              resolveAlignedLineLeft(
+                constraintLeft = trailingConstraint.left,
+                constraintWidth = trailingConstraint.width,
+                lineWidth = 0.0,
+                lineText = "",
+                textDirection = textDirection,
+                textLocale = textLocale,
+              ),
             top = top,
             height = trailingHeight,
             ascent = 0.0,
@@ -1553,7 +1640,15 @@ internal object PretextShared {
           textStart = 0,
           textEnd = 0,
           width = 0.0,
-          left = constraint.left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
           top = 0.0,
           height = defaultLineHeight,
           ascent = 0.0,
@@ -1608,6 +1703,18 @@ internal object PretextShared {
     }
 
     return sum
+  }
+
+  private fun lineTextFromTokens(tokens: List<NativePreparedToken>, start: Int, end: Int): String {
+    if (end <= start) {
+      return ""
+    }
+
+    return buildString {
+      for (index in start until end) {
+        append(tokens[index].text)
+      }
+    }
   }
 
   internal fun maxRequestedLineHeight(
@@ -1670,6 +1777,30 @@ internal object PretextShared {
     return token.isNotEmpty() &&
       token != NEWLINE_TOKEN &&
       token.all { it.isWhitespace() && it != '\n' }
+  }
+}
+
+private fun resolveAlignedLineLeft(
+  constraintLeft: Double,
+  constraintWidth: Double,
+  lineWidth: Double,
+  lineText: CharSequence,
+  textDirection: ParagraphTextDirection,
+  textLocale: String,
+): Double {
+  val isRtlLine =
+    when (textDirection) {
+      ParagraphTextDirection.LTR -> false
+      ParagraphTextDirection.RTL -> true
+      ParagraphTextDirection.AUTO ->
+        lineText.isNotEmpty() &&
+          resolveTextDirectionHeuristic(textDirection, textLocale).isRtl(lineText, 0, lineText.length)
+    }
+
+  return if (isRtlLine) {
+    constraintLeft + max(0.0, constraintWidth - max(0.0, lineWidth))
+  } else {
+    constraintLeft
   }
 }
 
@@ -1749,7 +1880,15 @@ private object Api29LineLayout {
           textStart = 0,
           textEnd = 0,
           width = 0.0,
-          left = left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = left,
+              constraintWidth = width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = defaultStyle.textDirection,
+              textLocale = defaultStyle.locale,
+            ),
           top = 0.0,
           height = defaultLineHeight,
           ascent = 0.0,
@@ -1795,11 +1934,20 @@ private object Api29LineLayout {
           ),
           actualHeight,
         )
+      val lineWidth = result.getLineWidth(lineIndex).toDouble()
       lines += NativeLineLayout(
         textStart = start,
         textEnd = end,
-        width = result.getLineWidth(lineIndex).toDouble(),
-        left = left,
+        width = lineWidth,
+        left =
+          resolveAlignedLineLeft(
+            constraintLeft = left,
+            constraintWidth = width,
+            lineWidth = lineWidth,
+            lineText = text.subSequence(start, end),
+            textDirection = defaultStyle.textDirection,
+            textLocale = defaultStyle.locale,
+          ),
         top = top,
         height = lineHeight,
         ascent = ascent,
@@ -1832,11 +1980,11 @@ private object Api29LineLayout {
 
     while (cursor < text.length) {
       if (text[cursor] == '\n') {
-        lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+        lines += emptyHardBreakLine(cursor, left, width, top, defaultLineHeight, defaultStyle)
         top += defaultLineHeight
         cursor += 1
         if (cursor == text.length) {
-          lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+          lines += emptyHardBreakLine(cursor, left, width, top, defaultLineHeight, defaultStyle)
         }
         continue
       }
@@ -1863,7 +2011,7 @@ private object Api29LineLayout {
       if (cursor < text.length && text[cursor] == '\n') {
         cursor += 1
         if (cursor == text.length) {
-          lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+          lines += emptyHardBreakLine(cursor, left, width, top, defaultLineHeight, defaultStyle)
         }
       }
     }
@@ -1874,7 +2022,15 @@ private object Api29LineLayout {
           textStart = 0,
           textEnd = 0,
           width = 0.0,
-          left = left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = left,
+              constraintWidth = width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = defaultStyle.textDirection,
+              textLocale = defaultStyle.locale,
+            ),
           top = 0.0,
           height = defaultLineHeight,
           ascent = 0.0,
@@ -1895,14 +2051,24 @@ private object Api29LineLayout {
   private fun emptyHardBreakLine(
     offset: Int,
     left: Double,
+    width: Double,
     top: Double,
     defaultLineHeight: Double,
+    defaultStyle: NativeTextStyle,
   ): NativeLineLayout {
     return NativeLineLayout(
       textStart = offset,
       textEnd = offset,
       width = 0.0,
-      left = left,
+      left =
+        resolveAlignedLineLeft(
+          constraintLeft = left,
+          constraintWidth = width,
+          lineWidth = 0.0,
+          lineText = "",
+          textDirection = defaultStyle.textDirection,
+          textLocale = defaultStyle.locale,
+        ),
       top = top,
       height = defaultLineHeight,
       ascent = 0.0,
@@ -1945,7 +2111,15 @@ private object Api29LineLayout {
           textStart = start,
           textEnd = start,
           width = 0.0,
-          left = left,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = left,
+              constraintWidth = width,
+              lineWidth = 0.0,
+              lineText = "",
+              textDirection = defaultStyle.textDirection,
+              textLocale = defaultStyle.locale,
+            ),
           top = top,
           height = defaultLineHeight,
           ascent = 0.0,
@@ -1983,11 +2157,20 @@ private object Api29LineLayout {
           ),
           actualHeight,
         )
+      val lineWidth = result.getLineWidth(lineIndex).toDouble()
       lines += NativeLineLayout(
         textStart = absoluteStart,
         textEnd = absoluteEnd,
-        width = result.getLineWidth(lineIndex).toDouble(),
-        left = left,
+        width = lineWidth,
+        left =
+          resolveAlignedLineLeft(
+            constraintLeft = left,
+            constraintWidth = width,
+            lineWidth = lineWidth,
+            lineText = segmentText.subSequence(relativeStart, relativeEnd),
+            textDirection = defaultStyle.textDirection,
+            textLocale = defaultStyle.locale,
+          ),
         top = currentTop,
         height = lineHeight,
         ascent = ascent,
@@ -2185,7 +2368,7 @@ private object StaticLayoutLineLayout {
         textStart = start,
         textEnd = end,
         width = layout.getLineWidth(lineIndex).toDouble(),
-        left = left,
+        left = left + layout.getLineLeft(lineIndex).toDouble(),
         top = top,
         height = lineHeight,
         ascent = ascent,
