@@ -1693,10 +1693,7 @@ internal final class PretextShared {
 
     private func snapOffsetToNearestGraphemeBoundary(text: NSString, offset: Int) -> Int {
         let boundaries = collectGraphemeBoundaries(text).map(Int.init)
-        let clamped = min(max(offset, 0), text.length)
-        let lower = boundaries.last(where: { $0 <= clamped }) ?? 0
-        let upper = boundaries.first(where: { $0 >= clamped }) ?? text.length
-        return clamped - lower <= upper - clamped ? lower : upper
+        return snapOffsetToNearestBoundary(boundaries: boundaries, textLength: text.length, offset: offset)
     }
 
     private func normalizeSelectionRange(
@@ -1707,9 +1704,28 @@ internal final class PretextShared {
         let boundaries = collectGraphemeBoundaries(text).map(Int.init)
         let clampedStart = min(max(start, 0), text.length)
         let clampedEnd = min(max(end, 0), text.length)
+        if clampedStart == clampedEnd {
+            let safeOffset = snapOffsetToNearestBoundary(
+                boundaries: boundaries,
+                textLength: text.length,
+                offset: clampedStart
+            )
+            return (safeOffset, safeOffset)
+        }
         let safeStart = boundaries.last(where: { $0 <= clampedStart }) ?? 0
         let safeEnd = boundaries.first(where: { $0 >= clampedEnd }) ?? text.length
         return (safeStart, max(safeStart, safeEnd))
+    }
+
+    private func snapOffsetToNearestBoundary(
+        boundaries: [Int],
+        textLength: Int,
+        offset: Int
+    ) -> Int {
+        let clamped = min(max(offset, 0), textLength)
+        let lower = boundaries.last(where: { $0 <= clamped }) ?? 0
+        let upper = boundaries.first(where: { $0 >= clamped }) ?? textLength
+        return clamped - lower <= upper - clamped ? lower : upper
     }
 
     private func collectLineDriftKinds(_ line: NativeLineLayout) -> [String] {

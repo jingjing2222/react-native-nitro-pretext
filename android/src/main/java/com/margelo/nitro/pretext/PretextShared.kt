@@ -1098,10 +1098,28 @@ internal object PretextShared {
       after == ZERO_WIDTH_JOINER ||
       isVariationSelector(after) ||
       isEmojiModifier(after) ||
-      isRegionalIndicator(before) && isRegionalIndicator(after) ||
+      isUnsafeRegionalIndicatorBoundary(text, boundary) ||
       isIndicVirama(before) ||
       isIndicVirama(after) ||
       isCombiningMark(after)
+  }
+
+  private fun isUnsafeRegionalIndicatorBoundary(text: String, boundary: Int): Boolean {
+    if (!isRegionalIndicator(text.codePointBefore(boundary)) || !isRegionalIndicator(text.codePointAt(boundary))) {
+      return false
+    }
+
+    var regionalIndicatorCount = 0
+    var cursor = boundary
+    while (cursor > 0) {
+      val codePoint = text.codePointBefore(cursor)
+      if (!isRegionalIndicator(codePoint)) {
+        break
+      }
+      regionalIndicatorCount += 1
+      cursor -= Character.charCount(codePoint)
+    }
+    return regionalIndicatorCount % 2 == 1
   }
 
   private fun collectRunBoundaries(paragraph: NativePreparedParagraph): List<Int> {
@@ -1223,19 +1241,27 @@ internal object PretextShared {
 
   private fun snapOffsetToNearestGraphemeBoundary(text: String, offset: Int): Int {
     val boundaries = collectGraphemeBoundariesForText(text)
-    val clamped = offset.coerceIn(0, text.length)
-    val lower = boundaries.lastOrNull { it <= clamped } ?: 0
-    val upper = boundaries.firstOrNull { it >= clamped } ?: text.length
-    return if (clamped - lower <= upper - clamped) lower else upper
+    return snapOffsetToNearestBoundary(boundaries, text.length, offset)
   }
 
   private fun normalizeSelectionRange(text: String, start: Int, end: Int): Pair<Int, Int> {
     val boundaries = collectGraphemeBoundariesForText(text)
     val clampedStart = start.coerceIn(0, text.length)
     val clampedEnd = end.coerceIn(0, text.length)
+    if (clampedStart == clampedEnd) {
+      val safeOffset = snapOffsetToNearestBoundary(boundaries, text.length, clampedStart)
+      return safeOffset to safeOffset
+    }
     val safeStart = boundaries.lastOrNull { it <= clampedStart } ?: 0
     val safeEnd = boundaries.firstOrNull { it >= clampedEnd } ?: text.length
     return safeStart to max(safeStart, safeEnd)
+  }
+
+  private fun snapOffsetToNearestBoundary(boundaries: List<Int>, textLength: Int, offset: Int): Int {
+    val clamped = offset.coerceIn(0, textLength)
+    val lower = boundaries.lastOrNull { it <= clamped } ?: 0
+    val upper = boundaries.firstOrNull { it >= clamped } ?: textLength
+    return if (clamped - lower <= upper - clamped) lower else upper
   }
 
   private fun collectGraphemeBoundariesForText(text: String): List<Int> {
