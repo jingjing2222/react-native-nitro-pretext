@@ -127,6 +127,10 @@ Diagnostics may report `android_static_layout_compat` or
 `ios_manual_token_fallback` on degraded iOS fallback paths. Android API 24-28
 StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
+The native implementation is split by responsibility across preparation,
+tokenization, line layout, diagnostics, constants, and native model files on
+both Android and iOS.
+
 ## Compatibility
 
 | Dependency                   | Package range | Current validation                                      |
