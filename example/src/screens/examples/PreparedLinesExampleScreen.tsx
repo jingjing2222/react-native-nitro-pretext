@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 import {
   PreparedParagraphLinesView,
   layoutParagraphLinesWithRequest,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import {
   PARAGRAPH_HORIZONTAL_PADDING,

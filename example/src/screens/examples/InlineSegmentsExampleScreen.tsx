@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   PreparedParagraphView,
   layoutRichParagraphLines,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import { styles } from "../../benchmark/constants";
 import { BENCHMARK_STYLE } from "../../relayoutBenchmark";

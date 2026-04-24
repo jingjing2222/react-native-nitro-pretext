@@ -186,9 +186,14 @@ export function layout(
 
 export function usePreTextLayout({
   enabled = true,
+  left,
+  output,
+  shapeSlices,
   style,
   text,
-  ...layoutOptions
+  whiteSpace,
+  width,
+  wordBreak,
 }: UsePreTextLayoutOptions): UsePreTextLayoutResult {
   const [state, setState] = useState<{
     error: unknown | null;
@@ -243,18 +248,25 @@ export function usePreTextLayout({
     }
 
     try {
-      return layout(state.prepared, layoutOptions);
+      return layout(state.prepared, {
+        left,
+        output,
+        shapeSlices,
+        whiteSpace,
+        width,
+        wordBreak,
+      });
     } catch {
       return null;
     }
   }, [
     enabled,
-    layoutOptions.left,
-    layoutOptions.output,
-    layoutOptions.shapeSlices,
-    layoutOptions.whiteSpace,
-    layoutOptions.width,
-    layoutOptions.wordBreak,
+    left,
+    output,
+    shapeSlices,
+    whiteSpace,
+    width,
+    wordBreak,
     state.prepared,
   ]);
 

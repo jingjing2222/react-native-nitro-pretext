@@ -9,7 +9,7 @@ import {
   type ParagraphStyle,
   type PrepareParagraphStats,
   type PreparedParagraphState,
-} from "react-native-nitro-pretext";
+} from "./pretextLegacy";
 
 export const BENCHMARK_PARAGRAPH_COUNT = 48;
 export const BENCHMARK_SAMPLE_SIZE = 8;

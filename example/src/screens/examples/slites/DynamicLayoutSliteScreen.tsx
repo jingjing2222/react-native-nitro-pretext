@@ -5,7 +5,7 @@ import {
   PreparedParagraphView,
   createParagraphLayoutRequest,
   layoutParagraphsMetadataWithRequest,
-} from "react-native-nitro-pretext";
+} from "../../../pretextLegacy";
 
 import { BENCHMARK_STYLE } from "../../../relayoutBenchmark";
 import {

@@ -15,7 +15,7 @@ import {
   type ParagraphLayoutRequest,
   type InlineSegment,
   type PreparedParagraphResult,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {

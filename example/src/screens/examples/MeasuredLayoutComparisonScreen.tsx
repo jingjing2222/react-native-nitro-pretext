@@ -16,7 +16,7 @@ import {
   type LaidOutParagraphMetrics,
   type ParagraphStyle,
   type PreparedParagraphResult,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import {
   formatMilliseconds,

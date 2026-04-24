@@ -6,7 +6,7 @@ import {
   prepareParagraphsWithStats,
   releaseParagraphs,
   type PreparedParagraphResult,
-} from "react-native-nitro-pretext";
+} from "../../../pretextLegacy";
 
 import { styles } from "../../../benchmark/constants";
 import { ExamplePageShell, useExampleWidthSelection } from "../shared";

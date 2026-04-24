@@ -8,7 +8,7 @@ import {
   nextParagraphLine,
   PreparedParagraphText,
   releaseParagraphLineCursor,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import { styles } from "../../benchmark/constants";
 import { SummaryMetric } from "../../components/BenchmarkComponents";

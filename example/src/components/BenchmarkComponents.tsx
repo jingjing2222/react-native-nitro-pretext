@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import type { TextLayoutEvent } from "react-native";
-import { PreparedParagraphsView } from "react-native-nitro-pretext";
+import { PreparedParagraphsView } from "../pretextLegacy";
 
 import { BENCHMARK_STYLE, BENCHMARK_SAMPLE_SIZE } from "../relayoutBenchmark";
 import {

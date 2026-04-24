@@ -6,7 +6,7 @@ import {
   layoutParagraphsMetadataWithRequest,
   selectAllPreparedText,
   type PreparedTextRange,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import { PrimaryButton } from "../../components/BenchmarkComponents";
 import {

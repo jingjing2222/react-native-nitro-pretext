@@ -4,7 +4,7 @@ import type { TextLayoutEvent } from "react-native";
 import {
   PreparedParagraphView,
   layoutParagraphsMetadata,
-} from "react-native-nitro-pretext";
+} from "../../../pretextLegacy";
 
 import { styles } from "../../../benchmark/constants";
 import {

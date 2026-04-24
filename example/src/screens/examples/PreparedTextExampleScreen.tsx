@@ -2,7 +2,7 @@ import { Text, View } from "react-native";
 import {
   PreparedParagraphText,
   layoutParagraphsMetadata,
-} from "react-native-nitro-pretext";
+} from "../../pretextLegacy";
 
 import { styles } from "../../benchmark/constants";
 import {
