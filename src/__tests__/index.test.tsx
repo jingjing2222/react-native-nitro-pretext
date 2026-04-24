@@ -196,6 +196,7 @@ import {
   PreparedParagraphLinesView,
   PreparedParagraphText,
   PreparedParagraphView,
+  PreparedParagraphsView,
   prepareInlineParagraphs,
   prepareInlineParagraphsWithStats,
   prepareParagraphs,
@@ -212,6 +213,7 @@ const nativeParagraphEngineMock = jest.mocked(NitroModules.createHybridObject)
 describe("react-native-nitro-pretext", () => {
   it("exports renderer surfaces", () => {
     expect(PreparedParagraphView).toBeDefined();
+    expect(PreparedParagraphsView).toBeDefined();
     expect(PreparedParagraphLinesView).toBeDefined();
     expect(PreparedParagraphText).toBeDefined();
   });

@@ -339,7 +339,7 @@ if (flow === "prepared-view" || flow === "suite") {
     preparedView,
     "render",
     "canonical_prepared_native_render",
-    "prepared_native_view",
+    "prepared_native_batch",
   );
 
   requirePresentMetric(timingChecks, "base median", baseMedian);

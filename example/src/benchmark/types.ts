@@ -38,6 +38,7 @@ export type BenchmarkLayoutEngine =
 
 export type BenchmarkRendererKind =
   | "prepared_compute"
+  | "prepared_native_batch"
   | "prepared_native_view"
   | "rn_text"
   | "unknown";

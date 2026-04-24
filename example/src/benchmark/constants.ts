@@ -4,14 +4,14 @@ import { BENCHMARK_STYLE, type BenchmarkMode } from "../relayoutBenchmark";
 
 export const MODE_LABELS: Record<BenchmarkMode, string> = {
   baseline: "BaseText",
-  "pretext-render": "Prepared Native View",
+  "pretext-render": "Prepared Native Batch",
   "pretext-compute": "Prepared Layout Only",
 };
 
 export const MODE_DESCRIPTIONS: Record<BenchmarkMode, string> = {
   baseline: "문단당 단일 <Text>{rawText}</Text>",
   "pretext-render":
-    "prepared paragraph state -> native self-layout -> single custom native paragraph view",
+    "prepared paragraph state -> native self-layout -> one batched custom native surface",
   "pretext-compute":
     "render surface는 유지하고, relayout hot path는 prepared paragraph layout 계산만 다시 수행",
 };
@@ -124,6 +124,10 @@ export const styles = StyleSheet.create({
     textAlign: "left",
   },
   paragraphSurface: {
+    borderRadius: 18,
+    backgroundColor: "#fffdf8",
+  },
+  paragraphBatchSurface: {
     borderRadius: 18,
     backgroundColor: "#fffdf8",
   },

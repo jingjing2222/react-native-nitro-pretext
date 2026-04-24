@@ -107,7 +107,7 @@ function createPreparedViewReport(overrides = {}) {
     renderParityChecks: 200,
     renderParityMismatches: 0,
     renderParityRole: "canonical_prepared_native_render",
-    renderRendererKind: "prepared_native_view",
+    renderRendererKind: "prepared_native_batch",
     screen: "benchmark/prepared-view",
     status: "completed",
     tokenizeMs: 1,

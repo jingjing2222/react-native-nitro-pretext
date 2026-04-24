@@ -88,7 +88,7 @@ internal class PreparedParagraphViewManager : SimpleViewManager<PreparedParagrap
       }
     }
 
-    private fun parseLayoutRequest(layoutRequest: ReadableMap?): NativeLayoutRequest? {
+    internal fun parseLayoutRequest(layoutRequest: ReadableMap?): NativeLayoutRequest? {
       if (layoutRequest == null) {
         return null
       }

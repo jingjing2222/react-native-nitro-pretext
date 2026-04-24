@@ -13,7 +13,6 @@ import {
   BENCHMARK_CORPUS,
   BENCHMARK_STYLE,
   BENCHMARK_MEASURED_RUNS,
-  BENCHMARK_PARAGRAPH_COUNT,
   BENCHMARK_WARMUP_RUNS,
   createWidthSequence,
   layoutCorpusMetadataPoC,
@@ -192,7 +191,7 @@ export function usePreparedViewBenchmarkHarness({
         jankCount: number;
       }>((resolve) => {
         activeRenderPassRef.current = {
-          expectedParagraphs: BENCHMARK_PARAGRAPH_COUNT,
+          expectedParagraphs: 1,
           seenParagraphs: new Set<number>(),
           startedAt,
           resolve,

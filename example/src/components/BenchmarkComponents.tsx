@@ -1,7 +1,7 @@
 import { memo } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import type { TextLayoutEvent } from "react-native";
-import { PreparedParagraphView } from "react-native-nitro-pretext";
+import { PreparedParagraphsView } from "react-native-nitro-pretext";
 
 import { BENCHMARK_STYLE, BENCHMARK_SAMPLE_SIZE } from "../relayoutBenchmark";
 import {
@@ -361,7 +361,7 @@ export function PreparedParagraphSurfaceCard({
         </Text>
       </View>
 
-      <PreparedParagraphList
+      <PreparedParagraphBatch
         onParagraphLayout={onParagraphLayout}
         paragraphMetrics={paragraphMetrics}
         paragraphWidth={paragraphWidth}
@@ -412,7 +412,7 @@ const ParagraphList = memo(function ParagraphList({
   );
 });
 
-const PreparedParagraphList = memo(function PreparedParagraphList({
+const PreparedParagraphBatch = memo(function PreparedParagraphBatch({
   onParagraphLayout,
   paragraphMetrics,
   paragraphWidth,
@@ -434,20 +434,21 @@ const PreparedParagraphList = memo(function PreparedParagraphList({
 
   return (
     <View style={styles.paragraphStack}>
-      {paragraphMetrics.map((paragraphMetric, index) => (
-        <PreparedParagraphView
-          key={`prepared-paragraph-${index}`}
-          contentInsetHorizontal={PARAGRAPH_HORIZONTAL_PADDING}
-          contentInsetVertical={PARAGRAPH_VERTICAL_PADDING}
-          layoutWidth={layoutWidth}
-          onLayout={() => onParagraphLayout(index)}
-          paragraphHeight={(paragraphMetric ?? EMPTY_PREPARED_LAYOUT).height}
-          paragraphIndex={index}
-          paragraphStyle={BENCHMARK_STYLE}
-          prepared={prepared}
-          style={[styles.paragraphSurface, { width: paragraphWidth }]}
-        />
-      ))}
+      <PreparedParagraphsView
+        contentInsetHorizontal={PARAGRAPH_HORIZONTAL_PADDING}
+        contentInsetVertical={PARAGRAPH_VERTICAL_PADDING}
+        layoutWidth={layoutWidth}
+        onLayout={() => onParagraphLayout(0)}
+        paragraphGap={16}
+        paragraphMetrics={
+          paragraphMetrics.length === 0
+            ? [EMPTY_PREPARED_LAYOUT]
+            : paragraphMetrics
+        }
+        paragraphStyle={BENCHMARK_STYLE}
+        prepared={prepared}
+        style={[styles.paragraphBatchSurface, { width: paragraphWidth }]}
+      />
     </View>
   );
 });

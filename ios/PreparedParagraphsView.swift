@@ -1,17 +1,10 @@
 import UIKit
 
-@objc(PreparedParagraphView)
-final class PreparedParagraphView: UIView {
+@objc(PreparedParagraphsView)
+final class PreparedParagraphsView: UIView {
     @objc var preparedId: NSNumber = 0 {
         didSet {
             guard !preparedId.isEqual(to: oldValue) else { return }
-            rebuildLayout()
-        }
-    }
-
-    @objc var paragraphIndex: NSNumber = 0 {
-        didSet {
-            guard !paragraphIndex.isEqual(to: oldValue) else { return }
             rebuildLayout()
         }
     }
@@ -30,52 +23,24 @@ final class PreparedParagraphView: UIView {
         }
     }
 
-    @objc var fontFamily: NSString = "System" {
+    @objc var paragraphCount: NSNumber = 0 {
         didSet {
-            guard !fontFamily.isEqual(to: oldValue as String) else { return }
-            updateTextAttributes()
+            guard !paragraphCount.isEqual(to: oldValue) else { return }
+            rebuildLayout()
         }
     }
 
-    @objc var fontWeight: NSString = "" {
+    @objc var paragraphGap: NSNumber = 0 {
         didSet {
-            guard !fontWeight.isEqual(to: oldValue as String) else { return }
-            updateTextAttributes()
-        }
-    }
-
-    @objc var fontStyle: NSString = "normal" {
-        didSet {
-            guard !fontStyle.isEqual(to: oldValue as String) else { return }
-            updateTextAttributes()
-        }
-    }
-
-    @objc var fontSize: NSNumber = 14 {
-        didSet {
-            guard !fontSize.isEqual(to: oldValue) else { return }
-            updateTextAttributes()
-        }
-    }
-
-    @objc var lineHeight: NSNumber = 20 {
-        didSet {
-            guard !lineHeight.isEqual(to: oldValue) else { return }
+            guard !paragraphGap.isEqual(to: oldValue) else { return }
             setNeedsDisplay()
-        }
-    }
-
-    @objc var letterSpacing: NSNumber = 0 {
-        didSet {
-            guard !letterSpacing.isEqual(to: oldValue) else { return }
-            updateTextAttributes()
         }
     }
 
     @objc var textColor: UIColor = .black {
         didSet {
             guard !textColor.isEqual(oldValue) else { return }
-            updateTextAttributes()
+            setNeedsDisplay()
         }
     }
 
@@ -93,14 +58,13 @@ final class PreparedParagraphView: UIView {
         }
     }
 
-    private var resolvedDrawing: NativeParagraphDrawing?
+    private var resolvedDrawings: [NativeParagraphDrawing] = []
 
     override init(frame: CGRect) {
         super.init(frame: frame)
         isOpaque = false
         contentMode = .redraw
         backgroundColor = .clear
-        updateTextAttributes()
     }
 
     @available(*, unavailable)
@@ -111,45 +75,51 @@ final class PreparedParagraphView: UIView {
     override func draw(_ rect: CGRect) {
         super.draw(rect)
 
-        let resolvedLineHeight = CGFloat(truncating: lineHeight)
-        let originX = CGFloat(truncating: contentInsetLeft)
-        let originY = CGFloat(truncating: contentInsetTop)
         guard let context = UIGraphicsGetCurrentContext() else {
             return
         }
-        if let resolvedDrawing {
+
+        let originX = CGFloat(truncating: contentInsetLeft)
+        let insetY = CGFloat(truncating: contentInsetTop)
+        let gap = CGFloat(truncating: paragraphGap)
+        var paragraphTop: CGFloat = 0
+
+        for (index, drawing) in resolvedDrawings.enumerated() {
             drawPreparedParagraph(
                 context: context,
-                drawing: resolvedDrawing,
+                drawing: drawing,
                 textColor: textColor,
                 originX: originX,
-                originY: originY,
-                defaultLineHeight: resolvedLineHeight
+                originY: paragraphTop + insetY,
+                defaultLineHeight: 0
             )
+            paragraphTop += preparedParagraphHeight(drawing) + insetY * 2
+            if index < resolvedDrawings.count - 1 {
+                paragraphTop += gap
+            }
         }
-    }
-
-    private func updateTextAttributes() {
-        setNeedsDisplay()
     }
 
     private func rebuildLayout() {
         let resolvedPreparedId = preparedId.doubleValue
-        let resolvedParagraphIndex = paragraphIndex.intValue
         let resolvedRequest = resolveLayoutRequest()
 
         guard resolvedPreparedId > 0, resolvedRequest.width > 0 else {
-            resolvedDrawing = nil
+            resolvedDrawings = []
             setNeedsDisplay()
             return
         }
 
-        let drawing = PretextShared.shared.resolveParagraphDrawing(
+        let drawings = PretextShared.shared.resolveParagraphsDrawing(
             preparedId: resolvedPreparedId,
-            paragraphIndex: resolvedParagraphIndex,
             request: resolvedRequest
-        )
-        resolvedDrawing = drawing
+        ) ?? []
+        let resolvedCount = paragraphCount.intValue
+        if resolvedCount > 0 {
+            resolvedDrawings = Array(drawings.prefix(resolvedCount))
+        } else {
+            resolvedDrawings = drawings
+        }
         setNeedsDisplay()
     }
 

@@ -68,7 +68,7 @@ function getRendererKind(mode: BenchmarkMode): BenchmarkRendererKind {
     return "prepared_compute";
   }
 
-  return "prepared_native_view";
+  return "prepared_native_batch";
 }
 
 function getParityRole(mode: BenchmarkMode): BenchmarkParityRole {

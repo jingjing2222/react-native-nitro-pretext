@@ -81,7 +81,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
         <NavigationCard
           buttonLabel="Open benchmark/prepared-view"
           buttonTestID="benchmark.index.open-prepared-view"
-          description="Prepared paragraph state benchmark. One native paragraph surface reflows from prepared state directly."
+          description="Prepared paragraph state benchmark. One batched native surface reflows the corpus from prepared state directly."
           footer={
             preparedViewResults.prepareStats === null
               ? "Prepare has not been recorded yet."
@@ -113,14 +113,14 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="Prepared view median"
+              label="Prepared batch median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="Prepared view p95"
+              label="Prepared batch p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

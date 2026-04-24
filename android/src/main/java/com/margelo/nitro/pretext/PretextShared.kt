@@ -337,14 +337,18 @@ internal object PretextShared {
     val prepared = preparedCorpora[preparedId.toLong()] ?: return null
     val paragraph = prepared.paragraphs.getOrNull(paragraphIndex) ?: return null
     val lineLayouts = resolveParagraphLineLayouts(prepared, request)[paragraphIndex]
-    return NativeParagraphDrawing(
-      text = paragraph.text,
-      styledText = paragraph.styledText,
-      hasStyledRuns = paragraph.hasStyledRuns,
-      measuredText = paragraph.measuredText,
-      runs = paragraph.runs,
-      lines = buildNativeParagraphLineRanges(lineLayouts),
-    )
+    return buildNativeParagraphDrawing(paragraph, lineLayouts)
+  }
+
+  fun resolveParagraphsDrawing(
+    preparedId: Double,
+    request: NativeLayoutRequest,
+  ): List<NativeParagraphDrawing>? {
+    val prepared = preparedCorpora[preparedId.toLong()] ?: return null
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, paragraph ->
+      buildNativeParagraphDrawing(paragraph, paragraphLineLayouts[index])
+    }
   }
 
   fun releaseParagraphs(preparedId: Double) {
@@ -448,8 +452,28 @@ internal object PretextShared {
         height = line.height,
         ascent = line.ascent,
         descent = line.descent,
+        layoutEngine = line.layoutEngine,
+        fallbackReason = line.fallbackReason,
+        heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
       )
     }
+  }
+
+  private fun buildNativeParagraphDrawing(
+    paragraph: NativePreparedParagraph,
+    lineLayouts: List<NativeLineLayout>,
+  ): NativeParagraphDrawing {
+    return NativeParagraphDrawing(
+      text = paragraph.text,
+      styledText = paragraph.styledText,
+      hasStyledRuns = paragraph.hasStyledRuns,
+      measuredText = paragraph.measuredText,
+      runs = paragraph.runs,
+      layoutEngine = lineLayouts.firstOrNull()?.layoutEngine ?: LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK,
+      fallbackReason = lineLayouts.firstNotNullOfOrNull { it.fallbackReason },
+      heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
+      lines = buildNativeParagraphLineRanges(lineLayouts),
+    )
   }
 
   private fun defaultLayoutRequest(width: Double): NativeLayoutRequest {
@@ -1414,6 +1438,9 @@ internal data class NativePreparedLineRange(
   val height: Double,
   val ascent: Double,
   val descent: Double,
+  val layoutEngine: String,
+  val fallbackReason: String?,
+  val heightMetricSource: String,
 )
 
 internal data class NativeParagraphDrawing(
@@ -1422,6 +1449,9 @@ internal data class NativeParagraphDrawing(
   val hasStyledRuns: Boolean,
   val measuredText: Any?,
   val runs: List<NativeTextRun>,
+  val layoutEngine: String,
+  val fallbackReason: String?,
+  val heightMetricSource: String,
   val lines: List<NativePreparedLineRange>,
 )
 
@@ -1466,3 +1496,5 @@ internal const val LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER =
 internal const val LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT = "android_static_layout_compat"
 internal const val LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK = "android_legacy_fallback"
 internal const val FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE = "manual_height_estimate"
+internal const val HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS =
+  "platform_text_engine_metrics"

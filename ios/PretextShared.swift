@@ -11,6 +11,7 @@ internal let breakBehaviorNever = "never"
 internal let layoutEngineIosCoreText = "ios_core_text"
 internal let layoutEngineIosManualTokenFallback = "ios_manual_token_fallback"
 internal let fallbackReasonManualHeightEstimate = "manual_height_estimate"
+internal let heightMetricSourcePlatformTextEngineMetrics = "platform_text_engine_metrics"
 
 internal struct NativeTokenDescriptor {
     let text: String
@@ -170,12 +171,18 @@ internal struct NativePreparedLineRange {
     let ascent: Double
     let descent: Double
     let ctLine: CTLine?
+    let layoutEngine: String
+    let fallbackReason: String?
+    let heightMetricSource: String
 }
 
 internal struct NativeParagraphDrawing {
     let text: NSString
     let attributedText: NSAttributedString
     let hasStyledRuns: Bool
+    let layoutEngine: String
+    let fallbackReason: String?
+    let heightMetricSource: String
     let lines: [NativePreparedLineRange]
 }
 
@@ -530,10 +537,41 @@ internal final class PretextShared {
             prepared: prepared,
             request: request
         )[paragraphIndex]
+        return buildNativeParagraphDrawing(paragraph: paragraph, lineLayouts: lineLayouts)
+    }
+
+    func resolveParagraphsDrawing(
+        preparedId: Double,
+        request: NativeLayoutRequest
+    ) -> [NativeParagraphDrawing]? {
+        guard let prepared = preparedCorpora[Int64(preparedId)] else {
+            return nil
+        }
+
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
+
+        return prepared.paragraphs.enumerated().map { index, paragraph in
+            buildNativeParagraphDrawing(
+                paragraph: paragraph,
+                lineLayouts: paragraphLineLayouts[index]
+            )
+        }
+    }
+
+    private func buildNativeParagraphDrawing(
+        paragraph: NativePreparedParagraph,
+        lineLayouts: [NativeLineLayout]
+    ) -> NativeParagraphDrawing {
         return NativeParagraphDrawing(
             text: paragraph.text,
             attributedText: paragraph.attributedText,
             hasStyledRuns: paragraph.hasStyledRuns,
+            layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosManualTokenFallback,
+            fallbackReason: lineLayouts.compactMap(\.fallbackReason).first,
+            heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
             lines: buildPreparedLineRanges(lineLayouts: lineLayouts)
         )
     }
@@ -729,7 +767,10 @@ internal final class PretextShared {
                 height: line.height,
                 ascent: line.ascent,
                 descent: line.descent,
-                ctLine: line.ctLine
+                ctLine: line.ctLine,
+                layoutEngine: line.layoutEngine,
+                fallbackReason: line.fallbackReason,
+                heightMetricSource: heightMetricSourcePlatformTextEngineMetrics
             )
         }
     }

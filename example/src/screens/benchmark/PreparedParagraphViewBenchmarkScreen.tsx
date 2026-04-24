@@ -59,7 +59,7 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
   const comparisonNote =
     baselineResults.summary === null
       ? "Run benchmark/base-text once so this page can compare against the RN Text compatibility baseline."
-      : "BaseText calibration is loaded. Prepared view runs can compare parity and amortization.";
+      : "BaseText calibration is loaded. Prepared batch runs can compare parity and amortization.";
   const automationStatus = isPreparing
     ? "preparing"
     : benchmark.isRunning
@@ -124,8 +124,8 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>
             This screen benchmarks the renderer-oriented path: prepared
-            paragraph state, native self-relayout, and one native paragraph view
-            per block.
+            paragraph state, native self-relayout, and one native surface for
+            the full corpus.
           </Text>
 
           <View style={styles.metricRow}>
@@ -187,7 +187,7 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
 
         <SummaryCard
           description={MODE_DESCRIPTIONS["pretext-render"]}
-          label="Prepared Native View Render"
+          label="Prepared Native Batch Render"
           summary={benchmark.summaries["pretext-render"]}
         />
 

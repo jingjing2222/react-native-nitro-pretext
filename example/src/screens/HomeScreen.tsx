@@ -70,7 +70,7 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open benchmark/*"
           buttonTestID="home.open-benchmark"
-          description="Run BaseText and Prepared Native View as dedicated benchmark screens under screens/benchmark/*."
+          description="Run BaseText and Prepared Native Batch as dedicated benchmark screens under screens/benchmark/*."
           onPress={() => navigation.navigate("BenchmarkIndex")}
           title="Benchmarks"
         />
@@ -95,7 +95,8 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
             Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then Prepared Native View, and come back here for the combined read.
+            then Prepared Native Batch, and come back here for the combined
+            read.
           </Text>
           <View style={styles.summaryMetricList}>
             <SummaryMetric
@@ -105,14 +106,14 @@ export function HomeScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="Prepared view median"
+              label="Prepared batch median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="Prepared view p95"
+              label="Prepared batch p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

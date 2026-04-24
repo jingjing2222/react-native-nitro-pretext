@@ -25,6 +25,8 @@ export {
 } from "./TextMeasure";
 export { PreparedParagraphView } from "./PreparedParagraphView";
 export type { PreparedParagraphViewProps } from "./PreparedParagraphView";
+export { PreparedParagraphsView } from "./PreparedParagraphsView";
+export type { PreparedParagraphsViewProps } from "./PreparedParagraphsView";
 export {
   PreparedParagraphLinesView,
   type PreparedParagraphLinesViewProps,

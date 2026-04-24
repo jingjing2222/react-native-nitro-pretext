@@ -142,18 +142,35 @@ Result:
 
 ## Plan 04: Batched Native Renderer
 
-- [ ] Add `PreparedParagraphsView` as primary batched native renderer.
-- [ ] It consumes canonical Android/iOS layout records directly.
-- [ ] It does not use RN `<Text>` internally.
-- [ ] It reports `rendererKind: "prepared_native_batch"`.
-- [ ] It carries height metric provenance per paragraph and per line.
-- [ ] Existing `PreparedParagraphText` and `PreparedParagraphLinesView` remain compat exports.
+- [x] Add `PreparedParagraphsView` as primary batched native renderer.
+- [x] It consumes canonical Android/iOS layout records directly.
+- [x] It does not use RN `<Text>` internally.
+- [x] It reports `rendererKind: "prepared_native_batch"`.
+- [x] It carries height metric provenance per paragraph and per line.
+- [x] Existing `PreparedParagraphText` and `PreparedParagraphLinesView` remain compat exports.
 
 Acceptance:
 
 - Prepared benchmark can render a corpus through one native surface without RN Text dependency.
 - `agent-device` benchmark verification records `rendererKind: "prepared_native_batch"`.
 - Local CI passes before Plan 05 begins.
+
+Result:
+
+- Added JS `PreparedParagraphsView` and native Android/iOS `PreparedParagraphsView` managers.
+- Prepared benchmark render mode now mounts one batched native surface for the corpus instead of one native view per paragraph.
+- Android batch rendering resolves all paragraph drawing records through `PretextShared.resolveParagraphsDrawing`, then draws with the shared direct `Canvas.drawTextRun` renderer.
+- iOS batch rendering resolves all paragraph drawing records through `PretextShared.resolveParagraphsDrawing`, then draws with the shared `CTLineDraw` renderer.
+- Batch line records carry `layoutEngine`, `fallbackReason`, and `heightMetricSource: "platform_text_engine_metrics"` provenance internally per paragraph and per line.
+- `PreparedParagraphText`, `PreparedParagraphLinesView`, and single-paragraph `PreparedParagraphView` remain exported compatibility surfaces.
+- Benchmark diagnostics and quality gates now require prepared render `rendererKind: "prepared_native_batch"`.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed and `yarn benchmark:ios` passed.
+- iOS benchmark median results: BaseText 211.87 ms, Prepared Batch render 66.77 ms, layout-only 0.19 ms.
+- iOS benchmark reported prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_batch`, `parityRole: canonical_prepared_native_render`, and `heightMetricSource: platform_text_engine_metrics`.
+- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
+- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
 
 ## Plan 05: Pretext-Compatible Rules Over Native Engines
 

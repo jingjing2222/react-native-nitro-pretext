@@ -28,7 +28,7 @@ describe("benchmark diagnostics", () => {
       includeFontPadding: null,
       layoutEngine: "ios_core_text",
       parityRole: "canonical_prepared_native_render",
-      rendererKind: "prepared_native_view",
+      rendererKind: "prepared_native_batch",
     });
   });
 
