@@ -433,6 +433,8 @@ import {
   releaseParagraphLineCursor,
   releaseParagraphs,
   releasePreparedBenchmarkCorpus,
+  usePreparedInlineParagraphs,
+  usePreparedParagraphs,
 } from "../index";
 
 const nativeParagraphEngineMock = jest.mocked(NitroModules.createHybridObject)
@@ -444,6 +446,8 @@ describe("react-native-nitro-pretext", () => {
     expect(PreparedParagraphsView).toBeDefined();
     expect(PreparedParagraphLinesView).toBeDefined();
     expect(PreparedParagraphText).toBeDefined();
+    expect(usePreparedParagraphs).toBeDefined();
+    expect(usePreparedInlineParagraphs).toBeDefined();
   });
 
   it("creates the Pretext hybrid object", () => {

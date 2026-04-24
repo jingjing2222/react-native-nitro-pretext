@@ -42,6 +42,12 @@ export {
   PreparedParagraphText,
   type PreparedParagraphTextProps,
 } from "./PreparedParagraphText";
+export {
+  usePreparedInlineParagraphs,
+  usePreparedParagraphs,
+  type UsePreparedParagraphsOptions,
+  type UsePreparedParagraphsResult,
+} from "./usePreparedParagraphs";
 export type {
   InlineSegment,
   InlineBoxFrame,

@@ -74,6 +74,13 @@ export function ExampleIndexScreen({ navigation }: Props) {
           onPress={() => navigation.navigate("ExampleLineCursor")}
           title="examples/line-cursor"
         />
+
+        <CatalogCard
+          buttonLabel="Open examples/measured-layout"
+          description="A complex masonry layout that must measure Text width and height with onLayout before visible render, compared against prepared paragraph metadata."
+          onPress={() => navigation.navigate("ExampleMeasuredLayout")}
+          title="examples/measured-layout"
+        />
       </ScrollView>
     </View>
   );

@@ -1,75 +1,96 @@
-# Benchmark Improvement Report
+# Benchmark Report
 
-This report compares the prepared-render path before and after the native
-request-level relayout cache landed in the renderer path.
+This report summarizes the latest validated iOS benchmark snapshot and the current Android benchmark gap.
 
-Source artifacts:
+The source summaries were produced by local Maestro runs under `example/maestro/`. Raw Maestro debug output is intentionally not linked from this document because those files are local-only and are not part of the package or PR artifact set.
 
-- Before: [ios-prepared-view/latest-summary.txt](/Users/kimhyeongjeong/Desktop/code/react-native-pretext/example/.maestro-artifacts/ios-prepared-view/latest-summary.txt:1)
-- After: [ios-suite/latest-summary.txt](/Users/kimhyeongjeong/Desktop/code/react-native-pretext/example/.maestro-artifacts/ios-suite/latest-summary.txt:1)
+## Current Validation Status
 
-## iOS prepared path delta
+| Platform          | Status                             | Notes                                                                                                                            |
+| ----------------- | ---------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| iOS               | measured                           | Latest validated suite snapshot: April 24, 2026.                                                                                 |
+| Android API 29+   | not yet measured on release device | Canonical engine is implemented as `MeasuredText + LineBreaker`, but no Android release-device benchmark is currently published. |
+| Android API 24-28 | fallback only                      | Supported through named legacy fallback paths; not a canonical performance or parity target.                                     |
 
-| Metric                      |    Before |     After |     Delta |         Gain |
-| --------------------------- | --------: | --------: | --------: | -----------: |
-| Prepared render median      | 145.96 ms |  95.40 ms | -50.56 ms | 34.6% faster |
-| Prepared render p95         | 211.44 ms | 155.14 ms | -56.30 ms | 26.6% faster |
-| Prepared layout-only median |  14.11 ms |   0.15 ms | -13.96 ms | 98.9% faster |
-| Prepare once                |  55.92 ms |  47.73 ms |  -8.19 ms | 14.6% faster |
-| Measure only                |  55.77 ms |  47.04 ms |  -8.73 ms | 15.7% faster |
+Do not extrapolate Android performance from the iOS numbers. Android adoption confidence needs a release-device run on the target device class.
 
-## End-to-end benchmark read
+## iOS Snapshot
 
-| Scenario                           | Result                                                                |
-| ---------------------------------- | --------------------------------------------------------------------- |
-| BaseText median interaction        | 232.58 ms                                                             |
-| Prepared render median interaction | 95.40 ms                                                              |
-| Median delta                       | 137.18 ms faster                                                      |
-| Prepared p95 interaction           | 155.14 ms                                                             |
-| Prepare amortization               | about 1 relayout                                                      |
-| Remaining bottleneck               | renderer/materialization still costs about 95.25 ms beyond hot layout |
+| Metric                 |    BaseText | Prepared native batch |        Delta |                           Result |
+| ---------------------- | ----------: | --------------------: | -----------: | -------------------------------: |
+| Interaction median     | `231.35 ms` |            `67.08 ms` | `-164.27 ms` |                   `71.0% faster` |
+| Interaction p95        | `364.52 ms` |           `103.79 ms` | `-260.73 ms` |                   `71.5% faster` |
+| Layout-only median     | RN internal |             `0.18 ms` |          n/a |         isolated native hot path |
+| Prepare once           |         n/a |            `48.10 ms` |          n/a | amortized after about 1 relayout |
+| Measure inside prepare |         n/a |            `48.01 ms` |          n/a |          `99.8%` of prepare time |
 
-## Current prepared path vs BaseText
+Canonical paths in this run:
 
-| Metric               |    BaseText | Prepared render |            Delta |                       Gain |
-| -------------------- | ----------: | --------------: | ---------------: | -------------------------: |
-| Interaction median   |   232.58 ms |        95.40 ms |       -137.18 ms |               59.0% faster |
-| Interaction p95      |   366.54 ms |       155.14 ms |       -211.40 ms |               57.7% faster |
-| Hot relayout only    | RN internal |         0.15 ms |              n/a | prepared hot path isolated |
-| Prepare amortization |         n/a |   47.73 ms once | about 1 relayout |    setup recovered quickly |
+| Path             | Engine           | Renderer                | Role                               |
+| ---------------- | ---------------- | ----------------------- | ---------------------------------- |
+| BaseText         | `rn_text_compat` | `rn_text`               | `rn_text_compat_oracle`            |
+| Prepared compute | `ios_core_text`  | `prepared_compute`      | `canonical_prepared_compute`       |
+| Prepared render  | `ios_core_text`  | `prepared_native_batch` | `canonical_prepared_native_render` |
 
-## Practical meaning
+## Earlier Prepared Path Delta
 
-### Split view, bottom sheet, or width-changing card lists
+Compared with the earlier April 13, 2026 prepared-view run before the current batch/cache path:
 
-If the same paragraphs are repeatedly relaid out across a small set of widths,
-the prepared renderer path now finishes about **50.56 ms sooner per interaction**
-on median than the earlier implementation. In product terms, resizing a card
-rail, opening a side pane, or switching a feed cell between compact and roomy
-widths lands materially faster.
+| Metric                          | Earlier prepared view | Current prepared batch |    Improvement |
+| ------------------------------- | --------------------: | ---------------------: | -------------: |
+| Prepared render median          |           `145.96 ms` |             `67.08 ms` | `54.0% faster` |
+| Prepared render p95             |           `211.44 ms` |            `103.79 ms` | `50.9% faster` |
+| Prepared layout-only median     |            `14.11 ms` |              `0.18 ms` | `98.7% faster` |
+| `prepare*WithStats()` total     |            `55.92 ms` |             `48.10 ms` | `14.0% faster` |
+| `measureBatch()` inside prepare |            `55.77 ms` |             `48.01 ms` | `13.9% faster` |
 
-### Repeated relayout on the same prepared corpus
+## Interpretation
 
-The hot relayout stage dropped from **14.11 ms to 0.15 ms** on median. That is a
-**98.9% reduction** in the line-layout step itself. When the app is revisiting
-the same width requests, line breaking is no longer the dominant cost.
+- The clearest current win is rendering a prepared corpus through one batched native surface.
+- Hot relayout is no longer the bottleneck in the iOS suite; it is about `0.3%` of the prepared render interaction.
+- Cold prepare remains measurement-bound. Native measurement accounts for `99.8%` of prepare time in the latest run.
+- `PreparedParagraphText` and `PreparedParagraphLinesView` are compatibility/custom-renderer helpers. The latest automated suite does not claim separate speedups for those surfaces.
+- Android release-device numbers are still required before making Android performance claims.
 
-### Cold prepare still matters
+## Reproducing
 
-`prepare once` improved from **55.92 ms to 47.73 ms**, but `measure` still takes
-**47.04 ms**, which is **98.6%** of prepare time in the latest run. That means
-initial corpus setup is still measurement-bound. The next performance win should
-come from shared measurement cache strategy, not more hot-path line-break math.
+Use release builds on the same device class when comparing numbers.
 
-### Renderer work is now the clear bottleneck
+```sh
+yarn benchmark:ios
+yarn benchmark:android
+```
 
-The current benchmark still spends **95.25 ms** beyond hot layout on the render
-path. In practice, that means the next structural gain should come from using
-fewer native paragraph surfaces or a larger batched renderer surface, not from
-trying to shave more time off the current cached relayout math.
+Environment overrides:
 
-## Scenario pages and walkthrough
+```sh
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial> yarn benchmark:android
+BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios
+```
 
-- Scenario routes live under `example/src/screens/examples/slites/*`.
-- iOS walkthrough video: [slites-ios-demo.mov](/Users/kimhyeongjeong/Desktop/code/react-native-pretext/example/.maestro-artifacts/videos/slites-ios-demo.mov)
-- Gesture telemetry sidecar: [slites-ios-demo.gesture-telemetry.json](/Users/kimhyeongjeong/Desktop/code/react-native-pretext/example/.maestro-artifacts/videos/slites-ios-demo.gesture-telemetry.json)
+The benchmark flow:
+
+1. Run the BaseText screen to capture the RN `<Text>` compatibility baseline.
+2. Run the Prepared View screen to capture prepared compute and prepared native batch render.
+3. Compare the exported machine-readable reports.
+
+The gate checks timing, line-count parity, sampled line-text parity, layout engine, renderer kind, parity role, Android `includeFontPadding`, and height metric source.
+
+## Practical Meaning
+
+Good candidates:
+
+- resizable card rails
+- split views and bottom sheets
+- chat bubbles that search for a tight width before render
+- dashboard annotations that affect chart placement
+- obstacle-aware editorial layouts using `shapeSlices`
+- complex card/masonry layouts that otherwise need hidden `<Text onLayout>` measurement passes
+
+Poor candidates:
+
+- one-off static text that never needs geometry before render
+- editable text inputs
+- use cases that require browser canvas pixel parity
+- Android API 24-28 flows that require canonical parity with API 29+

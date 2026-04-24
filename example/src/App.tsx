@@ -11,6 +11,7 @@ import { PreparedParagraphViewBenchmarkScreen } from "./screens/benchmark/Prepar
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { InlineSegmentsExampleScreen } from "./screens/examples/InlineSegmentsExampleScreen";
 import { LineCursorExampleScreen } from "./screens/examples/LineCursorExampleScreen";
+import { MeasuredLayoutComparisonScreen } from "./screens/examples/MeasuredLayoutComparisonScreen";
 import { PreparedLinesExampleScreen } from "./screens/examples/PreparedLinesExampleScreen";
 import { PreparedTextExampleScreen } from "./screens/examples/PreparedTextExampleScreen";
 import { PreparedViewExampleScreen } from "./screens/examples/PreparedViewExampleScreen";
@@ -52,6 +53,7 @@ const linking = {
       ExamplePreparedText: "examples/prepared-text",
       ExampleInlineSegments: "examples/inline-segments",
       ExampleLineCursor: "examples/line-cursor",
+      ExampleMeasuredLayout: "examples/measured-layout",
     },
   },
 };
@@ -151,6 +153,11 @@ export default function App() {
               component={LineCursorExampleScreen}
               name="ExampleLineCursor"
               options={{ title: "examples/line-cursor" }}
+            />
+            <Stack.Screen
+              component={MeasuredLayoutComparisonScreen}
+              name="ExampleMeasuredLayout"
+              options={{ title: "examples/measured-layout" }}
             />
           </Stack.Navigator>
         </NavigationContainer>

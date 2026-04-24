@@ -72,7 +72,7 @@ export function RichNoteSliteScreen() {
 
   return (
     <ExamplePageShell
-      description="Inspired by pretext rich-note. This RN prototype currently maps the styled-run part of the demo: mixed inline styles plus non-breakable spans that stay glued together across width changes."
+      description="Inspired by pretext rich-note. This React Native path maps the styled-run part of the demo: mixed inline styles plus non-breakable spans that stay glued together across width changes."
       lineCount={preparedMetrics?.lineCount ?? baselineLineCount}
       prepareMs={prepared?.stats.totalMs ?? null}
       routeLabel="examples/slites/rich-note"
@@ -86,7 +86,7 @@ export function RichNoteSliteScreen() {
           'The current library already supports prepared styled runs and breakBehavior "never". It does not yet implement the full pretext rich-inline chip model with caller-owned chrome width.'
         }
         eyebrow="Current parity"
-        title="What this RN prototype already covers"
+        title="What this React Native path already covers"
       >
         <View style={{ gap: 8 }}>
           <KeyStatRow

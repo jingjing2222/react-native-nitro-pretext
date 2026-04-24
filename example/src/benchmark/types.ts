@@ -21,6 +21,7 @@ export type AppStackParamList = {
   ExamplePreparedText: undefined;
   ExampleInlineSegments: undefined;
   ExampleLineCursor: undefined;
+  ExampleMeasuredLayout: undefined;
 };
 
 export type PreparedParagraph = ImportedPreparedParagraph;
