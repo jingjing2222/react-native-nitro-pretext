@@ -415,15 +415,18 @@ import {
   layoutParagraphsMetadata,
   layoutParagraphsMetadataWithRequest,
   layoutPreparedBenchmarkCorpus,
+  layout as layoutPreText,
   layoutRichParagraphLines,
   measure,
   measureBatch,
   nextParagraphLine,
   ParagraphEngine,
+  PreText,
   PreparedParagraphLinesView,
   PreparedParagraphText,
   PreparedParagraphView,
   PreparedParagraphsView,
+  prepare as preparePreText,
   prepareInlineParagraphs,
   prepareInlineParagraphsWithStats,
   prepareParagraphs,
@@ -433,6 +436,7 @@ import {
   releaseParagraphLineCursor,
   releaseParagraphs,
   releasePreparedBenchmarkCorpus,
+  usePreTextLayout,
   usePreparedInlineParagraphs,
   usePreparedParagraphs,
 } from "../index";
@@ -448,6 +452,10 @@ describe("react-native-nitro-pretext", () => {
     expect(PreparedParagraphText).toBeDefined();
     expect(usePreparedParagraphs).toBeDefined();
     expect(usePreparedInlineParagraphs).toBeDefined();
+    expect(PreText).toBeDefined();
+    expect(preparePreText).toBeDefined();
+    expect(layoutPreText).toBeDefined();
+    expect(usePreTextLayout).toBeDefined();
   });
 
   it("creates the Pretext hybrid object", () => {
@@ -574,6 +582,129 @@ describe("react-native-nitro-pretext", () => {
         locale: "ko-KR",
       },
     ]);
+  });
+
+  it("adds an opaque PreText prepare/layout API over native paragraph layout", () => {
+    const prepared = preparePreText(["alpha", "beta"], {
+      fontFamily: "System",
+      fontSize: 16,
+      lineHeight: 24,
+    });
+
+    expect(prepared).toEqual({
+      paragraphCount: 2,
+      stats: {
+        tokenizeMs: 1.5,
+        measurementMs: 4.25,
+        buildPreparedMs: 0.5,
+        totalMs: 6.25,
+        paragraphCount: 2,
+        totalTokenCount: 14,
+        uniqueTokenCount: 8,
+      },
+      release: expect.any(Function),
+    });
+    expect("id" in prepared).toBe(false);
+    expect(
+      nativeParagraphEngineMock.prepareParagraphsWithStats.mock.calls.at(-1),
+    ).toEqual([
+      ["alpha", "beta"],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 24,
+        includeFontPadding: true,
+        letterSpacing: 0,
+        locale: "",
+        textDirection: "auto",
+      },
+    ]);
+
+    expect(
+      layoutPreText(prepared, {
+        width: 280,
+        left: 20,
+      }),
+    ).toEqual({
+      output: "metrics",
+      paragraphs: [
+        {
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+        },
+      ],
+    });
+    expect(
+      nativeParagraphEngineMock.layoutParagraphsMetadataWithRequest.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([
+      7,
+      {
+        width: 280,
+        left: 20,
+        whiteSpace: "normal",
+        wordBreak: "normal",
+        shapeSlices: [],
+      },
+    ]);
+
+    prepared.release();
+    prepared.release();
+    expect(
+      nativeParagraphEngineMock.releaseParagraphs.mock.calls,
+    ).toContainEqual([7]);
+    expect(() => layoutPreText(prepared, { width: 280 })).toThrow(
+      "PreText prepared layout has already been released.",
+    );
+  });
+
+  it("exposes the same PreText API through the namespace object", () => {
+    const prepared = PreText.prepare("alpha", {
+      fontFamily: "System",
+      fontSize: 16,
+      lineHeight: 24,
+    });
+
+    expect(PreText.layout(prepared, { output: "lines", width: 260 })).toEqual({
+      output: "lines",
+      paragraphs: [
+        {
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+          lines: [
+            {
+              textStart: 0,
+              textEnd: 5,
+              top: 0,
+              left: 20,
+              width: 92,
+              height: 24,
+              ascent: -18,
+              descent: 6,
+            },
+          ],
+        },
+      ],
+    });
+    expect(
+      nativeParagraphEngineMock.layoutParagraphLinesWithRequest.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([
+      7,
+      {
+        width: 260,
+        left: 0,
+        whiteSpace: "normal",
+        wordBreak: "normal",
+        shapeSlices: [],
+      },
+    ]);
+
+    prepared.release();
   });
 
   it("forwards inline paragraph prepare calls to the Nitro hybrid object", () => {

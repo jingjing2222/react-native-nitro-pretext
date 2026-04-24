@@ -82,3 +82,23 @@ export type {
   LaidOutParagraph as LaidOutBenchmarkParagraph,
   PreparedParagraphState as PreparedBenchmarkCorpus,
 } from "./Pretext.nitro";
+export {
+  layout,
+  prepare,
+  PreText,
+  usePreTextLayout,
+} from "./PreText";
+export type {
+  PreTextDiagnosticsLayout,
+  PreTextLayout,
+  PreTextLayoutOptions,
+  PreTextLayoutOutput,
+  PreTextLinesLayout,
+  PreTextMetricsLayout,
+  PreTextPrepared,
+  PreTextRichLayout,
+  PreTextSource,
+  PreTextStyle,
+  UsePreTextLayoutOptions,
+  UsePreTextLayoutResult,
+} from "./PreText";
