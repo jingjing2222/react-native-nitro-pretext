@@ -159,13 +159,7 @@ function mockCreateParagraphEngine() {
                   source: "source_text",
                 },
               ],
-              nativeSoftBreaks: [
-                {
-                  offset: 5,
-                  kind: "native_soft_break",
-                  source: "ios_core_text",
-                },
-              ],
+              nativeSoftBreaks: [],
               graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
               atomicSpans: [
                 {
@@ -180,7 +174,7 @@ function mockCreateParagraphEngine() {
               graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
               runBoundaries: [0, 5, 6],
               hardBreaks: [6],
-              nativeSoftBreaks: [5],
+              nativeSoftBreaks: [],
               atomicSpanBoundaries: [0, 5],
               clusterViolationOffsets: [],
             },
@@ -281,7 +275,7 @@ function mockCreateParagraphEngine() {
             complexShapeCounters: {
               bidiRunCount: 1,
               emojiClusterCount: 0,
-              complexClusterCount: 1,
+              complexClusterCount: 0,
               clusterViolationCount: 0,
             },
             lineDiagnostics: [
@@ -843,12 +837,7 @@ describe("react-native-nitro-pretext", () => {
             kind: "hard_break",
           },
         ],
-        nativeSoftBreaks: [
-          {
-            offset: 5,
-            kind: "native_soft_break",
-          },
-        ],
+        nativeSoftBreaks: [],
         graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
         atomicSpans: [
           {
@@ -862,7 +851,7 @@ describe("react-native-nitro-pretext", () => {
         graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
         runBoundaries: [0, 5, 6],
         hardBreaks: [6],
-        nativeSoftBreaks: [5],
+        nativeSoftBreaks: [],
         atomicSpanBoundaries: [0, 5],
         clusterViolationOffsets: [],
       },
@@ -926,6 +915,12 @@ describe("react-native-nitro-pretext", () => {
         source: "inline_box",
       },
     ]);
+    expect(result[0]?.diagnostics.complexShapeCounters).toMatchObject({
+      bidiRunCount: 1,
+      emojiClusterCount: 0,
+      complexClusterCount: 0,
+      clusterViolationCount: 0,
+    });
   });
 
   it("forwards prepared selection and hit-test calls", () => {

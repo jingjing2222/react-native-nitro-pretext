@@ -508,6 +508,13 @@ internal final class PretextShared {
             if segment.kind?.lowercased() == inlineSegmentKindBox || segment.boxId != nil {
                 let box = buildInlineBox(segment: segment, startUTF16: baseOffset)
                 text += objectReplacementCharacter
+                runs.append(
+                    NativeTextRun(
+                        startUTF16: box.startUTF16,
+                        endUTF16: box.endUTF16,
+                        style: baseStyle
+                    )
+                )
                 inlineBoxes.append(box)
                 atomicSpans.append(
                     NativeAtomicSpan(

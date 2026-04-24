@@ -1670,6 +1670,7 @@ internal object PretextShared {
         measuredText = measuredText,
         lineBreaker = lineBreaker,
         textPaint = corpus.textPaint,
+        defaultStyle = corpus.baseStyle,
         runs = prepared.runs,
         inlineBoxes = prepared.inlineBoxes,
         width = request.width,
@@ -2066,6 +2067,7 @@ private object Api29LineLayout {
     measuredText: Any,
     lineBreaker: Any,
     textPaint: TextPaint,
+    defaultStyle: NativeTextStyle,
     runs: List<NativeTextRun>,
     inlineBoxes: List<NativeInlineBox>,
     width: Double,
@@ -2073,6 +2075,21 @@ private object Api29LineLayout {
     defaultLineHeight: Double,
     includeFontPadding: Boolean,
   ): List<NativeLineLayout> {
+    if (text.indexOf('\n') >= 0) {
+      return layoutHardBreakLineLayouts(
+        text = text,
+        lineBreaker = lineBreaker,
+        textPaint = textPaint,
+        defaultStyle = defaultStyle,
+        runs = runs,
+        inlineBoxes = inlineBoxes,
+        width = width,
+        left = left,
+        defaultLineHeight = defaultLineHeight,
+        includeFontPadding = includeFontPadding,
+      )
+    }
+
     val measuredParagraph = measuredText as MeasuredText
     val breaker = lineBreaker as LineBreaker
     val constraints = LineBreaker.ParagraphConstraints().apply {
@@ -2134,7 +2151,7 @@ private object Api29LineLayout {
       lines += NativeLineLayout(
         textStart = start,
         textEnd = end,
-        width = measuredParagraph.getWidth(start, end).toDouble(),
+        width = result.getLineWidth(lineIndex).toDouble(),
         left = left,
         top = top,
         height = lineHeight,
@@ -2148,6 +2165,289 @@ private object Api29LineLayout {
     }
 
     return lines
+  }
+
+  private fun layoutHardBreakLineLayouts(
+    text: String,
+    lineBreaker: Any,
+    textPaint: TextPaint,
+    defaultStyle: NativeTextStyle,
+    runs: List<NativeTextRun>,
+    inlineBoxes: List<NativeInlineBox>,
+    width: Double,
+    left: Double,
+    defaultLineHeight: Double,
+    includeFontPadding: Boolean,
+  ): List<NativeLineLayout> {
+    val lines = ArrayList<NativeLineLayout>()
+    var cursor = 0
+    var top = 0.0
+
+    while (cursor < text.length) {
+      if (text[cursor] == '\n') {
+        lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+        top += defaultLineHeight
+        cursor += 1
+        if (cursor == text.length) {
+          lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+        }
+        continue
+      }
+
+      val nextNewline = text.indexOf('\n', cursor).let { index ->
+        if (index == -1) text.length else index
+      }
+      val paragraphLines = layoutSingleParagraphLineLayouts(
+        text = text,
+        start = cursor,
+        end = nextNewline,
+        lineBreaker = lineBreaker,
+        defaultStyle = defaultStyle,
+        runs = runs,
+        inlineBoxes = inlineBoxes,
+        width = width,
+        left = left,
+        top = top,
+        defaultLineHeight = defaultLineHeight,
+      )
+      lines += paragraphLines
+      top += paragraphLines.sumOf { it.height }
+      cursor = nextNewline
+      if (cursor < text.length && text[cursor] == '\n') {
+        cursor += 1
+        if (cursor == text.length) {
+          lines += emptyHardBreakLine(cursor, left, top, defaultLineHeight)
+        }
+      }
+    }
+
+    if (lines.isEmpty()) {
+      return listOf(
+        NativeLineLayout(
+          textStart = 0,
+          textEnd = 0,
+          width = 0.0,
+          left = left,
+          top = 0.0,
+          height = defaultLineHeight,
+          ascent = 0.0,
+          descent = defaultLineHeight,
+          layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+          fallbackReason = null,
+        ),
+      )
+    }
+
+    if (includeFontPadding && lines.isNotEmpty()) {
+      applyLineFontPadding(lines, textPaint, runs)
+    }
+
+    return lines
+  }
+
+  private fun emptyHardBreakLine(
+    offset: Int,
+    left: Double,
+    top: Double,
+    defaultLineHeight: Double,
+  ): NativeLineLayout {
+    return NativeLineLayout(
+      textStart = offset,
+      textEnd = offset,
+      width = 0.0,
+      left = left,
+      top = top,
+      height = defaultLineHeight,
+      ascent = 0.0,
+      descent = defaultLineHeight,
+      layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+      fallbackReason = null,
+    )
+  }
+
+  private fun layoutSingleParagraphLineLayouts(
+    text: String,
+    start: Int,
+    end: Int,
+    lineBreaker: Any,
+    defaultStyle: NativeTextStyle,
+    runs: List<NativeTextRun>,
+    inlineBoxes: List<NativeInlineBox>,
+    width: Double,
+    left: Double,
+    top: Double,
+    defaultLineHeight: Double,
+  ): List<NativeLineLayout> {
+    if (end <= start) {
+      return emptyList()
+    }
+
+    val segmentText = text.substring(start, end)
+    val segmentRuns = offsetRuns(runs, start, end)
+    val segmentBoxes = offsetInlineBoxes(inlineBoxes, start, end)
+    val measuredParagraph =
+      buildMeasuredText(segmentText, segmentRuns, segmentBoxes, defaultStyle) as MeasuredText
+    val breaker = lineBreaker as LineBreaker
+    val constraints = LineBreaker.ParagraphConstraints().apply {
+      setWidth(max(1f, width.toFloat()))
+    }
+    val result = breaker.computeLineBreaks(measuredParagraph, constraints, 0)
+    if (result.lineCount == 0) {
+      return listOf(
+        NativeLineLayout(
+          textStart = start,
+          textEnd = start,
+          width = 0.0,
+          left = left,
+          top = top,
+          height = defaultLineHeight,
+          ascent = 0.0,
+          descent = defaultLineHeight,
+          layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+          fallbackReason = null,
+        ),
+      )
+    }
+
+    val lines = ArrayList<NativeLineLayout>(result.lineCount)
+    var relativeStart = 0
+    var currentTop = top
+    for (lineIndex in 0 until result.lineCount) {
+      val relativeEnd = result.getLineBreakOffset(lineIndex)
+      val absoluteStart = start + relativeStart
+      val absoluteEnd = start + relativeEnd
+      var ascent = result.getLineAscent(lineIndex).toDouble()
+      var descent = result.getLineDescent(lineIndex).toDouble()
+      inlineBoxes.forEach { box ->
+        if (box.end > absoluteStart && box.start < absoluteEnd) {
+          ascent = min(ascent, -box.baseline)
+          descent = max(descent, box.height - box.baseline)
+        }
+      }
+      val actualHeight = max(0.0, descent - ascent)
+      val lineHeight =
+        max(
+          PretextShared.maxRequestedLineHeight(
+            runs,
+            defaultLineHeight,
+            absoluteStart,
+            absoluteEnd,
+            inlineBoxes,
+          ),
+          actualHeight,
+        )
+      lines += NativeLineLayout(
+        textStart = absoluteStart,
+        textEnd = absoluteEnd,
+        width = result.getLineWidth(lineIndex).toDouble(),
+        left = left,
+        top = currentTop,
+        height = lineHeight,
+        ascent = ascent,
+        descent = descent,
+        layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+        fallbackReason = null,
+      )
+      currentTop += lineHeight
+      relativeStart = relativeEnd
+    }
+
+    return lines
+  }
+
+  private fun applyLineFontPadding(
+    lines: MutableList<NativeLineLayout>,
+    textPaint: TextPaint,
+    runs: List<NativeTextRun>,
+  ) {
+    applyLineFontPaddingAt(
+      lines = lines,
+      index = 0,
+      topPadding = resolveLineFontPadding(
+        textPaint = textPaint,
+        runs = runs,
+        start = lines.first().textStart,
+        end = lines.first().textEnd,
+      ).top,
+      bottomPadding = 0.0,
+    )
+    applyLineFontPaddingAt(
+      lines = lines,
+      index = lines.lastIndex,
+      topPadding = 0.0,
+      bottomPadding = resolveLineFontPadding(
+        textPaint = textPaint,
+        runs = runs,
+        start = lines.last().textStart,
+        end = lines.last().textEnd,
+      ).bottom,
+    )
+  }
+
+  private fun applyLineFontPaddingAt(
+    lines: MutableList<NativeLineLayout>,
+    index: Int,
+    topPadding: Double,
+    bottomPadding: Double,
+  ) {
+    if (index !in lines.indices || topPadding == 0.0 && bottomPadding == 0.0) {
+      return
+    }
+
+    val line = lines[index]
+    val ascent = line.ascent - topPadding
+    val descent = line.descent + bottomPadding
+    val height = max(line.height, max(0.0, descent - ascent))
+    val delta = height - line.height
+    lines[index] = line.copy(
+      height = height,
+      ascent = ascent,
+      descent = descent,
+    )
+    if (delta > 0.0) {
+      for (lineIndex in index + 1 until lines.size) {
+        lines[lineIndex] = lines[lineIndex].copy(top = lines[lineIndex].top + delta)
+      }
+    }
+  }
+
+  private fun offsetRuns(
+    runs: List<NativeTextRun>,
+    start: Int,
+    end: Int,
+  ): List<NativeTextRun> {
+    return runs.mapNotNull { run ->
+      val clippedStart = max(run.start, start)
+      val clippedEnd = min(run.end, end)
+      if (clippedEnd <= clippedStart) {
+        null
+      } else {
+        NativeTextRun(
+          start = clippedStart - start,
+          end = clippedEnd - start,
+          style = run.style,
+        )
+      }
+    }
+  }
+
+  private fun offsetInlineBoxes(
+    inlineBoxes: List<NativeInlineBox>,
+    start: Int,
+    end: Int,
+  ): List<NativeInlineBox> {
+    return inlineBoxes.mapNotNull { box ->
+      val clippedStart = max(box.start, start)
+      val clippedEnd = min(box.end, end)
+      if (clippedEnd <= clippedStart) {
+        null
+      } else {
+        box.copy(
+          start = clippedStart - start,
+          end = clippedEnd - start,
+        )
+      }
+    }
   }
 }
 
