@@ -13,8 +13,10 @@ import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { createExampleRoutePlaceholder } from "./screens/examples/ExampleRoutePlaceholderScreen";
 import { apiExampleManifest } from "./screens/examples/apiExampleManifest";
 import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
+import { ExampleNonUseCaseLayoutMetricsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen";
 import { ExampleNonUseCasePrepareScreen } from "./screens/examples/non-use-case/ExampleNonUseCasePrepareScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
+import { ExampleUseCaseLayoutMetricsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen";
 import { ExampleUseCasePrepareScreen } from "./screens/examples/use-case/ExampleUseCasePrepareScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -30,9 +32,6 @@ function getExampleEntry(routeName: keyof AppStackParamList) {
   return entry;
 }
 
-const ExampleUseCaseLayoutMetricsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseLayoutMetrics"),
-);
 const ExampleUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseLayoutOptions"),
 );
@@ -50,9 +49,6 @@ const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
 );
 const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
-);
-const ExampleNonUseCaseLayoutMetricsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseLayoutMetrics"),
 );
 const ExampleNonUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleNonUseCaseLayoutOptions"),
