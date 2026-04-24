@@ -2,7 +2,7 @@
 
 Contributions are always welcome, no matter how large or small!
 
-We want this community to be friendly and respectful to each other. Please follow it in all your interactions with the project. Before contributing, please read the [code of conduct](./CODE_OF_CONDUCT.md).
+We want this community to be friendly and respectful to each other. Please follow it in all your interactions with the project. Before contributing, please read the [code of conduct](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/CODE_OF_CONDUCT.md).
 
 ## Development workflow
 
@@ -11,7 +11,7 @@ This project is a single library package with a Yarn workspace for the example a
 - The library package in the root directory.
 - An example app in the `example/` directory.
 
-To get started with the project, make sure you have the correct version of [Node.js](https://nodejs.org/) installed. See the [`.nvmrc`](./.nvmrc) file for the version used in this project.
+To get started with the project, make sure you have the correct version of [Node.js](https://nodejs.org/) installed. See the [`.nvmrc`](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/.nvmrc) file for the version used in this project.
 
 Run `yarn` in the root directory to install the required dependencies for each package:
 
@@ -36,7 +36,7 @@ To invoke **Nitrogen**, use the following command:
 yarn nitrogen
 ```
 
-The [example app](/example/) demonstrates usage of the library. You need to run it to test any changes you make.
+The [example app](https://github.com/jingjing2222/react-native-nitro-pretext/tree/main/example) demonstrates usage of the library. You need to run it to test any changes you make.
 
 It is configured to use the local version of the library, so any changes you make to the library's source code will be reflected in the example app. Changes to the library's JavaScript code will be reflected in the example app without a rebuild, but native code changes will require a rebuild of the example app.
 

@@ -19,21 +19,21 @@ workarounds live under `examples/non-use-case/*`.
 
 ## Compatibility
 
-| Dependency                   | Supported range       | Notes                                               |
+| Dependency                   | Package range         | Notes                                               |
 | ---------------------------- | --------------------- | --------------------------------------------------- |
-| React Native                 | `0.81+`               | Package peer dependency and public support floor.   |
+| React Native                 | `>=0.81.0`            | Package peer floor; current validation uses 0.85.0. |
 | `react-native-nitro-modules` | `^0.35.5`             | Nitro runtime dependency used by the native module. |
 | `nitrogen`                   | `^0.35.5`             | Code generator used to refresh bridge artifacts.    |
 | Example app                  | React Native `0.85.0` | Current local validation and native build target.   |
 
 `react-native-nitro-modules@0.35.5` publishes broad React Native peer metadata,
-so the stricter React Native `0.81+` support floor is defined by Pretext.
+so the stricter React Native `>=0.81.0` peer floor is defined by Pretext.
 
 ## Platform Contract
 
 | Platform          | Layout path                       | Notes                                                               |
 | ----------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
+| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical for normal-wrap requests without shape slices.            |
 | Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not canonical parity. Do not benchmark as canonical. |
 | iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
 | RN `<Text>`       | final visible renderer            | Not the correctness source. Match render styles to reduce drift.    |
@@ -49,15 +49,20 @@ match the style used for Pretext layout. The biggest Android footgun is
 `includeFontPadding`: RN `<Text>` defaults it to `true`, and Pretext also
 defaults it to `true`. Changing one side without the other can change height.
 
+On Android API 29+, non-normal rule requests such as `shapeSlices`,
+`whiteSpace: "pre"`, `wordBreak: "break-all"`, and forced token layout may
+report a named fallback engine instead of the canonical `MeasuredText +
+LineBreaker` path.
+
 ## `prepare(text, style)`
 
 Prepares native paragraph state and returns an opaque JS object. The native id
 is intentionally hidden.
 
 Example route: `examples/use-case/prepare`
-([source](../example/src/screens/examples/use-case/ExampleUseCasePrepareScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCasePrepareScreen.tsx)).
 RN-only contrast: `examples/non-use-case/prepare`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCasePrepareScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCasePrepareScreen.tsx)).
 
 ```ts
 const prepared = prepare(["Title", "Body"], {
@@ -155,9 +160,9 @@ Return value depends on `output`.
 Default output. Use this for height-before-render placement.
 
 Example route: `examples/use-case/layout-metrics`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen.tsx)).
 RN-only contrast: `examples/non-use-case/layout-metrics`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen.tsx)).
 
 ```ts
 type PretextMetricsLayout = {
@@ -187,9 +192,9 @@ Returns line ranges and geometry for custom placement or hit testing that you
 own outside this package.
 
 Example route: `examples/use-case/layout-lines`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutLinesScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseLayoutLinesScreen.tsx)).
 RN-only contrast: `examples/non-use-case/layout-lines`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen.tsx)).
 
 ```ts
 type PretextLinesLayout = {
@@ -225,9 +230,9 @@ type PretextLinesLayout = {
 Returns line geometry plus engine, rule, drift, and boundary diagnostics.
 
 Example route: `examples/use-case/layout-diagnostics`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseDiagnosticsScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseDiagnosticsScreen.tsx)).
 RN-only contrast: `examples/non-use-case/layout-diagnostics`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen.tsx)).
 
 ```ts
 type PretextDiagnosticsLayout = {
@@ -329,9 +334,9 @@ Nested diagnostics types:
 Returns line geometry plus inline box frames.
 
 Example route: `examples/use-case/layout-rich`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutRichScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseLayoutRichScreen.tsx)).
 RN-only contrast: `examples/non-use-case/layout-rich`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutRichScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutRichScreen.tsx)).
 
 ```ts
 type PretextRichLayout = {
@@ -375,9 +380,9 @@ React hook that prepares native state, runs layout, and releases native state
 on unmount or dependency change.
 
 Example route: `examples/use-case/use-pretext-layout`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseHookScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseHookScreen.tsx)).
 RN-only contrast: `examples/non-use-case/use-pretext-layout`
-([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseHookScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/non-use-case/ExampleNonUseCaseHookScreen.tsx)).
 
 ```tsx
 const result = usePretextLayout({
@@ -425,7 +430,7 @@ literal with the same scalar values does not force a new prepare.
 Namespace object with the same functions:
 
 Example route: `examples/use-case/namespace-and-types`
-([source](../example/src/screens/examples/use-case/ExampleUseCaseNamespaceAndTypesScreen.tsx)).
+([source](https://github.com/jingjing2222/react-native-nitro-pretext/blob/main/example/src/screens/examples/use-case/ExampleUseCaseNamespaceAndTypesScreen.tsx)).
 
 ```ts
 Pretext.prepare(text, style);

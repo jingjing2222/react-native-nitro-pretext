@@ -8,15 +8,29 @@ import {
 
 describe("benchmark diagnostics", () => {
   it("declares Android prepared layout as MeasuredText + LineBreaker", () => {
-    expect(getCanonicalPreparedLayoutEngine("android")).toBe(
+    expect(getCanonicalPreparedLayoutEngine("android", 29)).toBe(
       "android_measured_text_line_breaker",
     );
     expect(
-      createBenchmarkDiagnostics("pretext-compute", "android"),
+      createBenchmarkDiagnostics("pretext-compute", "android", 29),
     ).toMatchObject({
       heightMetricSource: "platform_text_engine_metrics",
       includeFontPadding: true,
       layoutEngine: "android_measured_text_line_breaker",
+      parityRole: "canonical_prepared_compute",
+      rendererKind: "prepared_compute",
+    });
+  });
+
+  it("declares Android API 24-28 prepared layout as StaticLayout compat", () => {
+    expect(getCanonicalPreparedLayoutEngine("android", 28)).toBe(
+      "android_static_layout_compat",
+    );
+    expect(
+      createBenchmarkDiagnostics("pretext-compute", "android", 28),
+    ).toMatchObject({
+      includeFontPadding: true,
+      layoutEngine: "android_static_layout_compat",
       parityRole: "canonical_prepared_compute",
       rendererKind: "prepared_compute",
     });

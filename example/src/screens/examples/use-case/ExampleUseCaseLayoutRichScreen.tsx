@@ -141,7 +141,18 @@ export function ExampleUseCaseLayoutRichScreen() {
         <View style={localStyles.panel}>
           <Text style={localStyles.panelTitle}>Usage</Text>
           <Text selectable style={localStyles.code}>
-            {`const prepared = prepare([[text, box, text]], style);
+            {`const prepared = prepare([[
+  { text: "Deploy ", breakBehavior: "auto" },
+  {
+    kind: "box",
+    boxId: "status-badge",
+    width: 64,
+    height: 24,
+    baseline: 18,
+    breakBehavior: "never",
+  },
+  { text: " when ready.", breakBehavior: "auto" },
+]], style);
 const rich = layout(prepared, {
   width,
   output: "rich",

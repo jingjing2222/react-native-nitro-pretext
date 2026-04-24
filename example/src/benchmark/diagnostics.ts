@@ -45,10 +45,29 @@ export function getBenchmarkPlatform(): BenchmarkPlatform {
   return normalizePlatform(Platform.OS);
 }
 
+function getRuntimeAndroidApiLevel(): number | null {
+  if (Platform.OS !== "android") {
+    return null;
+  }
+
+  const version = Platform.Version;
+  if (typeof version === "number") {
+    return version;
+  }
+
+  const parsed = Number.parseInt(version, 10);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 export function getCanonicalPreparedLayoutEngine(
   platform: BenchmarkPlatform,
+  androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
 ): BenchmarkLayoutEngine {
   if (platform === "android") {
+    if (androidApiLevel !== null && androidApiLevel < 29) {
+      return "android_static_layout_compat";
+    }
+
     return "android_measured_text_line_breaker";
   }
 
@@ -86,17 +105,19 @@ function getParityRole(mode: BenchmarkMode): BenchmarkParityRole {
 function getLayoutEngine(
   mode: BenchmarkMode,
   platform: BenchmarkPlatform,
+  androidApiLevel: number | null,
 ): BenchmarkLayoutEngine {
   if (mode === "baseline") {
     return "rn_text_compat";
   }
 
-  return getCanonicalPreparedLayoutEngine(platform);
+  return getCanonicalPreparedLayoutEngine(platform, androidApiLevel);
 }
 
 export function createBenchmarkDiagnostics(
   mode: BenchmarkMode,
   platform: BenchmarkPlatform = getBenchmarkPlatform(),
+  androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
 ): BenchmarkDiagnostics {
   const parityRole = getParityRole(mode);
 
@@ -106,7 +127,7 @@ export function createBenchmarkDiagnostics(
     heightMetricDrivers: [...HEIGHT_METRIC_DRIVERS],
     heightMetricSource: "platform_text_engine_metrics",
     includeFontPadding: platform === "android" ? true : null,
-    layoutEngine: getLayoutEngine(mode, platform),
+    layoutEngine: getLayoutEngine(mode, platform, androidApiLevel),
     parityBucket: parityRole,
     parityRole,
     rendererKind: getRendererKind(mode),

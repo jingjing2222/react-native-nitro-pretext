@@ -357,6 +357,7 @@ internal object PretextShared {
         boxFrames = buildInlineBoxFrames(
           paragraphIndex = index,
           paragraph = paragraph,
+          corpus = prepared,
           lineLayouts = lineLayouts,
         ).toTypedArray(),
         diagnostics = buildParagraphLayoutDiagnostics(
@@ -406,6 +407,7 @@ internal object PretextShared {
   private fun buildInlineBoxFrames(
     paragraphIndex: Int,
     paragraph: NativePreparedParagraph,
+    corpus: NativePreparedCorpus,
     lineLayouts: List<NativeLineLayout>,
   ): List<InlineBoxFrame> {
     if (paragraph.inlineBoxes.isEmpty()) {
@@ -425,7 +427,12 @@ internal object PretextShared {
       val actualHeight = max(0.0, line.descent - line.ascent)
       val centerOffset = max(0.0, (line.height - actualHeight) / 2.0)
       val baseline = line.top + centerOffset - line.ascent
-      val left = line.left + measureParagraphAdvance(paragraph, line.textStart, box.start)
+      val left = resolveInlineBoxLeft(
+        paragraph = paragraph,
+        corpus = corpus,
+        line = line,
+        box = box,
+      )
       frames += InlineBoxFrame(
         boxId = box.boxId,
         paragraphIndex = paragraphIndex.toDouble(),
@@ -443,6 +450,76 @@ internal object PretextShared {
       )
     }
     return frames
+  }
+
+  private fun resolveInlineBoxLeft(
+    paragraph: NativePreparedParagraph,
+    corpus: NativePreparedCorpus,
+    line: NativeLineLayout,
+    box: NativeInlineBox,
+  ): Double {
+    resolveInlineBoxVisualLeftWithStaticLayout(
+      paragraph = paragraph,
+      corpus = corpus,
+      line = line,
+      box = box,
+    )?.let { visualLeft ->
+      return line.left + visualLeft
+    }
+
+    val lineLength = max(0, line.textEnd - line.textStart)
+    val isRtlLine = lineLength > 0 &&
+      resolveTextDirectionHeuristic(corpus.textDirection, corpus.baseStyle.locale)
+        .isRtl(paragraph.text, line.textStart, lineLength)
+
+    if (isRtlLine) {
+      val endAdvance = measureParagraphAdvance(paragraph, line.textStart, box.end)
+      return line.left + max(0.0, line.width - endAdvance)
+    }
+
+    return line.left + measureParagraphAdvance(paragraph, line.textStart, box.start)
+  }
+
+  private fun resolveInlineBoxVisualLeftWithStaticLayout(
+    paragraph: NativePreparedParagraph,
+    corpus: NativePreparedCorpus,
+    line: NativeLineLayout,
+    box: NativeInlineBox,
+  ): Double? {
+    val lineLength = line.textEnd - line.textStart
+    if (lineLength <= 0) {
+      return null
+    }
+
+    val lineText = paragraph.styledText.subSequence(line.textStart, line.textEnd)
+    val layout = StaticLayout.Builder.obtain(
+      lineText,
+      0,
+      lineText.length,
+      corpus.textPaint,
+      max(1, ceil(max(line.width, box.width)).toInt()),
+    )
+      .setAlignment(Layout.Alignment.ALIGN_NORMAL)
+      .setLineSpacing(0f, 1f)
+      .setIncludePad(corpus.includeFontPadding)
+      .setTextDirection(resolveTextDirectionHeuristic(corpus.textDirection, corpus.baseStyle.locale))
+      .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+      .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+      .build()
+
+    if (layout.lineCount == 0) {
+      return null
+    }
+
+    val relativeStart = box.start - line.textStart
+    val relativeEnd = box.end - line.textStart
+    val startX = layout.getPrimaryHorizontal(relativeStart).toDouble()
+    val endX = layout.getPrimaryHorizontal(relativeEnd).toDouble()
+    if (!startX.isFinite() || !endX.isFinite()) {
+      return null
+    }
+
+    return min(startX, endX)
   }
 
   private fun measureParagraphAdvance(

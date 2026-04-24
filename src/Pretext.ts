@@ -107,6 +107,16 @@ type PreparedRecord = {
 };
 
 const preparedRecords = new WeakMap<PretextPrepared, PreparedRecord>();
+const preparedFinalizer =
+  typeof FinalizationRegistry === "function"
+    ? new FinalizationRegistry<number>((preparedId) => {
+        try {
+          releaseParagraphs(preparedId);
+        } catch {
+          // The native runtime can already be torn down when JS finalizers run.
+        }
+      })
+    : null;
 
 export function prepare(
   text: PretextSource,
@@ -132,11 +142,13 @@ export function prepare(
       }
       record.released = true;
       preparedRecords.delete(prepared);
+      preparedFinalizer?.unregister(prepared);
       releaseParagraphs(record.nativeState.id);
     },
   };
 
   preparedRecords.set(prepared, record);
+  preparedFinalizer?.register(prepared, record.nativeState.id, prepared);
   return Object.freeze(prepared);
 }
 
@@ -257,6 +269,11 @@ export function usePretextLayout({
       textDirection,
     ],
   );
+  const sourceSignature = createSourceSignature(text);
+  const normalizedSource = useMemo<PretextSource>(
+    () => parseSourceSignature(sourceSignature),
+    [sourceSignature],
+  );
   const [state, setState] = useState<{
     error: unknown | null;
     isPreparing: boolean;
@@ -285,7 +302,7 @@ export function usePretextLayout({
     });
 
     try {
-      prepared = prepare(text, normalizedStyle);
+      prepared = prepare(normalizedSource, normalizedStyle);
       setState({
         error: null,
         isPreparing: false,
@@ -302,7 +319,7 @@ export function usePretextLayout({
     return () => {
       prepared?.release();
     };
-  }, [enabled, normalizedStyle, text]);
+  }, [enabled, normalizedStyle, normalizedSource]);
 
   const resolvedLayout = useMemo<{
     error: unknown | null;
@@ -381,6 +398,18 @@ function isInlineSource(
 
 function toTextParagraphs(source: string | readonly string[]): string[] {
   return typeof source === "string" ? [source] : [...source];
+}
+
+function createSourceSignature(source: PretextSource): string {
+  return typeof source === "string"
+    ? `text:${source}`
+    : `json:${JSON.stringify(source)}`;
+}
+
+function parseSourceSignature(signature: string): PretextSource {
+  return signature.startsWith("text:")
+    ? signature.slice("text:".length)
+    : (JSON.parse(signature.slice("json:".length)) as PretextSource);
 }
 
 function toMutableInlineParagraphs(

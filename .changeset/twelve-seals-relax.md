@@ -29,15 +29,18 @@ New public API:
 
 Native layout contract:
 
-- Android API 29+ is the canonical `MeasuredText + LineBreaker` path.
+- Android API 29+ normal-wrap requests use the canonical `MeasuredText +
+LineBreaker` path.
 - Android API 24-28 remains supported through StaticLayout/legacy fallback
   paths and is not the canonical parity or performance target.
 - iOS uses Core Text `CTTypesetter + CTLine`.
 - Android `includeFontPadding` defaults to `true` to align with RN `<Text>`.
-- React Native `0.81+` is the supported package floor. The example app and
+- React Native `>=0.81.0` is the package peer floor. The example app and
   latest local validation use React Native `0.85.0`.
 - `react-native-nitro-modules` and `nitrogen` were updated to the latest
   `0.35.5` line.
+- The package now exposes a React Native condition that points Metro at the
+  source entry so platform resolution can select the native Nitro bridge.
 
 Documentation and examples were rebuilt around the layout-only contract:
 

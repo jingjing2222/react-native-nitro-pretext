@@ -454,13 +454,13 @@ export function BenchmarkMeasuredLayoutCaseStudyScreen() {
             disabled={false}
             label="Replay measurement"
             onPress={handleReplay}
-            testID="examples.measured-layout.replay"
+            testID="benchmark.measured-layout.replay"
           />
           <PrimaryButton
             disabled={false}
             label="Next width"
             onPress={handleNextWidth}
-            testID="examples.measured-layout.next-width"
+            testID="benchmark.measured-layout.next-width"
           />
         </View>
         <View style={localStyles.statGrid}>

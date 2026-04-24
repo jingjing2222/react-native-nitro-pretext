@@ -104,7 +104,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open benchmark/measured-layout"
           buttonTestID="benchmark.index.open-measured-layout"
-          description="Case study for a MeasureLayout-style masonry UI that compares hidden RN Text measurement with Pretext metrics."
+          description="Manual visual case study for a MeasureLayout-style masonry UI. It is not part of the timed Maestro benchmark gate."
           onPress={() =>
             navigation.navigate("BenchmarkMeasuredLayoutCaseStudy")
           }

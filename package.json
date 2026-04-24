@@ -48,8 +48,10 @@
   ],
   "main": "./dist/module/index.js",
   "types": "./dist/types/index.d.ts",
+  "react-native": "./src/index.ts",
   "exports": {
     ".": {
+      "react-native": "./src/index.ts",
       "source": "./src/index.ts",
       "types": "./dist/types/index.d.ts",
       "default": "./dist/module/index.js"

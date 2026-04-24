@@ -35,7 +35,8 @@ Latest local iOS example validation:
 
 This screen is a product-shaped demonstration, not a release-device benchmark.
 It shows the core value of the public API: text height is available before the
-visible RN surface mounts.
+visible RN surface mounts. It is not part of the timed Maestro benchmark suite
+or benchmark gate.
 
 API learning examples are intentionally separate from this case study. They live
 under `examples/use-case/*`, with matching plain RN workarounds under
@@ -131,10 +132,11 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 ```
 
-Android canonical benchmark claims require API 29+ because the canonical
-Android engine is `MeasuredText + LineBreaker`. API 24-28 runs exercise the
-`android_static_layout_compat` or `android_legacy_fallback` path only. iOS
-canonical runs report `ios_core_text`; degraded fallback diagnostics may report
+Android canonical benchmark claims require API 29+ normal-wrap requests because
+the canonical Android engine is `MeasuredText + LineBreaker`. API 24-28 runs and
+Android rule-layer requests that require token fallback exercise
+`android_static_layout_compat` or `android_legacy_fallback` paths. iOS canonical
+runs report `ios_core_text`; degraded fallback diagnostics may report
 `ios_manual_token_fallback`. StaticLayout compat diagnostics include
 `fallbackReason: "static_layout_compat"`.
 

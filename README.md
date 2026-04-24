@@ -110,7 +110,7 @@ direction, and the platform line breaking strategy.
 
 | Platform          | Layout path                       | Status                                                              |
 | ----------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
+| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical for normal-wrap requests without shape slices.            |
 | Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not the canonical parity path.                       |
 | iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
 | RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
@@ -127,17 +127,17 @@ StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
 ## Compatibility
 
-| Dependency                   | Supported range | Current validation                                      |
-| ---------------------------- | --------------- | ------------------------------------------------------- |
-| React Native                 | `0.81+`         | Example app and local checks use React Native `0.85.0`. |
-| `react-native-nitro-modules` | `^0.35.5`       | Required runtime peer dependency.                       |
-| `nitrogen`                   | `^0.35.5`       | Required for generated Nitro bridge files in this repo. |
-| Android                      | API 24+         | API 29+ is the canonical Android performance target.    |
-| iOS                          | RN default      | Example app currently targets iOS 15.1.                 |
+| Dependency                   | Package range | Current validation                                      |
+| ---------------------------- | ------------- | ------------------------------------------------------- |
+| React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
+| `react-native-nitro-modules` | `^0.35.5`     | Required runtime peer dependency.                       |
+| `nitrogen`                   | `^0.35.5`     | Required for generated Nitro bridge files in this repo. |
+| Android                      | API 24+       | API 29+ normal-wrap requests are the canonical target.  |
+| iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
 
 The Nitro Modules package currently publishes broad React Native peer metadata,
-so Pretext documents and enforces its own package support floor as React Native
-`0.81+`.
+so Pretext documents and enforces its own package peer floor as React Native
+`>=0.81.0`. Current local validation is on React Native `0.85.0`.
 
 ## Performance Snapshot
 
@@ -168,8 +168,8 @@ npm install react-native-nitro-pretext react-native-nitro-modules
 `react-native-nitro-modules` is required because Pretext is exposed as a Nitro
 Module.
 
-Pretext supports React Native `0.81+`. The bundled example app is currently on
-React Native `0.85.0`.
+Pretext declares React Native `>=0.81.0` as its peer minimum. The bundled
+example app is currently on React Native `0.85.0`.
 
 ## Example App
 

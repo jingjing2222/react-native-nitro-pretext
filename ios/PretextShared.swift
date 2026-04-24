@@ -651,6 +651,7 @@ internal final class PretextShared {
                 boxFrames: buildInlineBoxFrames(
                     paragraphIndex: index,
                     paragraph: paragraph,
+                    corpus: prepared,
                     lineLayouts: lineLayouts
                 ),
                 diagnostics: buildParagraphLayoutDiagnostics(
@@ -789,6 +790,7 @@ internal final class PretextShared {
     private func buildInlineBoxFrames(
         paragraphIndex: Int,
         paragraph: NativePreparedParagraph,
+        corpus: NativePreparedCorpus,
         lineLayouts: [NativeLineLayout]
     ) -> [InlineBoxFrame] {
         guard !paragraph.inlineBoxes.isEmpty else {
@@ -808,6 +810,7 @@ internal final class PretextShared {
             let baseline = line.top + centerOffset - line.ascent
             let visualRange = resolveVisualRangeForTextRange(
                 paragraph: paragraph,
+                corpus: corpus,
                 line: line,
                 startUTF16: box.startUTF16,
                 endUTF16: box.endUTF16
@@ -872,6 +875,7 @@ internal final class PretextShared {
 
     private func resolveVisualRangeForTextRange(
         paragraph: NativePreparedParagraph,
+        corpus: NativePreparedCorpus,
         line: NativeLineLayout,
         startUTF16: Int,
         endUTF16: Int
@@ -884,6 +888,34 @@ internal final class PretextShared {
                 let right = max(startX, endX)
                 return (left, max(1, right - left))
             }
+        }
+
+        if let fallbackRange = resolveVisualRangeWithCoreTextLine(
+            paragraph: paragraph,
+            line: line,
+            startUTF16: startUTF16,
+            endUTF16: endUTF16
+        ) {
+            return fallbackRange
+        }
+
+        if isRtlLine(
+            paragraph: paragraph,
+            line: line,
+            textDirection: corpus.baseStyle.textDirection
+        ) {
+            let endX = measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: endUTF16
+            )
+            let startX = measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: startUTF16
+            )
+            let left = max(0, line.width - max(startX, endX))
+            return (left, max(1, abs(endX - startX)))
         }
 
         let startX = measureParagraphAdvance(
@@ -899,6 +931,64 @@ internal final class PretextShared {
         let left = min(startX, endX)
         let right = max(startX, endX)
         return (left, max(1, right - left))
+    }
+
+    private func resolveVisualRangeWithCoreTextLine(
+        paragraph: NativePreparedParagraph,
+        line: NativeLineLayout,
+        startUTF16: Int,
+        endUTF16: Int
+    ) -> (left: Double, width: Double)? {
+        let lineLength = line.textEndUTF16 - line.textStartUTF16
+        guard lineLength > 0 else {
+            return nil
+        }
+
+        let attributedLine = paragraph.attributedText.attributedSubstring(
+            from: NSRange(location: line.textStartUTF16, length: lineLength)
+        )
+        let ctLine = CTLineCreateWithAttributedString(attributedLine as CFAttributedString)
+        let relativeStart = startUTF16 - line.textStartUTF16
+        let relativeEnd = endUTF16 - line.textStartUTF16
+        let startX = Double(CTLineGetOffsetForStringIndex(ctLine, relativeStart, nil))
+        let endX = Double(CTLineGetOffsetForStringIndex(ctLine, relativeEnd, nil))
+        guard startX.isFinite, endX.isFinite else {
+            return nil
+        }
+
+        let left = min(startX, endX)
+        let right = max(startX, endX)
+        return (left, max(1, right - left))
+    }
+
+    private func isRtlLine(
+        paragraph: NativePreparedParagraph,
+        line: NativeLineLayout,
+        textDirection: ParagraphTextDirection
+    ) -> Bool {
+        switch textDirection {
+        case .ltr:
+            return false
+        case .rtl:
+            return true
+        case .auto:
+            let length = max(0, line.textEndUTF16 - line.textStartUTF16)
+            guard length > 0 else {
+                return false
+            }
+            let text = paragraph.text.substring(
+                with: NSRange(location: line.textStartUTF16, length: length)
+            )
+            for scalar in text.unicodeScalars {
+                if isRtlScalar(scalar) {
+                    return true
+                }
+                if isLtrScalar(scalar) {
+                    return false
+                }
+            }
+            return false
+        }
     }
 
     private func buildParagraphLayoutDiagnostics(
