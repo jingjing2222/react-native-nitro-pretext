@@ -129,6 +129,9 @@ internal struct NativeInlineBox {
     let height: Double
     let baseline: Double
     let breakBehavior: String
+    let accessibilityLabel: String?
+    let accessibilityHint: String?
+    let accessibilityRole: String?
 }
 
 internal final class NativePreparedCorpus {
@@ -533,7 +536,10 @@ internal final class PretextShared {
             width: width,
             height: height,
             baseline: baseline,
-            breakBehavior: segment.breakBehavior.lowercased()
+            breakBehavior: segment.breakBehavior.lowercased(),
+            accessibilityLabel: segment.accessibilityLabel,
+            accessibilityHint: segment.accessibilityHint,
+            accessibilityRole: segment.accessibilityRole
         )
     }
 
@@ -594,6 +600,143 @@ internal final class PretextShared {
             preparedId: preparedId,
             request: normalizeLayoutRequest(request)
         )
+    }
+
+    func hitTestPreparedTextPosition(
+        preparedId: Double,
+        paragraphIndex: Double,
+        request: ParagraphLayoutRequest,
+        x: Double,
+        y: Double
+    ) throws -> PreparedTextPosition {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let resolvedParagraphIndex = try resolveParagraphIndex(
+            prepared: prepared,
+            requestedIndex: Int(paragraphIndex)
+        )
+        let paragraph = prepared.paragraphs[resolvedParagraphIndex]
+        let lineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: normalizeLayoutRequest(request)
+        )[resolvedParagraphIndex]
+        let lineIndex = resolveLineIndex(lineLayouts: lineLayouts, y: y)
+        let line = lineLayouts.indices.contains(lineIndex) ? lineLayouts[lineIndex] : emptyLineLayout()
+        let offset = resolveOffsetForX(paragraph: paragraph, line: line, x: x)
+
+        return PreparedTextPosition(
+            paragraphIndex: Double(resolvedParagraphIndex),
+            lineIndex: Double(lineIndex),
+            offset: Double(offset),
+            lineTextStart: Double(line.textStartUTF16),
+            lineTextEnd: Double(line.textEndUTF16),
+            x: x,
+            y: y,
+            layoutEngine: line.layoutEngine,
+            heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
+            fallbackReason: line.fallbackReason
+        )
+    }
+
+    func layoutPreparedTextSelectionRects(
+        preparedId: Double,
+        range: PreparedTextRange,
+        request: ParagraphLayoutRequest
+    ) throws -> [PreparedTextSelectionRect] {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphIndex = try resolveParagraphIndex(
+            prepared: prepared,
+            requestedIndex: Int(range.paragraphIndex)
+        )
+        let paragraph = prepared.paragraphs[paragraphIndex]
+        let lineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: normalizeLayoutRequest(request)
+        )[paragraphIndex]
+        let textStart = Int(min(range.textStart, range.textEnd)).clamped(to: 0...paragraph.text.length)
+        let textEnd = Int(max(range.textStart, range.textEnd)).clamped(to: 0...paragraph.text.length)
+
+        return lineLayouts.enumerated().compactMap { lineIndex, line in
+            let rectStart = max(textStart, line.textStartUTF16)
+            let rectEnd = min(textEnd, line.textEndUTF16)
+            guard rectEnd > rectStart else {
+                return nil
+            }
+
+            let startX = line.ctLine.map { ctLine in
+                Double(CTLineGetOffsetForStringIndex(ctLine, rectStart, nil))
+            } ?? measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: rectStart
+            )
+            var endX = line.ctLine.map { ctLine in
+                Double(CTLineGetOffsetForStringIndex(ctLine, rectEnd, nil))
+            } ?? measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: rectEnd
+            )
+            if endX <= startX {
+                endX = line.width
+            }
+
+            return PreparedTextSelectionRect(
+                paragraphIndex: Double(paragraphIndex),
+                lineIndex: Double(lineIndex),
+                textStart: Double(rectStart),
+                textEnd: Double(rectEnd),
+                left: line.left + startX,
+                top: line.top,
+                width: max(1, endX - startX),
+                height: line.height,
+                layoutEngine: line.layoutEngine,
+                heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
+                fallbackReason: line.fallbackReason
+            )
+        }
+    }
+
+    func selectAllPreparedText(
+        preparedId: Double,
+        paragraphIndex: Double
+    ) throws -> PreparedTextRange {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let resolvedParagraphIndex = try resolveParagraphIndex(
+            prepared: prepared,
+            requestedIndex: Int(paragraphIndex)
+        )
+        return PreparedTextRange(
+            paragraphIndex: Double(resolvedParagraphIndex),
+            textStart: 0,
+            textEnd: Double(prepared.paragraphs[resolvedParagraphIndex].text.length)
+        )
+    }
+
+    func getPreparedTextSelection(
+        preparedId: Double,
+        range: PreparedTextRange
+    ) throws -> String {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphIndex = try resolveParagraphIndex(
+            prepared: prepared,
+            requestedIndex: Int(range.paragraphIndex)
+        )
+        let text = prepared.paragraphs[paragraphIndex].text
+        let start = Int(min(range.textStart, range.textEnd)).clamped(to: 0...text.length)
+        let end = Int(max(range.textStart, range.textEnd)).clamped(to: 0...text.length)
+        return text.substring(with: NSRange(location: start, length: end - start))
+    }
+
+    func copyPreparedTextSelection(
+        preparedId: Double,
+        range: PreparedTextRange
+    ) throws -> String {
+        let selectedText = try getPreparedTextSelection(
+            preparedId: preparedId,
+            range: range
+        )
+        UIPasteboard.general.string = selectedText
+        return selectedText
     }
 
     func createParagraphLineCursor(
@@ -862,6 +1005,20 @@ internal final class PretextShared {
         return prepared
     }
 
+    private func resolveParagraphIndex(
+        prepared: NativePreparedCorpus,
+        requestedIndex: Int
+    ) throws -> Int {
+        guard !prepared.paragraphs.isEmpty else {
+            throw NSError(
+                domain: "Pretext",
+                code: 404,
+                userInfo: [NSLocalizedDescriptionKey: "Prepared benchmark corpus has no paragraphs."]
+            )
+        }
+        return min(max(0, requestedIndex), prepared.paragraphs.count - 1)
+    }
+
     private func createTypesetter(
         attributedText: NSAttributedString
     ) -> CTTypesetter {
@@ -1032,9 +1189,103 @@ internal final class PretextShared {
                 top: baseline - box.baseline,
                 width: box.width,
                 height: box.height,
-                baseline: baseline
+                baseline: baseline,
+                accessibilityLabel: box.accessibilityLabel,
+                accessibilityHint: box.accessibilityHint,
+                accessibilityRole: box.accessibilityRole
             )
         }
+    }
+
+    private func resolveLineIndex(
+        lineLayouts: [NativeLineLayout],
+        y: Double
+    ) -> Int {
+        guard !lineLayouts.isEmpty else {
+            return 0
+        }
+
+        if let index = lineLayouts.firstIndex(where: { line in
+            y >= line.top && y <= line.top + line.height
+        }) {
+            return index
+        }
+
+        return y < (lineLayouts.first?.top ?? 0) ? 0 : lineLayouts.count - 1
+    }
+
+    private func resolveOffsetForX(
+        paragraph: NativePreparedParagraph,
+        line: NativeLineLayout,
+        x: Double
+    ) -> Int {
+        guard line.textEndUTF16 > line.textStartUTF16 else {
+            return line.textStartUTF16
+        }
+
+        let targetX = x - line.left
+        if targetX <= 0 {
+            return line.textStartUTF16
+        }
+        if targetX >= line.width {
+            return line.textEndUTF16
+        }
+
+        if let ctLine = line.ctLine {
+            let index = CTLineGetStringIndexForPosition(
+                ctLine,
+                CGPoint(x: targetX, y: 0)
+            )
+            if index != kCFNotFound {
+                return min(max(index, line.textStartUTF16), line.textEndUTF16)
+            }
+        }
+
+        var low = line.textStartUTF16
+        var high = line.textEndUTF16
+        while low < high {
+            let mid = (low + high) / 2
+            let advance = measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: mid
+            )
+            if advance < targetX {
+                low = mid + 1
+            } else {
+                high = mid
+            }
+        }
+
+        let candidate = min(max(low, line.textStartUTF16), line.textEndUTF16)
+        let previous = max(line.textStartUTF16, candidate - 1)
+        let candidateX = measureParagraphAdvance(
+            paragraph: paragraph,
+            startUTF16: line.textStartUTF16,
+            endUTF16: candidate
+        )
+        let previousX = measureParagraphAdvance(
+            paragraph: paragraph,
+            startUTF16: line.textStartUTF16,
+            endUTF16: previous
+        )
+        return abs(candidateX - targetX) < abs(targetX - previousX) ? candidate : previous
+    }
+
+    private func emptyLineLayout() -> NativeLineLayout {
+        NativeLineLayout(
+            textStartUTF16: 0,
+            textEndUTF16: 0,
+            width: 0,
+            left: 0,
+            top: 0,
+            height: 0,
+            ascent: 0,
+            descent: 0,
+            layoutEngine: layoutEngineIosManualTokenFallback,
+            fallbackReason: fallbackReasonManualHeightEstimate,
+            ctLine: nil
+        )
     }
 
     private func measureParagraphAdvance(
@@ -1877,5 +2128,11 @@ internal final class PretextShared {
 
     private func isUnicodeNewline(_ scalar: Unicode.Scalar) -> Bool {
         CharacterSet.newlines.contains(scalar)
+    }
+}
+
+private extension Comparable {
+    func clamped(to limits: ClosedRange<Self>) -> Self {
+        min(max(self, limits.lowerBound), limits.upperBound)
     }
 }

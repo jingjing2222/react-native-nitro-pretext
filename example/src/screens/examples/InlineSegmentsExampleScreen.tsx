@@ -67,6 +67,9 @@ export function InlineSegmentsExampleScreen() {
                 <View
                   key={`${frame.boxId}-${frame.textStart}`}
                   pointerEvents="none"
+                  accessibilityHint={frame.accessibilityHint}
+                  accessibilityLabel={frame.accessibilityLabel}
+                  accessibilityRole="image"
                   style={[
                     inlineStyles.inlineBox,
                     {

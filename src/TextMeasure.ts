@@ -11,6 +11,9 @@ import type {
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
+  PreparedTextPosition,
+  PreparedTextRange,
+  PreparedTextSelectionRect,
   PreparedParagraphState,
   PreparedParagraphResult,
 } from "./Pretext.nitro";
@@ -104,6 +107,40 @@ export const ParagraphEngine: Pretext = {
     _preparedId: number,
     _request: ParagraphLayoutRequest,
   ): LaidOutRichParagraphLines[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  hitTestPreparedTextPosition(
+    _preparedId: number,
+    _paragraphIndex: number,
+    _request: ParagraphLayoutRequest,
+    _x: number,
+    _y: number,
+  ): PreparedTextPosition {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  layoutPreparedTextSelectionRects(
+    _preparedId: number,
+    _range: PreparedTextRange,
+    _request: ParagraphLayoutRequest,
+  ): PreparedTextSelectionRect[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  selectAllPreparedText(
+    _preparedId: number,
+    _paragraphIndex: number,
+  ): PreparedTextRange {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  getPreparedTextSelection(
+    _preparedId: number,
+    _range: PreparedTextRange,
+  ): string {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  copyPreparedTextSelection(
+    _preparedId: number,
+    _range: PreparedTextRange,
+  ): string {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },
   createParagraphLineCursor(
@@ -256,6 +293,67 @@ export function layoutRichParagraphLines(
   return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
 }
 
+export function hitTestPreparedTextPosition(
+  preparedId: number,
+  paragraphIndex: number,
+  widthOrRequest: number | ParagraphLayoutRequest,
+  x: number,
+  y: number,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): PreparedTextPosition {
+  const request =
+    typeof widthOrRequest === "number"
+      ? createParagraphLayoutRequest(widthOrRequest, overrides)
+      : widthOrRequest;
+
+  return ParagraphEngine.hitTestPreparedTextPosition(
+    preparedId,
+    paragraphIndex,
+    request,
+    x,
+    y,
+  );
+}
+
+export function layoutPreparedTextSelectionRects(
+  preparedId: number,
+  range: PreparedTextRange,
+  widthOrRequest: number | ParagraphLayoutRequest,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): PreparedTextSelectionRect[] {
+  const request =
+    typeof widthOrRequest === "number"
+      ? createParagraphLayoutRequest(widthOrRequest, overrides)
+      : widthOrRequest;
+
+  return ParagraphEngine.layoutPreparedTextSelectionRects(
+    preparedId,
+    range,
+    request,
+  );
+}
+
+export function selectAllPreparedText(
+  preparedId: number,
+  paragraphIndex: number,
+): PreparedTextRange {
+  return ParagraphEngine.selectAllPreparedText(preparedId, paragraphIndex);
+}
+
+export function getPreparedTextSelection(
+  preparedId: number,
+  range: PreparedTextRange,
+): string {
+  return ParagraphEngine.getPreparedTextSelection(preparedId, range);
+}
+
+export function copyPreparedTextSelection(
+  preparedId: number,
+  range: PreparedTextRange,
+): string {
+  return ParagraphEngine.copyPreparedTextSelection(preparedId, range);
+}
+
 export function createParagraphLineCursor(
   preparedId: number,
   paragraphIndex: number,
@@ -317,4 +415,7 @@ export type {
   ParagraphLineCursorStep,
   ParagraphLineRange,
   ParagraphShapeSlice,
+  PreparedTextPosition,
+  PreparedTextRange,
+  PreparedTextSelectionRect,
 };

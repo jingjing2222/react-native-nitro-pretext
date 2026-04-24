@@ -18,6 +18,10 @@ internal class PreparedParagraphsView(context: Context) : View(context) {
   private var contentInsetTop: Double = 0.0
   private var drawings: List<NativeParagraphDrawing> = emptyList()
 
+  init {
+    PretextShared.setApplicationContext(context)
+  }
+
   fun setPreparedId(nextPreparedId: Double) {
     if (preparedId == nextPreparedId) {
       return

@@ -24,6 +24,7 @@ internal class PreparedParagraphView(context: Context) : View(context) {
   private var contentInsetTop: Double = 0.0
 
   init {
+    PretextShared.setApplicationContext(context)
     updatePaint()
   }
 

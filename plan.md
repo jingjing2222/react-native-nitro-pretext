@@ -238,19 +238,33 @@ Result:
 
 ## Plan 07: Selection And Accessibility
 
-- [ ] Build hit testing from canonical native line records.
-- [ ] Preserve height metric provenance on line records used by hit testing and selection rects.
-- [ ] Android offset/rects derive from LineBreaker lines + MeasuredText advances.
-- [ ] iOS offset/rects derive from `CTLineGetStringIndexForPosition` and `CTLineGetOffsetForStringIndex`.
-- [ ] Add `selectable`, controlled `selection`, `onSelectionChange`, copy/select-all.
-- [ ] Add per-box accessibility metadata.
-- [ ] Keep paste/editing out of scope.
+- [x] Build hit testing from canonical native line records.
+- [x] Preserve height metric provenance on line records used by hit testing and selection rects.
+- [x] Android offset/rects derive from LineBreaker lines + MeasuredText advances.
+- [x] iOS offset/rects derive from `CTLineGetStringIndexForPosition` and `CTLineGetOffsetForStringIndex`.
+- [x] Add `selectable`, controlled `selection`, `onSelectionChange`, copy/select-all.
+- [x] Add per-box accessibility metadata.
+- [x] Keep paste/editing out of scope.
 
 Acceptance:
 
 - Selection/copy/accessibility works on native prepared renderer without RN Text.
 - `agent-device` interaction verification covers tap/drag/select/copy flows on affected platforms.
 - Local CI passes before Plan 08 begins.
+
+Result:
+
+- Public APIs now expose `PreparedTextPosition`, `PreparedTextRange`, `PreparedTextSelectionRect`, hit testing, selection rect layout, select-all, selected-text readback, and native clipboard copy.
+- `PreparedParagraphView` supports `selectable`, controlled/uncontrolled `selection`, `onSelectionChange`, `onSelectionCopy`, select-all/copy long press, tap-to-line selection, and drag-to-range selection through a transparent touch overlay above the native renderer.
+- Android selection geometry uses canonical prepared line records and `MeasuredText` advances on API 29+, with legacy fallback records retaining `fallbackReason` and `heightMetricSource`.
+- iOS selection geometry uses prepared Core Text line records with `CTLineGetStringIndexForPosition` and `CTLineGetOffsetForStringIndex`.
+- Inline box accessibility metadata is carried from JS segments into native box frames and example overlays.
+- Paste/editing remains intentionally out of scope.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example pods`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`: navigated to `examples/prepared-view`, verified tap selection (`Selection 67-91`), drag selection (`Selection 68-91`), select-all (`Selection 0-128`), copy (`128 chars copied`), and clipboard contents.
+- Artifacts: `example/.maestro-artifacts/plan07/prepared-view-before-tap.png`, `example/.maestro-artifacts/plan07/prepared-selection-ios.png`, `example/.maestro-artifacts/plan07/prepared-select-all-ios.png`.
+- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
 
 ## Plan 08: Bidi, Grapheme, Complex Shaping
 

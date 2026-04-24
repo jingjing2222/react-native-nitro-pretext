@@ -103,6 +103,45 @@ class Pretext : HybridPretextSpec() {
     return PretextShared.layoutRichParagraphLines(preparedId, request)
   }
 
+  override fun hitTestPreparedTextPosition(
+    preparedId: Double,
+    paragraphIndex: Double,
+    request: ParagraphLayoutRequest,
+    x: Double,
+    y: Double,
+  ): PreparedTextPosition {
+    return PretextShared.hitTestPreparedTextPosition(preparedId, paragraphIndex, request, x, y)
+  }
+
+  override fun layoutPreparedTextSelectionRects(
+    preparedId: Double,
+    range: PreparedTextRange,
+    request: ParagraphLayoutRequest,
+  ): Array<PreparedTextSelectionRect> {
+    return PretextShared.layoutPreparedTextSelectionRects(preparedId, range, request)
+  }
+
+  override fun selectAllPreparedText(
+    preparedId: Double,
+    paragraphIndex: Double,
+  ): PreparedTextRange {
+    return PretextShared.selectAllPreparedText(preparedId, paragraphIndex)
+  }
+
+  override fun getPreparedTextSelection(
+    preparedId: Double,
+    range: PreparedTextRange,
+  ): String {
+    return PretextShared.getPreparedTextSelection(preparedId, range)
+  }
+
+  override fun copyPreparedTextSelection(
+    preparedId: Double,
+    range: PreparedTextRange,
+  ): String {
+    return PretextShared.copyPreparedTextSelection(preparedId, range)
+  }
+
   override fun createParagraphLineCursor(
     preparedId: Double,
     paragraphIndex: Double,
@@ -148,6 +187,9 @@ class Pretext : HybridPretextSpec() {
             width = segmentJson.optDoubleOrNull("width"),
             height = segmentJson.optDoubleOrNull("height"),
             baseline = segmentJson.optDoubleOrNull("baseline"),
+            accessibilityLabel = segmentJson.optString("accessibilityLabel").takeIf { it.isNotEmpty() },
+            accessibilityHint = segmentJson.optString("accessibilityHint").takeIf { it.isNotEmpty() },
+            accessibilityRole = segmentJson.optString("accessibilityRole").takeIf { it.isNotEmpty() },
             fontFamily = segmentJson.optString("fontFamily").takeIf { it.isNotEmpty() },
             fontSize = segmentJson.optDoubleOrNull("fontSize"),
             lineHeight = segmentJson.optDoubleOrNull("lineHeight"),

@@ -217,6 +217,9 @@ function mockCreateParagraphEngine() {
               width: 24,
               height: 24,
               baseline: 28,
+              accessibilityLabel: "Avatar badge",
+              accessibilityHint: "Inline box",
+              accessibilityRole: "image",
             },
           ],
           diagnostics: {
@@ -260,6 +263,50 @@ function mockCreateParagraphEngine() {
         },
       ],
     ),
+    hitTestPreparedTextPosition: jest.fn(
+      (
+        _preparedId: number,
+        paragraphIndex: number,
+        request: { left: number },
+        x: number,
+        y: number,
+      ) => ({
+        paragraphIndex,
+        lineIndex: 0,
+        offset: 3,
+        lineTextStart: 0,
+        lineTextEnd: 6,
+        x,
+        y,
+        layoutEngine: request.left === 12 ? "ios_core_text" : "unknown",
+        heightMetricSource: "platform_text_engine_metrics",
+      }),
+    ),
+    layoutPreparedTextSelectionRects: jest.fn(
+      (_preparedId: number, range: { paragraphIndex: number }) => [
+        {
+          paragraphIndex: range.paragraphIndex,
+          lineIndex: 0,
+          textStart: 0,
+          textEnd: 6,
+          left: 12,
+          top: 0,
+          width: 96,
+          height: 40,
+          layoutEngine: "ios_core_text",
+          heightMetricSource: "platform_text_engine_metrics",
+        },
+      ],
+    ),
+    selectAllPreparedText: jest.fn(
+      (_preparedId: number, paragraphIndex: number) => ({
+        paragraphIndex,
+        textStart: 0,
+        textEnd: 10,
+      }),
+    ),
+    getPreparedTextSelection: jest.fn(() => "alpha"),
+    copyPreparedTextSelection: jest.fn(() => "alpha"),
     layoutParagraphsWithRequest: jest.fn(() => [
       {
         brokenText: "alpha\nbeta",
@@ -324,8 +371,12 @@ jest.mock("react-native-nitro-modules", () => ({
 
 import { NitroModules } from "react-native-nitro-modules";
 import {
+  copyPreparedTextSelection,
   createParagraphLayoutRequest,
   createParagraphLineCursor,
+  getPreparedTextSelection,
+  hitTestPreparedTextPosition,
+  layoutPreparedTextSelectionRects,
   layoutParagraphLines,
   layoutParagraphLinesWithDiagnostics,
   layoutParagraphLinesWithRequest,
@@ -348,6 +399,7 @@ import {
   prepareParagraphs,
   prepareParagraphsWithStats,
   prepareBenchmarkCorpus,
+  selectAllPreparedText,
   releaseParagraphLineCursor,
   releaseParagraphs,
   releasePreparedBenchmarkCorpus,
@@ -514,6 +566,9 @@ describe("react-native-nitro-pretext", () => {
               height: 24,
               baseline: 18,
               breakBehavior: "never",
+              accessibilityLabel: "Avatar badge",
+              accessibilityHint: "Inline box",
+              accessibilityRole: "image",
             },
           ],
         ],
@@ -555,6 +610,9 @@ describe("react-native-nitro-pretext", () => {
             height: 24,
             baseline: 18,
             breakBehavior: "never",
+            accessibilityLabel: "Avatar badge",
+            accessibilityHint: "Inline box",
+            accessibilityRole: "image",
           },
         ],
       ]),
@@ -802,6 +860,9 @@ describe("react-native-nitro-pretext", () => {
         width: 24,
         height: 24,
         baseline: 28,
+        accessibilityLabel: "Avatar badge",
+        accessibilityHint: "Inline box",
+        accessibilityRole: "image",
       },
     ]);
     expect(result[0]?.diagnostics.breakTable.atomicSpans).toEqual([
@@ -811,6 +872,66 @@ describe("react-native-nitro-pretext", () => {
         source: "inline_box",
       },
     ]);
+  });
+
+  it("forwards prepared selection and hit-test calls", () => {
+    const request = createParagraphLayoutRequest(280, { left: 12 });
+    const range = {
+      paragraphIndex: 0,
+      textStart: 0,
+      textEnd: 6,
+    };
+
+    expect(hitTestPreparedTextPosition(7, 0, request, 32, 10)).toEqual({
+      paragraphIndex: 0,
+      lineIndex: 0,
+      offset: 3,
+      lineTextStart: 0,
+      lineTextEnd: 6,
+      x: 32,
+      y: 10,
+      layoutEngine: "ios_core_text",
+      heightMetricSource: "platform_text_engine_metrics",
+    });
+    expect(layoutPreparedTextSelectionRects(7, range, request)).toEqual([
+      {
+        paragraphIndex: 0,
+        lineIndex: 0,
+        textStart: 0,
+        textEnd: 6,
+        left: 12,
+        top: 0,
+        width: 96,
+        height: 40,
+        layoutEngine: "ios_core_text",
+        heightMetricSource: "platform_text_engine_metrics",
+      },
+    ]);
+    expect(selectAllPreparedText(7, 0)).toEqual({
+      paragraphIndex: 0,
+      textStart: 0,
+      textEnd: 10,
+    });
+    expect(getPreparedTextSelection(7, range)).toBe("alpha");
+    expect(copyPreparedTextSelection(7, range)).toBe("alpha");
+
+    expect(
+      nativeParagraphEngineMock.hitTestPreparedTextPosition.mock.calls.at(-1),
+    ).toEqual([7, 0, request, 32, 10]);
+    expect(
+      nativeParagraphEngineMock.layoutPreparedTextSelectionRects.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([7, range, request]);
+    expect(
+      nativeParagraphEngineMock.selectAllPreparedText.mock.calls.at(-1),
+    ).toEqual([7, 0]);
+    expect(
+      nativeParagraphEngineMock.getPreparedTextSelection.mock.calls.at(-1),
+    ).toEqual([7, range]);
+    expect(
+      nativeParagraphEngineMock.copyPreparedTextSelection.mock.calls.at(-1),
+    ).toEqual([7, range]);
   });
 
   it("builds request objects and forwards request-based relayout calls", () => {

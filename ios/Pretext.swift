@@ -105,6 +105,64 @@ class Pretext: HybridPretextSpec {
         )
     }
 
+    public func hitTestPreparedTextPosition(
+        preparedId: Double,
+        paragraphIndex: Double,
+        request: ParagraphLayoutRequest,
+        x: Double,
+        y: Double
+    ) throws -> PreparedTextPosition {
+        try PretextShared.shared.hitTestPreparedTextPosition(
+            preparedId: preparedId,
+            paragraphIndex: paragraphIndex,
+            request: request,
+            x: x,
+            y: y
+        )
+    }
+
+    public func layoutPreparedTextSelectionRects(
+        preparedId: Double,
+        range: PreparedTextRange,
+        request: ParagraphLayoutRequest
+    ) throws -> [PreparedTextSelectionRect] {
+        try PretextShared.shared.layoutPreparedTextSelectionRects(
+            preparedId: preparedId,
+            range: range,
+            request: request
+        )
+    }
+
+    public func selectAllPreparedText(
+        preparedId: Double,
+        paragraphIndex: Double
+    ) throws -> PreparedTextRange {
+        try PretextShared.shared.selectAllPreparedText(
+            preparedId: preparedId,
+            paragraphIndex: paragraphIndex
+        )
+    }
+
+    public func getPreparedTextSelection(
+        preparedId: Double,
+        range: PreparedTextRange
+    ) throws -> String {
+        try PretextShared.shared.getPreparedTextSelection(
+            preparedId: preparedId,
+            range: range
+        )
+    }
+
+    public func copyPreparedTextSelection(
+        preparedId: Double,
+        range: PreparedTextRange
+    ) throws -> String {
+        try PretextShared.shared.copyPreparedTextSelection(
+            preparedId: preparedId,
+            range: range
+        )
+    }
+
     public func createParagraphLineCursor(
         preparedId: Double,
         paragraphIndex: Double,
@@ -166,6 +224,9 @@ class Pretext: HybridPretextSpec {
                     width: numberValue(segmentObject["width"]),
                     height: numberValue(segmentObject["height"]),
                     baseline: numberValue(segmentObject["baseline"]),
+                    accessibilityLabel: segmentObject["accessibilityLabel"] as? String,
+                    accessibilityHint: segmentObject["accessibilityHint"] as? String,
+                    accessibilityRole: segmentObject["accessibilityRole"] as? String,
                     fontFamily: segmentObject["fontFamily"] as? String,
                     fontSize: numberValue(segmentObject["fontSize"]),
                     lineHeight: numberValue(segmentObject["lineHeight"]),

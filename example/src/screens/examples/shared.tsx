@@ -69,6 +69,9 @@ export const INLINE_EXAMPLE: InlineSegment[] = [
     height: 34,
     baseline: 25,
     breakBehavior: "never",
+    accessibilityLabel: "Inline status badge",
+    accessibilityHint: "Decorative inline box reserved by native text layout",
+    accessibilityRole: "image",
   },
   {
     text: " while the rest of the paragraph keeps native shaping and line breaking across narrower widths.",

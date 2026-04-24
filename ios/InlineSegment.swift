@@ -8,6 +8,9 @@ struct InlineSegment {
     let width: Double?
     let height: Double?
     let baseline: Double?
+    let accessibilityLabel: String?
+    let accessibilityHint: String?
+    let accessibilityRole: String?
     let fontFamily: String?
     let fontSize: Double?
     let lineHeight: Double?

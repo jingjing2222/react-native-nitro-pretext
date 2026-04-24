@@ -1,5 +1,8 @@
 package com.margelo.nitro.pretext
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.text.LineBreaker
@@ -12,6 +15,7 @@ import java.text.BreakIterator
 import java.util.Locale
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
 import kotlin.math.min
@@ -21,6 +25,11 @@ internal object PretextShared {
   private val preparedCorpora = ConcurrentHashMap<Long, NativePreparedCorpus>()
   private val nextLineCursorId = AtomicLong(1)
   private val lineCursors = ConcurrentHashMap<Long, NativeLineCursor>()
+  @Volatile private var applicationContext: Context? = null
+
+  fun setApplicationContext(context: Context) {
+    applicationContext = context.applicationContext
+  }
 
   fun measure(text: String, fontFamily: String, fontSize: Double): Double {
     return measureToken(
@@ -282,6 +291,9 @@ internal object PretextShared {
       height = height,
       baseline = baseline,
       breakBehavior = segment.breakBehavior.lowercase(),
+      accessibilityLabel = segment.accessibilityLabel,
+      accessibilityHint = segment.accessibilityHint,
+      accessibilityRole = segment.accessibilityRole,
     )
   }
 
@@ -345,6 +357,107 @@ internal object PretextShared {
       preparedId,
       normalizeLayoutRequest(request),
     ).toTypedArray()
+  }
+
+  fun hitTestPreparedTextPosition(
+    preparedId: Double,
+    paragraphIndex: Double,
+    request: ParagraphLayoutRequest,
+    x: Double,
+    y: Double,
+  ): PreparedTextPosition {
+    val prepared = requirePreparedCorpus(preparedId)
+    val resolvedParagraphIndex = resolveParagraphIndex(prepared, paragraphIndex.toInt())
+    val paragraph = prepared.paragraphs[resolvedParagraphIndex]
+    val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[resolvedParagraphIndex]
+    val lineIndex = resolveLineIndex(lineLayouts, y)
+    val line = lineLayouts.getOrNull(lineIndex) ?: emptyLineLayout()
+    val offset = resolveOffsetForX(paragraph, line, x)
+
+    return PreparedTextPosition(
+      paragraphIndex = resolvedParagraphIndex.toDouble(),
+      lineIndex = lineIndex.toDouble(),
+      offset = offset.toDouble(),
+      lineTextStart = line.textStart.toDouble(),
+      lineTextEnd = line.textEnd.toDouble(),
+      x = x,
+      y = y,
+      layoutEngine = line.layoutEngine,
+      heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
+      fallbackReason = line.fallbackReason,
+    )
+  }
+
+  fun layoutPreparedTextSelectionRects(
+    preparedId: Double,
+    range: PreparedTextRange,
+    request: ParagraphLayoutRequest,
+  ): Array<PreparedTextSelectionRect> {
+    val prepared = requirePreparedCorpus(preparedId)
+    val paragraphIndex = resolveParagraphIndex(prepared, range.paragraphIndex.toInt())
+    val paragraph = prepared.paragraphs[paragraphIndex]
+    val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[paragraphIndex]
+    val textStart = min(range.textStart, range.textEnd).toInt().coerceIn(0, paragraph.text.length)
+    val textEnd = max(range.textStart, range.textEnd).toInt().coerceIn(0, paragraph.text.length)
+
+    return lineLayouts.mapIndexedNotNull { lineIndex, line ->
+      val rectStart = max(textStart, line.textStart)
+      val rectEnd = min(textEnd, line.textEnd)
+      if (rectEnd <= rectStart) {
+        return@mapIndexedNotNull null
+      }
+      val startX = measureParagraphAdvance(paragraph, line.textStart, rectStart)
+      val endX = measureParagraphAdvance(paragraph, line.textStart, rectEnd)
+      PreparedTextSelectionRect(
+        paragraphIndex = paragraphIndex.toDouble(),
+        lineIndex = lineIndex.toDouble(),
+        textStart = rectStart.toDouble(),
+        textEnd = rectEnd.toDouble(),
+        left = line.left + startX,
+        top = line.top,
+        width = max(1.0, endX - startX),
+        height = line.height,
+        layoutEngine = line.layoutEngine,
+        heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
+        fallbackReason = line.fallbackReason,
+      )
+    }.toTypedArray()
+  }
+
+  fun selectAllPreparedText(
+    preparedId: Double,
+    paragraphIndex: Double,
+  ): PreparedTextRange {
+    val prepared = requirePreparedCorpus(preparedId)
+    val resolvedParagraphIndex = resolveParagraphIndex(prepared, paragraphIndex.toInt())
+    return PreparedTextRange(
+      paragraphIndex = resolvedParagraphIndex.toDouble(),
+      textStart = 0.0,
+      textEnd = prepared.paragraphs[resolvedParagraphIndex].text.length.toDouble(),
+    )
+  }
+
+  fun getPreparedTextSelection(
+    preparedId: Double,
+    range: PreparedTextRange,
+  ): String {
+    val prepared = requirePreparedCorpus(preparedId)
+    val paragraphIndex = resolveParagraphIndex(prepared, range.paragraphIndex.toInt())
+    val text = prepared.paragraphs[paragraphIndex].text
+    val start = min(range.textStart, range.textEnd).toInt().coerceIn(0, text.length)
+    val end = max(range.textStart, range.textEnd).toInt().coerceIn(0, text.length)
+    return text.substring(start, end)
+  }
+
+  fun copyPreparedTextSelection(
+    preparedId: Double,
+    range: PreparedTextRange,
+  ): String {
+    val selectedText = getPreparedTextSelection(preparedId, range)
+    val clipboard = applicationContext
+      ?.getSystemService(Context.CLIPBOARD_SERVICE) as? ClipboardManager
+    clipboard?.setPrimaryClip(ClipData.newPlainText("Pretext selection", selectedText))
+    return selectedText
   }
 
   fun createParagraphLineCursor(
@@ -541,6 +654,16 @@ internal object PretextShared {
       ?: error("Prepared benchmark corpus $handle not found.")
   }
 
+  private fun resolveParagraphIndex(
+    prepared: NativePreparedCorpus,
+    requestedIndex: Int,
+  ): Int {
+    if (prepared.paragraphs.isEmpty()) {
+      error("Prepared benchmark corpus has no paragraphs.")
+    }
+    return requestedIndex.coerceIn(0, prepared.paragraphs.lastIndex)
+  }
+
   private fun resolveParagraphLineLayouts(
     prepared: NativePreparedCorpus,
     request: NativeLayoutRequest,
@@ -623,9 +746,89 @@ internal object PretextShared {
         width = box.width,
         height = box.height,
         baseline = baseline,
+        accessibilityLabel = box.accessibilityLabel,
+        accessibilityHint = box.accessibilityHint,
+        accessibilityRole = box.accessibilityRole,
       )
     }
     return frames
+  }
+
+  private fun resolveLineIndex(
+    lineLayouts: List<NativeLineLayout>,
+    y: Double,
+  ): Int {
+    if (lineLayouts.isEmpty()) {
+      return 0
+    }
+
+    val directHit = lineLayouts.indexOfFirst { line ->
+      y >= line.top && y <= line.top + line.height
+    }
+    if (directHit >= 0) {
+      return directHit
+    }
+
+    return if (y < lineLayouts.first().top) {
+      0
+    } else {
+      lineLayouts.lastIndex
+    }
+  }
+
+  private fun resolveOffsetForX(
+    paragraph: NativePreparedParagraph,
+    line: NativeLineLayout,
+    x: Double,
+  ): Int {
+    if (line.textEnd <= line.textStart) {
+      return line.textStart
+    }
+
+    val targetX = x - line.left
+    if (targetX <= 0.0) {
+      return line.textStart
+    }
+    if (targetX >= line.width) {
+      return line.textEnd
+    }
+
+    var low = line.textStart
+    var high = line.textEnd
+    while (low < high) {
+      val mid = (low + high) / 2
+      val advance = measureParagraphAdvance(paragraph, line.textStart, mid)
+      if (advance < targetX) {
+        low = mid + 1
+      } else {
+        high = mid
+      }
+    }
+
+    val candidate = low.coerceIn(line.textStart, line.textEnd)
+    val previous = (candidate - 1).coerceAtLeast(line.textStart)
+    val candidateX = measureParagraphAdvance(paragraph, line.textStart, candidate)
+    val previousX = measureParagraphAdvance(paragraph, line.textStart, previous)
+    return if (abs(candidateX - targetX) < abs(targetX - previousX)) {
+      candidate
+    } else {
+      previous
+    }
+  }
+
+  private fun emptyLineLayout(): NativeLineLayout {
+    return NativeLineLayout(
+      textStart = 0,
+      textEnd = 0,
+      width = 0.0,
+      left = 0.0,
+      top = 0.0,
+      height = 0.0,
+      ascent = 0.0,
+      descent = 0.0,
+      layoutEngine = LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK,
+      fallbackReason = FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE,
+    )
   }
 
   private fun measureParagraphAdvance(
@@ -1847,6 +2050,9 @@ internal data class NativeInlineBox(
   val height: Double,
   val baseline: Double,
   val breakBehavior: String,
+  val accessibilityLabel: String?,
+  val accessibilityHint: String?,
+  val accessibilityRole: String?,
 )
 
 internal class NativePreparedCorpus(
