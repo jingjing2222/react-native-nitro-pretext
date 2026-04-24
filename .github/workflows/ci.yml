@@ -61,6 +61,9 @@ jobs:
       - name: Verify API example map
         run: yarn verify:api-examples
 
+      - name: Verify native source size
+        run: yarn verify:native-source-size
+
   codegen:
     runs-on: ubuntu-latest
 

@@ -6,7 +6,7 @@ const path = require("node:path");
 const rootDir = path.resolve(__dirname, "..");
 const maxLines = 900;
 const sourceRoots = ["android/src/main/java/com/margelo/nitro/pretext", "ios"];
-const sourcePattern = /^(Pretext.*\.(kt|swift))$/;
+const sourcePattern = /\.(kt|swift)$/;
 
 function listNativeSources(relativeDir) {
   const dir = path.join(rootDir, relativeDir);
@@ -17,11 +17,20 @@ function listNativeSources(relativeDir) {
     .map((entry) => path.join(relativeDir, entry.name));
 }
 
+function countLines(source) {
+  if (source.length === 0) {
+    return 0;
+  }
+
+  const newlineCount = source.split("\n").length - 1;
+  return source.endsWith("\n") ? newlineCount : newlineCount + 1;
+}
+
 const violations = sourceRoots
   .flatMap(listNativeSources)
   .map((relativePath) => {
     const absolutePath = path.join(rootDir, relativePath);
-    const lineCount = fs.readFileSync(absolutePath, "utf8").split("\n").length;
+    const lineCount = countLines(fs.readFileSync(absolutePath, "utf8"));
 
     return { lineCount, relativePath };
   })

@@ -88,9 +88,20 @@ internal func isRtlScalar(_ scalar: UnicodeScalar) -> Bool {
         || (0x06EE...0x06EF).contains(scalar.value)
         || (0x06FA...0x06FC).contains(scalar.value)
         || scalar.value == 0x06FF
+        || (0x0700...0x074F).contains(scalar.value)
         || (0x0750...0x077F).contains(scalar.value)
+        || (0x0780...0x07BF).contains(scalar.value)
+        || (0x07C0...0x07FF).contains(scalar.value)
+        || (0x0800...0x083F).contains(scalar.value)
+        || (0x0840...0x085F).contains(scalar.value)
+        || (0x0860...0x086F).contains(scalar.value)
+        || (0x0870...0x089F).contains(scalar.value)
         || (0x08A0...0x08FF).contains(scalar.value)
+        || (0x10AC0...0x10AFF).contains(scalar.value)
+        || (0x10D00...0x10D3F).contains(scalar.value)
         || (0xFB1D...0xFDFF).contains(scalar.value)
+        || (0x1E800...0x1E8DF).contains(scalar.value)
+        || (0x1E900...0x1E95F).contains(scalar.value)
         || (0xFE70...0xFEFF).contains(scalar.value)
 }
 

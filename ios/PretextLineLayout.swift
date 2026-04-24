@@ -237,17 +237,21 @@ internal func isRtlText(
 }
 
 internal func normalizeLayoutRequest(_ request: ParagraphLayoutRequest) -> NativeLayoutRequest {
-    let shapeSlices = request.shapeSlices.map { slice in
-        NativeShapeSlice(
-            top: finiteOrDefault(slice.top, fallback: 0),
-            height: max(0, finiteOrDefault(slice.height, fallback: 0)),
-            left: finiteOrDefault(slice.left, fallback: 0),
-            width: max(1, finiteOrDefault(slice.width, fallback: 1))
-        )
+    var indexedShapeSlices: [(Int, NativeShapeSlice)] = []
+    for item in request.shapeSlices.enumerated() {
+        indexedShapeSlices.append((item.offset, NativeShapeSlice(
+            top: finiteOrDefault(item.element.top, fallback: 0),
+            height: max(0, finiteOrDefault(item.element.height, fallback: 0)),
+            left: finiteOrDefault(item.element.left, fallback: 0),
+            width: max(1, finiteOrDefault(item.element.width, fallback: 1))
+        )))
     }
-    .sorted { left, right in
-        left.top < right.top
-    }
+    let shapeSlices = indexedShapeSlices.sorted { left, right in
+        if left.1.top == right.1.top {
+            return left.0 < right.0
+        }
+        return left.1.top < right.1.top
+    }.map { $0.1 }
 
     return NativeLayoutRequest(
         width: max(1, finiteOrDefault(request.width, fallback: 1)),

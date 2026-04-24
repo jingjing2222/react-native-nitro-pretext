@@ -47,6 +47,25 @@ describe("benchmark diagnostics", () => {
     });
   });
 
+  it("preserves iOS manual token fallback in native diagnostics", () => {
+    const nativeDiagnostics = {
+      driftKinds: [],
+      heightMetricDrivers: [],
+      heightMetricSource: "platform_text_engine_metrics",
+      layoutEngine: "ios_manual_token_fallback",
+    } as unknown as Parameters<typeof createBenchmarkDiagnosticsFromNative>[1];
+
+    expect(
+      createBenchmarkDiagnosticsFromNative(
+        "pretext-compute",
+        nativeDiagnostics,
+        "ios",
+      ),
+    ).toMatchObject({
+      layoutEngine: "ios_manual_token_fallback",
+    });
+  });
+
   it("keeps RN Text as a compatibility oracle bucket", () => {
     expect(createBenchmarkDiagnostics("baseline", "android")).toMatchObject({
       includeFontPadding: true,

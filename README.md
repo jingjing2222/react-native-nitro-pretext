@@ -253,6 +253,7 @@ yarn lint
 yarn fmt:check
 yarn test
 yarn verify:api-examples
+yarn verify:native-source-size
 yarn build
 yarn verify:package-exports
 ```

@@ -269,6 +269,7 @@ function isBenchmarkLayoutEngine(
     "android_measured_text_line_breaker",
     "android_static_layout_compat",
     "ios_core_text",
+    "ios_manual_token_fallback",
     "rn_text_compat",
     "unknown",
   ].includes(layoutEngine);

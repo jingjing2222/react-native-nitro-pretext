@@ -333,9 +333,6 @@ private func collectDriftKinds(
         appendDrift(driftAlgorithmRule)
         appendDrift(driftLineBreakStrategy)
     }
-    if !corpus.baseStyle.includeFontPadding {
-        appendDrift(driftPadding)
-    }
     if paragraph.runs.contains(where: { !$0.style.locale.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
         appendDrift(driftLocaleMetric)
     }
