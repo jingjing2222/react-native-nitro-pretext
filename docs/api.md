@@ -21,12 +21,13 @@ workarounds live under `examples/non-use-case/*`.
 
 | Dependency                   | Package range         | Notes                                               |
 | ---------------------------- | --------------------- | --------------------------------------------------- |
+| React                        | `*`                   | App-supplied peer; current validation uses 19.2.3.  |
 | React Native                 | `>=0.81.0`            | Package peer floor; current validation uses 0.85.0. |
 | `react-native-nitro-modules` | `*`                   | Nitro runtime dependency used by the native module. |
 | Example app                  | React Native `0.85.0` | Current local validation and native build target.   |
 
-Pretext keeps its Nitro Modules peer range open. The stricter React Native
-`>=0.81.0` peer floor is defined by Pretext, and
+Pretext keeps its React and Nitro Modules peer ranges open. The stricter React
+Native `>=0.81.0` peer floor is defined by Pretext, and
 `react-native-nitro-modules` remains `*`.
 
 ## Platform Contract
@@ -264,7 +265,7 @@ type PretextDiagnosticsLayout = {
 | `layoutEngine`            | `android_measured_text_line_breaker`, `android_static_layout_compat`, `android_legacy_fallback`, `ios_core_text`, or `ios_manual_token_fallback`. |
 | `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                          |
 | `fallbackReason`          | Present when a fallback path was used, for example `static_layout_compat` or `manual_height_estimate`.                                            |
-| `driftKinds`              | `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, and related classes.                                                   |
+| `driftKinds`              | Native layout drift classes such as `engine_drift`, `padding_drift`, `algorithm_rule_drift`, `height_metric_drift`, and related classes.          |
 | `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                          |
 | `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                           |
 | `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                                                                      |
@@ -448,6 +449,42 @@ implementation.
 ## Types
 
 The type helpers in this section are exported from the package root.
+
+Root export summary:
+
+| Type                                   | Description                                                          |
+| -------------------------------------- | -------------------------------------------------------------------- |
+| `PretextSource`                        | Accepted source shape for plain paragraphs or inline segment groups. |
+| `PretextStyle`                         | Public style input accepted by `prepare()` and `usePretextLayout()`. |
+| `ParagraphStyle`                       | Native style contract that backs `PretextStyle`.                     |
+| `ParagraphTextDirection`               | `"auto"`, `"ltr"`, or `"rtl"` text direction policy.                 |
+| `PretextLayoutInput`                   | Width shorthand or full layout options object.                       |
+| `PretextLayoutOptions`                 | Layout request options passed to `layout()` or `usePretextLayout()`. |
+| `PretextLayoutOutput`                  | `"metrics"`, `"lines"`, `"diagnostics"`, or `"rich"`.                |
+| `PretextLayout`                        | Union of all layout return shapes.                                   |
+| `PretextMetricsLayout`                 | Return shape for `output: "metrics"`.                                |
+| `PretextLinesLayout`                   | Return shape for `output: "lines"`.                                  |
+| `PretextDiagnosticsLayout`             | Return shape for `output: "diagnostics"`.                            |
+| `PretextRichLayout`                    | Return shape for `output: "rich"`.                                   |
+| `PretextPrepared`                      | Opaque prepared object returned by `prepare()`.                      |
+| `UsePretextLayoutOptions`              | Hook input shape.                                                    |
+| `UsePretextLayoutResult`               | Hook result shape.                                                   |
+| `PrepareParagraphStats`                | Cold prepare timing and corpus counters.                             |
+| `ParagraphShapeSlice`                  | Per-band width/left constraint used by layout options.               |
+| `InlineSegment`                        | Text or atomic box segment for rich inline layout.                   |
+| `InlineBoxFrame`                       | Returned box geometry for rich inline layout.                        |
+| `LaidOutParagraphMetrics`              | Per-paragraph metrics result.                                        |
+| `LaidOutParagraphLines`                | Per-paragraph line geometry result.                                  |
+| `LaidOutParagraphLinesWithDiagnostics` | Per-paragraph diagnostics result.                                    |
+| `LaidOutRichParagraphLines`            | Per-paragraph rich inline result.                                    |
+| `ParagraphLineRange`                   | Source UTF-16 range and native line geometry.                        |
+| `ParagraphLayoutDiagnostics`           | Native engine, rule, drift, boundary, and line diagnostics.          |
+| `ParagraphBreakOpportunity`            | Break opportunity entry in diagnostics.                              |
+| `ParagraphAtomicSpan`                  | Atomic span entry in diagnostics.                                    |
+| `ParagraphBreakTable`                  | Hard/native/grapheme/atomic break table.                             |
+| `ParagraphBoundaryMap`                 | UTF-16, grapheme, run, break, atomic, and violation boundaries.      |
+| `ParagraphComplexShapeCounters`        | Bidi, emoji, complex cluster, and violation counters.                |
+| `ParagraphLineDiagnostics`             | Per-line diagnostics entry.                                          |
 
 ### `PretextSource`
 

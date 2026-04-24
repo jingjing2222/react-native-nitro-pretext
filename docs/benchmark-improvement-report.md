@@ -193,11 +193,11 @@ runs report `ios_core_text`; degraded fallback diagnostics may report
 `ios_manual_token_fallback`. StaticLayout compat diagnostics include
 `fallbackReason: "static_layout_compat"`.
 
-The gate checks layout-only timing, prepare/measure bounds, parity report
-presence, layout engine, renderer kind, parity role, Android
-`includeFontPadding`, and height metric source. RN `<Text>` mismatch counts
-remain diagnostic because RN `<Text>` is a compatibility oracle, not the
-canonical correctness source.
+The gate checks layout-only timing, prepare/measure bounds, minimum parity
+sample counts, layout engine, renderer kind, parity role, Android
+`includeFontPadding`, and height metric source. RN `<Text>` mismatch counts and
+line/text drift counts remain diagnostic because RN `<Text>` is a compatibility
+oracle, not the canonical correctness source.
 
 Static API example coverage is CI-safe:
 

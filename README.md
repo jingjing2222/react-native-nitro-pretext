@@ -131,14 +131,15 @@ StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
 | Dependency                   | Package range | Current validation                                      |
 | ---------------------------- | ------------- | ------------------------------------------------------- |
+| React                        | `*`           | Example app and local checks use React `19.2.3`.        |
 | React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
 | `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                       |
 | Android                      | API 24+       | API 29+ normal-wrap requests are the canonical target.  |
 | iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
 
-Pretext keeps its `react-native-nitro-modules` peer range open as `*` and
-documents/enforces its own React Native peer floor as `>=0.81.0`. Current local
-validation is on React Native `0.85.0`.
+Pretext keeps its React and `react-native-nitro-modules` peer ranges open as
+`*` and documents/enforces its own React Native peer floor as `>=0.81.0`.
+Current local validation is on React `19.2.3` and React Native `0.85.0`.
 
 ## Performance Snapshot
 
@@ -188,8 +189,9 @@ npm install react-native-nitro-pretext react-native-nitro-modules
 `react-native-nitro-modules` is required because Pretext is exposed as a Nitro
 Module.
 
-Pretext declares React Native `>=0.81.0` as its peer minimum. The bundled
-example app is currently on React Native `0.85.0`.
+React and React Native are peer dependencies supplied by your app. Pretext
+declares React Native `>=0.81.0` as its peer minimum. The bundled example app
+is currently on React `19.2.3` and React Native `0.85.0`.
 
 ## Example App
 
