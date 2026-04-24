@@ -35,10 +35,9 @@ LineBreaker` path.
   paths and is not the canonical parity or performance target.
 - iOS uses Core Text `CTTypesetter + CTLine`.
 - Android `includeFontPadding` defaults to `true` to align with RN `<Text>`.
+- React and `react-native-nitro-modules` keep open peer ranges as `*`.
 - React Native `>=0.81.0` is the package peer floor. The example app and
-  latest local validation use React Native `0.85.0`.
-- `react-native-nitro-modules` and `nitrogen` were updated to the latest
-  `0.35.5` line.
+  latest local validation use React `19.2.3` and React Native `0.85.0`.
 - The package now exposes a React Native condition that points Metro at the
   source entry so platform resolution can select the native Nitro bridge.
 
@@ -48,5 +47,11 @@ Documentation and examples were rebuilt around the layout-only contract:
   `usePretextLayout` only.
 - API-matched examples live under `examples/use-case/*`; matching RN-only
   workaround examples live under `examples/non-use-case/*`.
-- Benchmark docs now separate API examples from benchmark case studies and
-  record the latest manual local iOS Maestro suite result.
+- Benchmark docs now separate API examples from benchmark case studies, report
+  iOS and Android numbers separately, and show the measured-layout improvement
+  percentage for the hidden RN `<Text onLayout>` path versus `Pretext.layout()`.
+- The latest local Android API 36 Maestro suite passes the layout-only benchmark
+  gate; RN `<Text>` parity drift remains diagnostic and is not the correctness
+  source.
+- Added `ts-prune` as a development dead-export check and removed stale
+  TypeScript/example exports found during the audit.
