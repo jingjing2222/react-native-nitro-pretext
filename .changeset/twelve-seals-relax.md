@@ -34,6 +34,8 @@ Native layout contract:
   paths and is not the canonical parity or performance target.
 - iOS uses Core Text `CTTypesetter + CTLine`.
 - Android `includeFontPadding` defaults to `true` to align with RN `<Text>`.
+- `react-native-nitro-modules` and `nitrogen` were updated to the latest
+  `0.35.5` line.
 
 Documentation and examples were rebuilt around the layout-only contract:
 
