@@ -31,11 +31,7 @@ export type PreTextSource =
 export type PreTextStyle = Omit<ParagraphStyle, "letterSpacing" | "locale"> &
   Partial<Pick<ParagraphStyle, "letterSpacing" | "locale">>;
 
-export type PreTextLayoutOutput =
-  | "metrics"
-  | "lines"
-  | "diagnostics"
-  | "rich";
+export type PreTextLayoutOutput = "metrics" | "lines" | "diagnostics" | "rich";
 
 export type PreTextLayoutOptions = {
   left?: number;
@@ -105,7 +101,10 @@ export function prepare(
 ): PreTextPrepared {
   const resolvedStyle = normalizeStyle(style);
   const result = isInlineSource(text)
-    ? prepareInlineParagraphsWithStats(toMutableInlineParagraphs(text), resolvedStyle)
+    ? prepareInlineParagraphsWithStats(
+        toMutableInlineParagraphs(text),
+        resolvedStyle,
+      )
     : prepareParagraphsWithStats(toTextParagraphs(text), resolvedStyle);
   const record: PreparedRecord = {
     nativeState: result.prepared,
@@ -154,7 +153,10 @@ export function layout(
   if (options.output === "lines") {
     return {
       output: "lines",
-      paragraphs: layoutParagraphLinesWithRequest(record.nativeState.id, request),
+      paragraphs: layoutParagraphLinesWithRequest(
+        record.nativeState.id,
+        request,
+      ),
     };
   }
 
@@ -298,11 +300,7 @@ function normalizeStyle(style: PreTextStyle): ParagraphStyle {
 function isInlineSource(
   source: PreTextSource,
 ): source is readonly (readonly InlineSegment[])[] {
-  return (
-    Array.isArray(source) &&
-    source.length > 0 &&
-    Array.isArray(source[0])
-  );
+  return Array.isArray(source) && source.length > 0 && Array.isArray(source[0]);
 }
 
 function toTextParagraphs(source: string | readonly string[]): string[] {

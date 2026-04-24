@@ -1,34 +1,128 @@
 # react-native-nitro-pretext
 
-Native paragraph layout for React Native screens that need text geometry before render.
+Text height before render for React Native.
 
-`react-native-nitro-pretext` prepares paragraph state once, relayouts it cheaply across widths or shape constraints, and renders it through native paragraph surfaces. It is built for feeds, chat bubbles, bottom sheets, editorial layouts, dashboards, and any UI where text height is an input to the rest of the layout.
+`react-native-nitro-pretext` is a layout-only native text engine. It lets a
+screen ask for paragraph height, line count, line ranges, diagnostics, and rich
+inline box frames before mounting the visible UI. It does not render text for
+you, and it does not use hidden `<Text onLayout>` measurement views.
 
-## Why
+## Why It Exists
 
-React Native `<Text>` is excellent for rendering text, but it only tells you final width and height after mount through `onLayout` / `onTextLayout`. That forces a two-pass pattern:
+Many React Native layouts need text geometry before they can place visible
+content:
 
-1. render hidden text for measurement
-2. wait for layout callbacks
-3. compute the real layout
+- masonry cards
+- chat bubbles that choose a tight width
+- bottom sheets and split views
+- dashboard annotations beside charts
+- editorial layouts with shape constraints
+- localized copy where emoji, fallback fonts, CJK, RTL, or complex scripts can
+  change height
+
+With plain RN `<Text>`, the common path is:
+
+1. render a hidden measurement tree
+2. wait for `onLayout` or `onTextLayout`
+3. calculate the real layout
 4. render the visible UI
 
-This library moves the paragraph geometry step into native text engines so you can ask for line count, height, line ranges, selection rects, and inline box frames before mounting the final surface.
+PreText moves step 1 and 2 into native text engines so height is available
+before the visible surface mounts.
 
-Height is not guessed from `fontSize`. It comes from platform text metrics: font metrics, `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text direction, and line breaking.
+## Core API
 
-## Highlights
+```ts
+import {
+  PreText,
+  prepare,
+  layout,
+  usePreTextLayout,
+} from "react-native-nitro-pretext";
+```
 
-- prepare once, layout many
-- Android canonical path: `MeasuredText + LineBreaker` on API 29+
-- iOS canonical path: Core Text `CTTypesetter + CTLine + CTLineDraw`
-- batched native renderer: `PreparedParagraphsView`
-- single-paragraph native renderer: `PreparedParagraphView`
-- request-based relayout with `shapeSlices`, `left`, `whiteSpace`, and `wordBreak`
-- rich inline text runs and caller-supplied atomic inline boxes
-- prepared selection helpers: hit testing, selection rects, select-all, text readback, copy
-- diagnostics for engine, renderer, padding, break tables, complex shaping, and drift
-- lifecycle hooks that release native prepared state automatically
+Manual lifecycle:
+
+```ts
+const prepared = prepare("Text that affects layout", {
+  fontFamily: "System",
+  fontSize: 16,
+  lineHeight: 24,
+  includeFontPadding: true,
+});
+
+const result = layout(prepared, { width: 280 });
+const height = result.paragraphs[0]?.height ?? 0;
+
+prepared.release();
+```
+
+React lifecycle:
+
+```tsx
+const result = usePreTextLayout({
+  text: "Text that affects layout",
+  width: 280,
+  style: {
+    fontFamily: "System",
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  output: "metrics",
+});
+```
+
+Namespace style is also supported:
+
+```ts
+const prepared = PreText.prepare(text, style);
+const metrics = PreText.layout(prepared, { width });
+```
+
+## What It Does Not Do
+
+- No public renderer component.
+- No native drawing surface.
+- No hidden RN measurement view.
+- No `fontSize * lineCount` height heuristic.
+- No browser canvas pixel-parity target.
+
+Your visible UI stays normal React Native `View` and `Text`. PreText only
+returns the layout data you need before render.
+
+## Native Engines
+
+Height is native text-engine output. It is affected by font metrics,
+`lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
+direction, and the platform line breaking strategy.
+
+| Platform          | Layout path                       | Status                                                              |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
+| Android API 24-28 | named legacy fallback             | Supported, but not the canonical parity path.                       |
+| iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
+| RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
+
+Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
+If you turn it off in PreText but leave RN `<Text>` at its default, height can
+drift.
+
+## Performance Snapshot
+
+Latest local iOS example validation: April 24, 2026, iPhone 16 simulator,
+debug build.
+
+| Path                             |        Time | Notes                                        |
+| -------------------------------- | ----------: | -------------------------------------------- |
+| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.         |
+| `PreText.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.    |
+| Example improvement              |     `98.8%` | Demonstration screen, not release-device CI. |
+
+Historical iOS release-style benchmark data and validation limits are in the
+[Benchmark Report](docs/benchmark-improvement-report.md). Android
+release-device numbers are not published yet, so Android speedup claims should
+wait for a target-device run. Android correctness and performance expectations
+are API 29+ unless stated otherwise.
 
 ## Install
 
@@ -36,70 +130,16 @@ Height is not guessed from `fontSize`. It comes from platform text metrics: font
 npm install react-native-nitro-pretext react-native-nitro-modules
 ```
 
-`react-native-nitro-modules` is required because the native engine is exposed through Nitro Modules.
-
-## Quick Start
-
-Use the hook in app code so native prepared state is released on unmount or dependency change.
-
-```tsx
-import { useMemo } from "react";
-import {
-  PreparedParagraphView,
-  layoutParagraphsMetadata,
-  usePreparedParagraphs,
-  type ParagraphStyle,
-} from "react-native-nitro-pretext";
-
-const style: ParagraphStyle = {
-  fontFamily: "System",
-  fontSize: 18,
-  lineHeight: 28,
-  letterSpacing: 0,
-  locale: "ko-KR",
-  includeFontPadding: true,
-  textDirection: "auto",
-};
-
-export function CardCopy() {
-  const texts = useMemo(
-    () => ["Prepare native paragraph state once, then relayout by width."],
-    [],
-  );
-  const { prepared, stats } = usePreparedParagraphs(texts, style);
-  const width = 280;
-  const [metrics] =
-    prepared === null ? [] : layoutParagraphsMetadata(prepared.id, width);
-
-  if (prepared === null || metrics === undefined) {
-    return null;
-  }
-
-  return (
-    <PreparedParagraphView
-      layoutWidth={width}
-      paragraphHeight={metrics.height}
-      paragraphIndex={0}
-      paragraphStyle={style}
-      prepared={prepared}
-      style={{ width }}
-    />
-  );
-}
-```
-
-For all APIs, props, accepted values, and lifecycle guidance, see [API Reference](docs/api.md).
+`react-native-nitro-modules` is required because PreText is exposed as a Nitro
+Module.
 
 ## Example App
 
-The example app includes focused routes for renderer usage and real layout problems:
+The example app focuses on the layout-only problem:
 
-- `examples/measured-layout`: hidden `<Text onLayout>` measurement pass vs prepared native metrics in a masonry layout
-- `examples/prepared-view`: native paragraph surface
-- `examples/inline-segments`: styled inline runs and atomic boxes
-- `examples/line-cursor`: line streaming for custom renderers
-- `examples/slites/*`: accordion height prediction, bubble width search, obstacle-aware layout, rich note comparison
-- `benchmark/*`: BaseText vs prepared native batch benchmark pages
+- `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
+  `PreText.layout()` before render
+- `benchmark/*`: compatibility and benchmark screens used during validation
 
 Run it locally:
 
@@ -108,38 +148,8 @@ yarn example:ios
 yarn example:android
 ```
 
-## Performance Snapshot
-
-Latest validated iOS suite snapshot: April 24, 2026.
-
-| Path                         |    Baseline |    Prepared |                           Result |
-| ---------------------------- | ----------: | ----------: | -------------------------------: |
-| Batched native render median | `231.35 ms` |  `67.08 ms` |                   `71.0% faster` |
-| Batched native render p95    | `364.52 ms` | `103.79 ms` |                   `71.5% faster` |
-| Hot relayout only            | RN internal |   `0.18 ms` |             isolated native path |
-| Prepare once                 |         n/a |  `48.10 ms` | amortized after about 1 relayout |
-
-Read the benchmark details and limits in [Benchmark Report](docs/benchmark-improvement-report.md).
-
-Important validation status:
-
-- The iOS numbers above are measured and useful for direction.
-- Android release-device benchmark numbers are not published yet because no Android device was connected during the latest local verification.
-- Do not claim Android speedups from the iOS snapshot. Android adoption confidence requires an Android release-device benchmark on the target device class.
-- Android performance and accuracy claims are for API 29+ canonical `MeasuredText + LineBreaker`.
-- Android API 24-28 is supported as a named legacy fallback, but it is not the canonical parity path.
-
-## Platform Accuracy
-
-The renderer and measurement engine must match. If you measure with one engine and render with another, pixel-level drift is expected.
-
-This library keeps canonical prepared paths aligned:
-
-- Android API 29+: `MeasuredText + LineBreaker` for layout and native drawing records
-- iOS: Core Text for layout and drawing
-- RN `<Text>`: compatibility oracle and fallback signal, not the correctness source
-
-Android `includeFontPadding` is explicit and defaults to `true` for RN compatibility. Turning it off changes height and should be treated as an intentional rendering policy change.
+If local Watchman is broken, the example Metro config already falls back to the
+Node filesystem watcher.
 
 ## Documentation
 
@@ -153,7 +163,7 @@ Android `includeFontPadding` is explicit and defaults to `true` for RN compatibi
 yarn typecheck
 yarn lint
 yarn fmt:check
-yarn test --runInBand
+yarn test
 yarn build
 ```
 

@@ -1,9 +1,4 @@
-export {
-  layout,
-  prepare,
-  PreText,
-  usePreTextLayout,
-} from "./PreText";
+export { layout, prepare, PreText, usePreTextLayout } from "./PreText";
 export type {
   PreTextDiagnosticsLayout,
   PreTextLayout,

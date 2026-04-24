@@ -1,361 +1,360 @@
 # API Reference
 
-This document is the detailed reference for public APIs, component props, accepted values, and lifecycle rules.
+PreText is layout-only. The public runtime API is:
 
-## Lifecycle Rule
-
-Prepared paragraph state is stored in a native map. Every state created by `prepareParagraphs()`, `prepareParagraphsWithStats()`, `prepareInlineParagraphs()`, or `prepareInlineParagraphsWithStats()` must eventually be released with `releaseParagraphs(prepared.id)`.
-
-Recommended app code should use `usePreparedParagraphs()` or `usePreparedInlineParagraphs()` so cleanup is automatic.
-
-```tsx
-const texts = useMemo(() => ["Body copy"], []);
-const style = useMemo<ParagraphStyle>(
-  () => ({
-    fontFamily: "System",
-    fontSize: 16,
-    lineHeight: 24,
-    letterSpacing: 0,
-    locale: "ko-KR",
-    includeFontPadding: true,
-    textDirection: "auto",
-  }),
-  [],
-);
-const { prepared, stats, isPreparing, error } = usePreparedParagraphs(
-  texts,
-  style,
-);
+```ts
+import {
+  PreText,
+  prepare,
+  layout,
+  usePreTextLayout,
+} from "react-native-nitro-pretext";
 ```
 
-Keep `texts`, `paragraphs`, and `style` stable with `useMemo` when they are created inside a component. The hook treats changed object identity as a new preparation request.
+There are no public renderer components and no public raw native ids.
 
 ## Platform Contract
 
-| Platform          | Canonical path                                 | Notes                                                                                  |
-| ----------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`                   | Performance and accuracy claims target this path.                                      |
-| Android API 24-28 | named legacy fallback                          | Supported, but not canonical parity. Do not use API 24-28 numbers as canonical claims. |
-| iOS               | Core Text `CTTypesetter + CTLine + CTLineDraw` | Layout and native drawing use the same Core Text artifacts.                            |
-| RN `<Text>`       | compatibility oracle / fallback signal         | Useful for comparing drift, not the correctness source.                                |
+| Platform          | Layout path                       | Notes                                                               |
+| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
+| Android API 24-28 | named legacy fallback             | Supported, but not canonical parity. Do not benchmark as canonical. |
+| iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
+| RN `<Text>`       | final visible renderer            | Not the correctness source. Match render styles to reduce drift.    |
 
-Height is native text-engine output. Do not compute paragraph height from `fontSize`; real height depends on font metrics, explicit `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text direction, and line breaking.
+Height is not derived from `fontSize`. It depends on font metrics,
+`lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
+direction, and the platform line breaking strategy.
 
-## Hooks
+Since PreText does not own the final pixels, your visible RN `<Text>` style must
+match the style used for PreText layout. The biggest Android footgun is
+`includeFontPadding`: RN `<Text>` defaults it to `true`, and PreText also
+defaults it to `true`. Changing one side without the other can change height.
 
-### `usePreparedParagraphs(texts, style, options?)`
+## `prepare(text, style)`
 
-Prepares plain text paragraphs and releases the native prepared state when the component unmounts or dependencies change.
+Prepares native paragraph state and returns an opaque JS object. The native id
+is intentionally hidden.
+
+```ts
+const prepared = prepare(["Title", "Body"], {
+  fontFamily: "System",
+  fontSize: 16,
+  lineHeight: 24,
+});
+```
 
 Parameters:
 
-| Name      | Type                           | Description                                                  |
-| --------- | ------------------------------ | ------------------------------------------------------------ |
-| `texts`   | `string[]`                     | Source paragraphs. Public offsets are UTF-16 source offsets. |
-| `style`   | `ParagraphStyle`               | Base text style used by native measurement/layout.           |
-| `options` | `UsePreparedParagraphsOptions` | Optional lifecycle options.                                  |
+| Name    | Type            | Required | Description                                           |
+| ------- | --------------- | -------- | ----------------------------------------------------- |
+| `text`  | `PreTextSource` | yes      | A string, string array, or inline segment paragraphs. |
+| `style` | `PreTextStyle`  | yes      | Native text style used for shaping and line breaking. |
+
+Returns `PreTextPrepared`:
+
+| Field            | Type                    | Description                                         |
+| ---------------- | ----------------------- | --------------------------------------------------- |
+| `paragraphCount` | `number`                | Number of prepared paragraphs.                      |
+| `stats`          | `PrepareParagraphStats` | Cold prepare timing and corpus stats.               |
+| `release()`      | `() => void`            | Releases native state. Safe to call more than once. |
+
+Manual lifecycle rule:
+
+```ts
+const prepared = prepare(text, style);
+try {
+  return layout(prepared, { width: 320 });
+} finally {
+  prepared.release();
+}
+```
+
+Calling `layout()` after `prepared.release()` throws
+`"PreText prepared layout has already been released."`.
+
+## `layout(prepared, options)`
+
+Layouts a prepared object for a width and optional request rules.
+
+```ts
+const metrics = layout(prepared, {
+  width: 320,
+  output: "metrics",
+});
+```
+
+Parameters:
+
+| Name       | Type                   | Required | Description                                  |
+| ---------- | ---------------------- | -------- | -------------------------------------------- |
+| `prepared` | `PreTextPrepared`      | yes      | Object returned by `prepare()`.              |
+| `options`  | `PreTextLayoutOptions` | yes      | Width, output mode, and optional rule layer. |
+
+`PreTextLayoutOptions`:
+
+| Prop          | Type                                              | Default     | Description                                                  |
+| ------------- | ------------------------------------------------- | ----------- | ------------------------------------------------------------ |
+| `width`       | `number`                                          | required    | Available text width.                                        |
+| `output`      | `"metrics" \| "lines" \| "diagnostics" \| "rich"` | `"metrics"` | Amount of layout data to return.                             |
+| `left`        | `number`                                          | `0`         | Base x offset for returned line geometry.                    |
+| `shapeSlices` | `ParagraphShapeSlice[]`                           | `[]`        | Per-band constraints for obstacle-aware layout.              |
+| `whiteSpace`  | `"normal" \| "pre" \| string`                     | `"normal"`  | Whitespace rule. Current native support is normal/pre.       |
+| `wordBreak`   | `"normal" \| "break-all" \| string`               | `"normal"`  | Word break rule. Current native support is normal/break-all. |
+
+Return value depends on `output`.
+
+### `output: "metrics"`
+
+Default output. Use this for height-before-render placement.
+
+```ts
+type PreTextMetricsLayout = {
+  output: "metrics";
+  paragraphs: LaidOutParagraphMetrics[];
+};
+```
+
+`LaidOutParagraphMetrics`:
+
+| Field          | Type     | Description                  |
+| -------------- | -------- | ---------------------------- |
+| `lineCount`    | `number` | Number of native text lines. |
+| `height`       | `number` | Native paragraph height.     |
+| `maxLineWidth` | `number` | Widest line width.           |
+
+### `output: "lines"`
+
+Returns line ranges and geometry for custom placement or hit testing that you
+own outside this package.
+
+```ts
+type PreTextLinesLayout = {
+  output: "lines";
+  paragraphs: LaidOutParagraphLines[];
+};
+```
+
+`ParagraphLineRange`:
+
+| Field       | Type     | Description                 |
+| ----------- | -------- | --------------------------- |
+| `textStart` | `number` | Source UTF-16 start offset. |
+| `textEnd`   | `number` | Source UTF-16 end offset.   |
+| `top`       | `number` | Line top.                   |
+| `left`      | `number` | Line x offset.              |
+| `width`     | `number` | Line width.                 |
+| `height`    | `number` | Line height.                |
+| `ascent`    | `number` | Native ascent.              |
+| `descent`   | `number` | Native descent.             |
+
+### `output: "diagnostics"`
+
+Returns line geometry plus engine, rule, drift, and boundary diagnostics.
+
+```ts
+type PreTextDiagnosticsLayout = {
+  output: "diagnostics";
+  paragraphs: LaidOutParagraphLinesWithDiagnostics[];
+};
+```
+
+Important diagnostics fields:
+
+| Field                     | Description                                                                                              |
+| ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| `normalizedRequest`       | Request actually used by native layout.                                                                  |
+| `ruleLayer`               | PreText rule layer over native engines.                                                                  |
+| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                             |
+| `layoutEngine`            | `android_measured_text_line_breaker`, `android_legacy_fallback`, or `ios_core_text`.                     |
+| `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                 |
+| `fallbackReason`          | Present when a degraded fallback path was used.                                                          |
+| `driftKinds`              | `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, and related classes.          |
+| `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`. |
+| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                  |
+| `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                             |
+| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                            |
+| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                            |
+
+### `output: "rich"`
+
+Returns line geometry plus inline box frames.
+
+```ts
+type PreTextRichLayout = {
+  output: "rich";
+  paragraphs: LaidOutRichParagraphLines[];
+};
+```
+
+`InlineBoxFrame`:
+
+| Field                | Type     | Description                                       |
+| -------------------- | -------- | ------------------------------------------------- |
+| `boxId`              | `string` | Caller-supplied box id.                           |
+| `paragraphIndex`     | `number` | Paragraph containing the box.                     |
+| `lineIndex`          | `number` | Line containing the box.                          |
+| `textStart`          | `number` | Source UTF-16 start offset of replacement span.   |
+| `textEnd`            | `number` | Source UTF-16 end offset of replacement span.     |
+| `left`               | `number` | Box x position.                                   |
+| `top`                | `number` | Box y position.                                   |
+| `width`              | `number` | Caller-supplied box width.                        |
+| `height`             | `number` | Caller-supplied box height.                       |
+| `baseline`           | `number` | Caller-supplied baseline offset.                  |
+| `accessibilityLabel` | `string` | Optional metadata echoed from the inline segment. |
+| `accessibilityHint`  | `string` | Optional metadata echoed from the inline segment. |
+| `accessibilityRole`  | `string` | Optional metadata echoed from the inline segment. |
+
+## `usePreTextLayout(options)`
+
+React hook that prepares native state, runs layout, and releases native state
+on unmount or dependency change.
+
+```tsx
+const result = usePreTextLayout({
+  text,
+  width,
+  style,
+  output: "metrics",
+});
+```
 
 Options:
 
-| Prop        | Type      | Default | Description                                                                                                                                            |
-| ----------- | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `enabled`   | `boolean` | `true`  | When `false`, no native state is prepared and any previous state from the hook is released by React effect cleanup.                                    |
-| `withStats` | `boolean` | `true`  | When `true`, uses `prepareParagraphsWithStats()` and returns prepare timing stats. When `false`, uses `prepareParagraphs()` and returns `stats: null`. |
+| Prop          | Type                    | Required | Default     | Description                                   |
+| ------------- | ----------------------- | -------- | ----------- | --------------------------------------------- |
+| `text`        | `PreTextSource`         | yes      | n/a         | Source string, strings, or inline paragraphs. |
+| `style`       | `PreTextStyle`          | yes      | n/a         | Native layout style.                          |
+| `width`       | `number`                | yes      | n/a         | Available text width.                         |
+| `enabled`     | `boolean`               | no       | `true`      | When `false`, no native state is prepared.    |
+| `output`      | `PreTextLayoutOutput`   | no       | `"metrics"` | Layout output mode.                           |
+| `left`        | `number`                | no       | `0`         | Base x offset.                                |
+| `shapeSlices` | `ParagraphShapeSlice[]` | no       | `[]`        | Per-band constraints.                         |
+| `whiteSpace`  | `string`                | no       | `"normal"`  | Whitespace rule.                              |
+| `wordBreak`   | `string`                | no       | `"normal"`  | Word break rule.                              |
 
 Return value:
 
-| Field         | Type                             | Description                                                      |
-| ------------- | -------------------------------- | ---------------------------------------------------------------- |
-| `prepared`    | `PreparedParagraphState \| null` | Native prepared state. Pass this to layout/render APIs.          |
-| `stats`       | `PrepareParagraphStats \| null`  | Cold preparation timing when `withStats` is enabled.             |
-| `isPreparing` | `boolean`                        | `true` while the hook is preparing state for the current inputs. |
-| `error`       | `unknown \| null`                | Error thrown by the native prepare call, if any.                 |
+| Field            | Type                            | Description                                        |
+| ---------------- | ------------------------------- | -------------------------------------------------- |
+| `layout`         | `PreTextLayout \| null`         | Layout output, or `null` while disabled/preparing. |
+| `stats`          | `PrepareParagraphStats \| null` | Prepare timing, or `null` before prepare finishes. |
+| `paragraphCount` | `number`                        | Prepared paragraph count.                          |
+| `isPreparing`    | `boolean`                       | `true` while the hook is preparing current inputs. |
+| `error`          | `unknown \| null`               | Error thrown by native prepare, if any.            |
 
-### `usePreparedInlineParagraphs(paragraphs, style, options?)`
+Keep `text`, `style`, `shapeSlices`, and other object/array inputs stable with
+`useMemo` when they are created inside a component. Changed object identity
+means the hook prepares or lays out again.
 
-Same lifecycle behavior as `usePreparedParagraphs()`, but accepts `InlineSegment[][]` for styled runs and atomic boxes.
+## `PreText`
 
-## Preparation APIs
+Namespace object with the same functions:
 
-### `prepareParagraphs(texts, style)`
+```ts
+PreText.prepare(text, style);
+PreText.layout(prepared, options);
+PreText.usePreTextLayout(options);
+```
 
-Creates native prepared state for plain text paragraphs.
+Use either named functions or the namespace object. They call the same
+implementation.
 
-Returns `PreparedParagraphState`.
+## Types
 
-### `prepareParagraphsWithStats(texts, style)`
+### `PreTextSource`
 
-Creates native prepared state and returns cold setup stats.
+```ts
+type PreTextSource =
+  | string
+  | readonly string[]
+  | readonly (readonly InlineSegment[])[];
+```
 
-Returns `PreparedParagraphResult`.
+String sources prepare plain paragraphs. Inline segment sources prepare styled
+runs and optional atomic boxes.
 
-### `prepareInlineParagraphs(paragraphs, style)`
+### `PreTextStyle`
 
-Creates native prepared state from `InlineSegment[][]`.
+| Field                | Type                       | Required | Default  | Description                                      |
+| -------------------- | -------------------------- | -------- | -------- | ------------------------------------------------ |
+| `fontFamily`         | `string`                   | yes      | n/a      | Platform font family, for example `"System"`.    |
+| `fontSize`           | `number`                   | yes      | n/a      | RN point size. Not enough to derive height.      |
+| `lineHeight`         | `number`                   | yes      | n/a      | Explicit line height.                            |
+| `letterSpacing`      | `number`                   | no       | `0`      | RN-style letter spacing.                         |
+| `locale`             | `string`                   | no       | `""`     | BCP-47 locale such as `"ko-KR"` or `"en-US"`.    |
+| `fontWeight`         | `string`                   | no       | platform | Weight such as `"400"`, `"700"`, or `"bold"`.    |
+| `fontStyle`          | `string`                   | no       | platform | Usually `"normal"` or `"italic"`.                |
+| `includeFontPadding` | `boolean`                  | no       | `true`   | Android padding policy, aligned with RN default. |
+| `textDirection`      | `"auto" \| "ltr" \| "rtl"` | no       | `"auto"` | Direction policy. Offsets remain source UTF-16.  |
 
-### `prepareInlineParagraphsWithStats(paragraphs, style)`
+### `PrepareParagraphStats`
 
-Creates native inline prepared state and returns cold setup stats.
-
-### `releaseParagraphs(preparedId)`
-
-Releases native prepared state. Required when not using the lifecycle hooks.
-
-## Measurement APIs
-
-### `measure(text, fontFamily, fontSize)`
-
-Measures a single string with the platform text backend.
-
-### `measureBatch(texts, fontFamily, fontSize)`
-
-Measures many strings in one native call. This is mainly a low-level measurement primitive used during preparation.
-
-## Layout APIs
-
-### Width-only layout
-
-| API                                           | Return                      | Description                                                                                     |
-| --------------------------------------------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
-| `layoutParagraphs(preparedId, width)`         | `LaidOutParagraph[]`        | Returns `brokenText`, `lineCount`, `height`, and `maxLineWidth`.                                |
-| `layoutParagraphsMetadata(preparedId, width)` | `LaidOutParagraphMetrics[]` | Returns line count and height without materializing broken text. Prefer for renderer placement. |
-| `layoutParagraphLines(preparedId, width)`     | `LaidOutParagraphLines[]`   | Returns explicit line ranges and geometry.                                                      |
-
-### Request-based layout
-
-| API                                                        | Return                                   | Description                                             |
-| ---------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------- |
-| `createParagraphLayoutRequest(width, overrides?)`          | `ParagraphLayoutRequest`                 | Normalizes request defaults.                            |
-| `layoutParagraphsWithRequest(preparedId, request)`         | `LaidOutParagraph[]`                     | Text layout with shape and break policy.                |
-| `layoutParagraphsMetadataWithRequest(preparedId, request)` | `LaidOutParagraphMetrics[]`              | Metadata-only request layout.                           |
-| `layoutParagraphLinesWithRequest(preparedId, request)`     | `LaidOutParagraphLines[]`                | Line geometry request layout.                           |
-| `layoutParagraphLinesWithDiagnostics(preparedId, request)` | `LaidOutParagraphLinesWithDiagnostics[]` | Line geometry plus engine/renderer/drift diagnostics.   |
-| `layoutRichParagraphLines(preparedId, request)`            | `LaidOutRichParagraphLines[]`            | Line geometry plus `InlineBoxFrame[]` for inline boxes. |
-
-### Cursor layout
-
-| API                                                              | Return                     | Description                                     |
-| ---------------------------------------------------------------- | -------------------------- | ----------------------------------------------- |
-| `createParagraphLineCursor(preparedId, paragraphIndex, request)` | `ParagraphLineCursorState` | Opens a native cursor for one paragraph layout. |
-| `nextParagraphLine(cursorId)`                                    | `ParagraphLineCursorStep`  | Returns the next line until `done: true`.       |
-| `releaseParagraphLineCursor(cursorId)`                           | `void`                     | Releases cursor state.                          |
-
-Always release cursors manually. The paragraph lifecycle hooks do not own line cursors.
-
-## Selection APIs
-
-| API                                                                      | Return                        | Description                                                  |
-| ------------------------------------------------------------------------ | ----------------------------- | ------------------------------------------------------------ |
-| `hitTestPreparedTextPosition(preparedId, paragraphIndex, request, x, y)` | `PreparedTextPosition`        | Maps a point to source UTF-16 offset and line bounds.        |
-| `layoutPreparedTextSelectionRects(preparedId, range, request)`           | `PreparedTextSelectionRect[]` | Returns selection highlight rectangles.                      |
-| `selectAllPreparedText(preparedId, paragraphIndex)`                      | `PreparedTextRange`           | Selects the full source paragraph.                           |
-| `getPreparedTextSelection(preparedId, range)`                            | `string`                      | Reads selected source text.                                  |
-| `copyPreparedTextSelection(preparedId, range)`                           | `string`                      | Copies selected text to the native clipboard and returns it. |
-
-Editing and paste are out of scope. Prepared text is selectable/copyable, not an editable text input.
-
-## Renderer Components
-
-All renderer components accept their listed props plus the React Native props shown in the type definition.
-
-### `PreparedParagraphView`
-
-Single native paragraph surface. Use this when one prepared paragraph is rendered by one native surface.
-
-Props:
-
-| Prop                       | Type                              | Required | Description                                                                                  |
-| -------------------------- | --------------------------------- | -------- | -------------------------------------------------------------------------------------------- |
-| `prepared`                 | `PreparedParagraphState`          | yes      | Prepared state from a hook or prepare API.                                                   |
-| `paragraphIndex`           | `number`                          | yes      | Paragraph index inside `prepared`.                                                           |
-| `paragraphStyle`           | `ParagraphStyle`                  | yes      | Style used by native drawing. Match the style used at prepare time.                          |
-| `layoutWidth`              | `number`                          | yes      | Text layout width, excluding content inset.                                                  |
-| `paragraphHeight`          | `number`                          | yes      | Height from `layoutParagraphsMetadata*()`.                                                   |
-| `layoutRequest`            | `Partial<ParagraphLayoutRequest>` | no       | Shape/break overrides. Defaults are produced by `createParagraphLayoutRequest(layoutWidth)`. |
-| `contentInsetHorizontal`   | `number`                          | no       | Left content inset. Default `0`.                                                             |
-| `contentInsetVertical`     | `number`                          | no       | Top/bottom content inset. Default `0`.                                                       |
-| `textColor`                | `string`                          | no       | Native text color. Default `#22211f`.                                                        |
-| `selectable`               | `boolean`                         | no       | Enables prepared selection overlay and gestures. Default `false`.                            |
-| `selection`                | `PreparedTextRange \| null`       | no       | Controlled selection. If omitted, the component owns internal selection.                     |
-| `onSelectionChange`        | `(selection) => void`             | no       | Called when selection changes.                                                               |
-| `onSelectionCopy`          | `(text) => void`                  | no       | Called after long-press copy.                                                                |
-| `selectAllOnLongPress`     | `boolean`                         | no       | Selects all text on long press. Default `true`.                                              |
-| `copySelectionOnLongPress` | `boolean`                         | no       | Copies after long press selection. Default `true`.                                           |
-| `selectionColor`           | `string`                          | no       | Highlight color. Default `rgba(31, 95, 84, 0.22)`.                                           |
-| `style`                    | `StyleProp<ViewStyle>`            | no       | Surface style. Height is resolved from `paragraphHeight + contentInsetVertical * 2`.         |
-
-### `PreparedParagraphsView`
-
-Batched native renderer for a prepared corpus. Prefer this for benchmark-like lists or feeds because it avoids mounting one RN `<Text>` per paragraph.
-
-Props:
-
-| Prop                     | Type                              | Required | Description                                                              |
-| ------------------------ | --------------------------------- | -------- | ------------------------------------------------------------------------ |
-| `prepared`               | `PreparedParagraphState`          | yes      | Prepared corpus.                                                         |
-| `paragraphStyle`         | `ParagraphStyle`                  | yes      | Style used by native drawing.                                            |
-| `layoutWidth`            | `number`                          | yes      | Text layout width.                                                       |
-| `paragraphMetrics`       | `LaidOutParagraphMetrics[]`       | yes      | Metrics for every paragraph, usually from `layoutParagraphsMetadata*()`. |
-| `layoutRequest`          | `Partial<ParagraphLayoutRequest>` | no       | Shared request overrides for the batch.                                  |
-| `paragraphGap`           | `number`                          | no       | Vertical gap between paragraphs. Default `0`.                            |
-| `contentInsetHorizontal` | `number`                          | no       | Left content inset per paragraph. Default `0`.                           |
-| `contentInsetVertical`   | `number`                          | no       | Top/bottom inset per paragraph. Default `0`.                             |
-| `textColor`              | `string`                          | no       | Native text color. Default `#22211f`.                                    |
-| `style`                  | `StyleProp<ViewStyle>`            | no       | Batch surface style. Height is resolved from metrics, insets, and gaps.  |
-
-### `PreparedParagraphLinesView`
-
-JS renderer that positions one RN `<Text>` node per native line range. Use for custom renderer experiments, not as the fastest path.
-
-Props:
-
-| Prop                     | Type                                     | Required | Description                                                                                                                                           |
-| ------------------------ | ---------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `prepared`               | `PreparedParagraphState`                 | yes      | Prepared state.                                                                                                                                       |
-| `paragraphIndex`         | `number`                                 | yes      | Paragraph index.                                                                                                                                      |
-| `paragraphText`          | `string`                                 | yes      | Source paragraph text for slicing line ranges.                                                                                                        |
-| `paragraphStyle`         | `ParagraphStyle`                         | yes      | Base text style.                                                                                                                                      |
-| `layoutWidth`            | `number`                                 | yes      | Text layout width.                                                                                                                                    |
-| `layoutRequest`          | `Partial<ParagraphLayoutRequest>`        | no       | Request overrides.                                                                                                                                    |
-| `includeFontPadding`     | `boolean`                                | no       | RN Text line node padding. Default `false` because this is a compat/custom renderer helper. Make it explicit when comparing with Android RN `<Text>`. |
-| `contentInsetHorizontal` | `number`                                 | no       | Left inset. Default `0`.                                                                                                                              |
-| `contentInsetVertical`   | `number`                                 | no       | Top/bottom inset. Default `0`.                                                                                                                        |
-| `lineTextProps`          | `Omit<TextProps, "children" \| "style">` | no       | Extra props for each line `<Text>`.                                                                                                                   |
-| `textColor`              | `string`                                 | no       | Line text color. Default `#22211f`.                                                                                                                   |
-| `textStyle`              | `StyleProp<TextStyle>`                   | no       | Additional per-line style.                                                                                                                            |
-| `style`                  | `StyleProp<ViewStyle>`                   | no       | Container style.                                                                                                                                      |
-
-### `PreparedParagraphText`
-
-Compatibility renderer that materializes prepared line breaks back into a single RN `<Text>`.
-
-Props:
-
-| Prop             | Type                              | Required | Description        |
-| ---------------- | --------------------------------- | -------- | ------------------ |
-| `prepared`       | `PreparedParagraphState`          | yes      | Prepared state.    |
-| `paragraphIndex` | `number`                          | yes      | Paragraph index.   |
-| `layoutWidth`    | `number`                          | yes      | Text layout width. |
-| `layoutRequest`  | `Partial<ParagraphLayoutRequest>` | no       | Request overrides. |
-| `style`          | `StyleProp<TextStyle>`            | no       | RN Text style.     |
-
-All other `TextProps` except `children` are accepted.
-
-## Types And Props
-
-### `ParagraphStyle`
-
-| Field                | Type                       | Required | Values / notes                                                                                       |
-| -------------------- | -------------------------- | -------- | ---------------------------------------------------------------------------------------------------- |
-| `fontFamily`         | `string`                   | yes      | Platform font family, for example `"System"`.                                                        |
-| `fontSize`           | `number`                   | yes      | Font size in React Native points. Not enough to derive height by itself.                             |
-| `lineHeight`         | `number`                   | yes      | Explicit line height. Native font metrics can still affect top/bottom padding and fallback behavior. |
-| `letterSpacing`      | `number`                   | yes      | React Native-style letter spacing.                                                                   |
-| `locale`             | `string`                   | yes      | BCP-47 style locale such as `"ko-KR"` or `"en-US"`.                                                  |
-| `fontWeight`         | `string`                   | no       | Platform/RN weight string such as `"400"`, `"700"`, or `"bold"`.                                     |
-| `fontStyle`          | `string`                   | no       | Usually `"normal"` or `"italic"`.                                                                    |
-| `includeFontPadding` | `boolean`                  | no       | Android padding policy. Defaults to `true` for RN compatibility. Reported in Android diagnostics.    |
-| `textDirection`      | `"auto" \| "ltr" \| "rtl"` | no       | Defaults to `"auto"`. Visual order belongs to native rendering; public offsets remain source UTF-16. |
-
-### `ParagraphLayoutRequest`
-
-| Field         | Type                    | Required | Values / notes                                                       |
-| ------------- | ----------------------- | -------- | -------------------------------------------------------------------- |
-| `width`       | `number`                | yes      | Available text width.                                                |
-| `left`        | `number`                | yes      | Base x offset. Defaults to `0` via `createParagraphLayoutRequest()`. |
-| `whiteSpace`  | `string`                | yes      | Supported values: `"normal"`, `"pre"`.                               |
-| `wordBreak`   | `string`                | yes      | Supported values: `"normal"`, `"break-all"`.                         |
-| `shapeSlices` | `ParagraphShapeSlice[]` | yes      | Per-band layout constraints. Defaults to `[]`.                       |
+| Field              | Type     | Description                         |
+| ------------------ | -------- | ----------------------------------- |
+| `tokenizeMs`       | `number` | Time spent tokenizing source text.  |
+| `measurementMs`    | `number` | Time spent in native text metrics.  |
+| `buildPreparedMs`  | `number` | Time spent building prepared state. |
+| `totalMs`          | `number` | End-to-end prepare time.            |
+| `paragraphCount`   | `number` | Paragraph count.                    |
+| `totalTokenCount`  | `number` | Total prepared token count.         |
+| `uniqueTokenCount` | `number` | Unique token count.                 |
 
 ### `ParagraphShapeSlice`
 
-| Field    | Type     | Description                           |
-| -------- | -------- | ------------------------------------- |
-| `top`    | `number` | Vertical start of the band.           |
-| `height` | `number` | Band height.                          |
-| `left`   | `number` | Text x offset inside the band.        |
-| `width`  | `number` | Available text width inside the band. |
+| Field    | Type     | Description                             |
+| -------- | -------- | --------------------------------------- |
+| `top`    | `number` | Vertical start of the constrained band. |
+| `height` | `number` | Band height.                            |
+| `left`   | `number` | Text x offset inside the band.          |
+| `width`  | `number` | Available text width inside the band.   |
 
 ### `InlineSegment`
 
 Text segment fields:
 
-| Field           | Type     | Required             | Description                                                                                |
-| --------------- | -------- | -------------------- | ------------------------------------------------------------------------------------------ |
-| `text`          | `string` | yes for text segment | Source text.                                                                               |
-| `breakBehavior` | `string` | yes                  | Supported values: `"normal"`, `"never"`. `"never"` keeps the segment atomic when possible. |
-| `kind`          | `string` | no                   | Omit or use a non-`"box"` value for text.                                                  |
-| `fontFamily`    | `string` | no                   | Segment override.                                                                          |
-| `fontSize`      | `number` | no                   | Segment override.                                                                          |
-| `lineHeight`    | `number` | no                   | Segment override.                                                                          |
-| `letterSpacing` | `number` | no                   | Segment override.                                                                          |
-| `locale`        | `string` | no                   | Segment override.                                                                          |
-| `fontWeight`    | `string` | no                   | Segment override.                                                                          |
-| `fontStyle`     | `string` | no                   | Segment override.                                                                          |
+| Field           | Type     | Required             | Description                               |
+| --------------- | -------- | -------------------- | ----------------------------------------- |
+| `text`          | `string` | yes for text segment | Source text.                              |
+| `breakBehavior` | `string` | yes                  | `"normal"` or `"never"`.                  |
+| `kind`          | `string` | no                   | Omit or use a non-`"box"` value for text. |
+| `fontFamily`    | `string` | no                   | Segment style override.                   |
+| `fontSize`      | `number` | no                   | Segment style override.                   |
+| `lineHeight`    | `number` | no                   | Segment style override.                   |
+| `letterSpacing` | `number` | no                   | Segment style override.                   |
+| `locale`        | `string` | no                   | Segment locale override.                  |
+| `fontWeight`    | `string` | no                   | Segment weight override.                  |
+| `fontStyle`     | `string` | no                   | Segment style override.                   |
 
 Box segment fields:
 
-| Field                | Type     | Required | Description                                          |
-| -------------------- | -------- | -------- | ---------------------------------------------------- |
-| `kind`               | `"box"`  | yes      | Marks an atomic inline box.                          |
-| `boxId`              | `string` | yes      | Stable caller-owned id returned in `InlineBoxFrame`. |
-| `width`              | `number` | yes      | Box width supplied by the caller.                    |
-| `height`             | `number` | yes      | Box height supplied by the caller.                   |
-| `baseline`           | `number` | yes      | Baseline offset supplied by the caller.              |
-| `breakBehavior`      | `string` | yes      | Use `"never"` for atomic wrapping.                   |
-| `accessibilityLabel` | `string` | no       | Metadata returned in `InlineBoxFrame`.               |
-| `accessibilityHint`  | `string` | no       | Metadata returned in `InlineBoxFrame`.               |
-| `accessibilityRole`  | `string` | no       | Metadata returned in `InlineBoxFrame`.               |
+| Field                | Type     | Required | Description                             |
+| -------------------- | -------- | -------- | --------------------------------------- |
+| `kind`               | `"box"`  | yes      | Marks an atomic inline box.             |
+| `boxId`              | `string` | yes      | Stable id returned in `InlineBoxFrame`. |
+| `width`              | `number` | yes      | Caller-supplied box width.              |
+| `height`             | `number` | yes      | Caller-supplied box height.             |
+| `baseline`           | `number` | yes      | Caller-supplied baseline offset.        |
+| `breakBehavior`      | `string` | yes      | Use `"never"` for atomic wrapping.      |
+| `accessibilityLabel` | `string` | no       | Metadata returned in `InlineBoxFrame`.  |
+| `accessibilityHint`  | `string` | no       | Metadata returned in `InlineBoxFrame`.  |
+| `accessibilityRole`  | `string` | no       | Metadata returned in `InlineBoxFrame`.  |
 
-### Layout Output Types
+## Performance Guidance
 
-| Type                      | Fields                                                                                                                               |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `PreparedParagraphState`  | `id`, `paragraphCount`                                                                                                               |
-| `PreparedParagraphResult` | `prepared`, `stats`                                                                                                                  |
-| `PrepareParagraphStats`   | `tokenizeMs`, `measurementMs`, `buildPreparedMs`, `totalMs`, `paragraphCount`, `totalTokenCount`, `uniqueTokenCount`                 |
-| `LaidOutParagraph`        | `brokenText`, `lineCount`, `height`, `maxLineWidth`                                                                                  |
-| `LaidOutParagraphMetrics` | `lineCount`, `height`, `maxLineWidth`                                                                                                |
-| `LaidOutParagraphLines`   | `lineCount`, `height`, `maxLineWidth`, `lines`                                                                                       |
-| `ParagraphLineRange`      | `textStart`, `textEnd`, `top`, `left`, `width`, `height`, `ascent`, `descent`                                                        |
-| `InlineBoxFrame`          | `boxId`, `paragraphIndex`, `lineIndex`, `textStart`, `textEnd`, `left`, `top`, `width`, `height`, `baseline`, accessibility metadata |
+- `prepare()` is the cold step. It is usually measurement-bound.
+- `layout()` with `output: "metrics"` is the hot path for height-before-render.
+- `output: "lines"` returns more geometry and should be used only when needed.
+- `output: "diagnostics"` is for tests, gates, and debugging drift.
+- `output: "rich"` is for inline boxes and returns `InlineBoxFrame[]`.
+- `usePreTextLayout()` has the same native cost as `prepare()` plus `layout()`,
+  but handles release automatically.
 
-### Selection Types
+## Compatibility Notes
 
-| Type                        | Fields                                                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `PreparedTextPosition`      | `paragraphIndex`, `lineIndex`, `offset`, `lineTextStart`, `lineTextEnd`, `x`, `y`, `layoutEngine`, `heightMetricSource`, `fallbackReason?`       |
-| `PreparedTextRange`         | `paragraphIndex`, `textStart`, `textEnd`                                                                                                         |
-| `PreparedTextSelectionRect` | `paragraphIndex`, `lineIndex`, `textStart`, `textEnd`, `left`, `top`, `width`, `height`, `layoutEngine`, `heightMetricSource`, `fallbackReason?` |
-
-### Diagnostics Types
-
-`layoutParagraphLinesWithDiagnostics()` and `layoutRichParagraphLines()` expose:
-
-| Field                     | Description                                                                                                                                                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normalizedRequest`       | The request actually used by native layout.                                                                                                                                                                                              |
-| `ruleLayer`               | Rule layer name, currently pretext-style rules over native engines.                                                                                                                                                                      |
-| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not the target.                                                                                                                                                                           |
-| `textDirection`           | Resolved paragraph direction policy.                                                                                                                                                                                                     |
-| `layoutEngine`            | Engine name such as `android_measured_text_line_breaker`, `android_legacy_fallback`, or `ios_core_text`.                                                                                                                                 |
-| `heightMetricSource`      | Source of height metrics, normally `platform_text_engine_metrics`.                                                                                                                                                                       |
-| `fallbackReason`          | Present when a degraded fallback path was used.                                                                                                                                                                                          |
-| `driftKinds`              | Drift classes such as `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, `height_metric_drift`, `line_break_strategy_drift`, `fallback_font_drift`, `emoji_metric_drift`, `locale_metric_drift`, `compat_drift`. |
-| `heightMetricDrivers`     | Known drivers of height differences: `font_metrics`, `explicit_line_height`, `fallback_font`, `emoji_fallback`, `locale`, `include_font_padding`, `line_break_strategy`.                                                                 |
-| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                                                                                                                  |
-| `boundaryMap`             | UTF-16 length, grapheme/run/hard-break/native-soft-break/atomic-span boundaries, and cluster violations.                                                                                                                                 |
-| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                                                                                                                                                            |
-| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster violation data.                                                                                                                                                  |
-
-## Benchmark Compatibility APIs
-
-These are kept for benchmark/corpus compatibility:
-
-| API                                                   | Description                                   |
-| ----------------------------------------------------- | --------------------------------------------- |
-| `prepareBenchmarkCorpus(texts, fontFamily, fontSize)` | Prepares text with a minimal benchmark style. |
-| `layoutPreparedBenchmarkCorpus(preparedId, width)`    | Width-only benchmark layout alias.            |
-| `releasePreparedBenchmarkCorpus(preparedId)`          | Release alias.                                |
-
-Prefer the normal preparation/layout APIs in product code.
+- Browser canvas pixel parity is explicitly out of scope.
+- Public offsets are source UTF-16 offsets.
+- Visual order belongs to the final renderer.
+- Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or
+  complex-script clusters in caller code.
+- Android API 24-28 is a supported fallback, not the canonical parity target.

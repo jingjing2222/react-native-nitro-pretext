@@ -237,14 +237,11 @@ describe("react-native-nitro-pretext public API", () => {
   });
 
   it("prepares inline paragraph sources through the serialized native path", () => {
-    PublicApi.prepare(
-      [[{ text: "@pretext", breakBehavior: "never" }]],
-      {
-        fontFamily: "System",
-        fontSize: 16,
-        lineHeight: 24,
-      },
-    );
+    PublicApi.prepare([[{ text: "@pretext", breakBehavior: "never" }]], {
+      fontFamily: "System",
+      fontSize: 16,
+      lineHeight: 24,
+    });
 
     expect(
       nativeParagraphEngineMock.prepareInlineParagraphSegmentsWithStats.mock.calls.at(
@@ -304,8 +301,9 @@ describe("react-native-nitro-pretext public API", () => {
       lineHeight: 24,
     });
 
-    expect(PublicApi.PreText.layout(prepared, { output: "lines", width: 260 }))
-      .toMatchObject({ output: "lines", paragraphs: [{ lineCount: 2 }] });
+    expect(
+      PublicApi.PreText.layout(prepared, { output: "lines", width: 260 }),
+    ).toMatchObject({ output: "lines", paragraphs: [{ lineCount: 2 }] });
     expect(
       PublicApi.PreText.layout(prepared, {
         output: "diagnostics",
@@ -315,11 +313,12 @@ describe("react-native-nitro-pretext public API", () => {
       output: "diagnostics",
       paragraphs: [{ diagnostics: { layoutEngine: "ios_core_text" } }],
     });
-    expect(PublicApi.PreText.layout(prepared, { output: "rich", width: 260 }))
-      .toMatchObject({
-        output: "rich",
-        paragraphs: [{ boxFrames: [{ boxId: "avatar" }] }],
-      });
+    expect(
+      PublicApi.PreText.layout(prepared, { output: "rich", width: 260 }),
+    ).toMatchObject({
+      output: "rich",
+      paragraphs: [{ boxFrames: [{ boxId: "avatar" }] }],
+    });
   });
 
   it("releases prepared native state once and rejects later layout calls", () => {

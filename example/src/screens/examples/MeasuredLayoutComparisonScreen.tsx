@@ -314,8 +314,7 @@ export function MeasuredLayoutComparisonScreen() {
       ).length,
     [onLayoutMeasurements, layoutKey],
   );
-  const onLayoutReady =
-    onLayoutMeasuredCount === MEASURED_LAYOUT_CARDS.length;
+  const onLayoutReady = onLayoutMeasuredCount === MEASURED_LAYOUT_CARDS.length;
   const onLayoutMasonry = useMemo(() => {
     if (!onLayoutReady) {
       return null;
@@ -788,10 +787,7 @@ function TextCard({
         },
       ]}
     >
-      <CardChrome
-        card={card}
-        label={`Column ${card.columnIndex + 1}`}
-      />
+      <CardChrome card={card} label={`Column ${card.columnIndex + 1}`} />
       <Text
         allowFontScaling={false}
         style={[

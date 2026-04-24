@@ -104,8 +104,8 @@
       "<rootDir>/dist/",
       "<rootDir>/lib/"
     ],
-    "watchman": false,
-    "preset": "@react-native/jest-preset"
+    "preset": "@react-native/jest-preset",
+    "watchman": false
   },
   "packageManager": "yarn@4.11.0",
   "create-react-native-library": {

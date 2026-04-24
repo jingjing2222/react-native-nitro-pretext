@@ -49,9 +49,9 @@ export function HomeScreen({ navigation }: Props) {
             Measure text height before visible render.
           </Text>
           <Text style={styles.subtitle}>
-            Benchmarks measure relayout cost. The example screen shows a
-            complex RN layout that normally waits for hidden onLayout
-            measurement, then compares it with PreText layout metrics.
+            Benchmarks measure relayout cost. The example screen shows a complex
+            RN layout that normally waits for hidden onLayout measurement, then
+            compares it with PreText layout metrics.
           </Text>
 
           <View style={styles.metricRow}>
@@ -87,8 +87,7 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
             Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then PreText batch layout, and come back here for the combined
-            read.
+            then PreText batch layout, and come back here for the combined read.
           </Text>
           <View style={styles.summaryMetricList}>
             <SummaryMetric
