@@ -15,6 +15,7 @@ internal let heightMetricSourcePlatformTextEngineMetrics = "platform_text_engine
 internal let ruleLayerPretextNative = "pretext_native_rules"
 internal let breakKindHard = "hard_break"
 internal let breakKindNativeSoft = "native_soft_break"
+internal let breakSourceNewline = "source_newline"
 internal let driftAlgorithmRule = "algorithm_rule_drift"
 internal let driftClusterBoundary = "cluster_boundary_drift"
 internal let driftEmojiMetric = "emoji_metric_drift"
@@ -75,13 +76,27 @@ private func isIndicVirama(_ scalar: UnicodeScalar) -> Bool {
 }
 
 private func isRtlScalar(_ scalar: UnicodeScalar) -> Bool {
-    (0x0590...0x08FF).contains(scalar.value)
+    if CharacterSet.decimalDigits.contains(scalar) || isCombiningMark(scalar) {
+        return false
+    }
+
+    return (0x05D0...0x05EA).contains(scalar.value)
+        || (0x0620...0x064A).contains(scalar.value)
+        || (0x066E...0x066F).contains(scalar.value)
+        || (0x0671...0x06D3).contains(scalar.value)
+        || scalar.value == 0x06D5
+        || (0x06E5...0x06E6).contains(scalar.value)
+        || (0x06EE...0x06EF).contains(scalar.value)
+        || (0x06FA...0x06FC).contains(scalar.value)
+        || scalar.value == 0x06FF
+        || (0x0750...0x077F).contains(scalar.value)
+        || (0x08A0...0x08FF).contains(scalar.value)
         || (0xFB1D...0xFDFF).contains(scalar.value)
         || (0xFE70...0xFEFF).contains(scalar.value)
 }
 
 private func isLtrScalar(_ scalar: UnicodeScalar) -> Bool {
-    CharacterSet.letters.contains(scalar)
+    CharacterSet.letters.contains(scalar) && !isRtlScalar(scalar)
 }
 
 internal struct NativeTokenDescriptor {
@@ -986,7 +1001,7 @@ internal final class PretextShared {
     ) -> Bool {
         let length = max(0, line.textEndUTF16 - line.textStartUTF16)
         guard length > 0 else {
-            return textDirection == .rtl
+            return isRtlText("", textDirection: textDirection, textLocale: textLocale)
         }
 
         let text = paragraph.text.substring(
@@ -1007,7 +1022,7 @@ internal final class PretextShared {
             return true
         case .auto:
             guard !text.isEmpty else {
-                return false
+                return isRtlLocale(textLocale)
             }
             for scalar in text.unicodeScalars {
                 if isRtlScalar(scalar) {
@@ -1165,7 +1180,7 @@ internal final class PretextShared {
                     ParagraphBreakOpportunity(
                         offset: Double(range.location + range.length),
                         kind: breakKindHard,
-                        source: "source_text"
+                        source: breakSourceNewline
                     )
                 )
             }
@@ -1390,10 +1405,10 @@ internal final class PretextShared {
     private func normalizeLayoutRequest(_ request: ParagraphLayoutRequest) -> NativeLayoutRequest {
         let shapeSlices = request.shapeSlices.map { slice in
             NativeShapeSlice(
-                top: slice.top,
-                height: max(0, slice.height),
-                left: slice.left,
-                width: max(1, slice.width)
+                top: finiteOrDefault(slice.top, fallback: 0),
+                height: max(0, finiteOrDefault(slice.height, fallback: 0)),
+                left: finiteOrDefault(slice.left, fallback: 0),
+                width: max(1, finiteOrDefault(slice.width, fallback: 1))
             )
         }
         .sorted { left, right in
@@ -1401,12 +1416,16 @@ internal final class PretextShared {
         }
 
         return NativeLayoutRequest(
-            width: max(1, request.width),
-            left: request.left,
+            width: max(1, finiteOrDefault(request.width, fallback: 1)),
+            left: finiteOrDefault(request.left, fallback: 0),
             whiteSpace: request.whiteSpace.lowercased(),
             wordBreak: request.wordBreak.lowercased(),
             shapeSlices: shapeSlices
         )
+    }
+
+    private func finiteOrDefault(_ value: Double, fallback: Double) -> Double {
+        value.isFinite ? value : fallback
     }
 
     private func resolveParagraphLineLayouts(
@@ -1452,7 +1471,7 @@ internal final class PretextShared {
         ) ? 1 : 0
         let penOffset = Double(CTLineGetPenOffsetForFlush(line, flushFactor, constraint.width))
         if penOffset.isFinite {
-            return constraint.left + penOffset
+            return constraint.left + (flushFactor == 1 ? max(0, penOffset) : penOffset)
         }
 
         return resolveFallbackLineLeft(
@@ -1485,7 +1504,10 @@ internal final class PretextShared {
         textLocale: String,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
-        guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout else {
+        let canUseCoreText = request.shapeSlices.isEmpty
+            && request.whiteSpace == whiteSpaceNormal
+            && request.wordBreak == wordBreakNormal
+        guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout, canUseCoreText else {
             if request.whiteSpace == whiteSpacePre {
                 return layoutPreformattedLineLayoutsFallback(
                     prepared.breakUnits,

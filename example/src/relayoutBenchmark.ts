@@ -185,14 +185,18 @@ export function layoutBenchmarkCorpusSampleLineTexts(
 
 export function layoutBenchmarkCorpusDiagnostics(
   prepared: PretextPrepared,
-  maxWidth: number,
-): ParagraphLayoutDiagnostics | null {
-  const result = layout(prepared, {
-    output: "diagnostics",
-    width: maxWidth,
-  });
+  maxWidths: number | readonly number[],
+): ParagraphLayoutDiagnostics[] {
+  const widths = Array.isArray(maxWidths) ? maxWidths : [maxWidths];
 
-  return result.paragraphs[0]?.diagnostics ?? null;
+  return widths.flatMap((maxWidth) => {
+    const result = layout(prepared, {
+      output: "diagnostics",
+      width: maxWidth,
+    });
+
+    return result.paragraphs.map((paragraph) => paragraph.diagnostics);
+  });
 }
 
 export function disposePreparedBenchmarkCorpus(

@@ -163,6 +163,12 @@ internal object PretextShared {
       if (segment.kind?.lowercase() == INLINE_SEGMENT_KIND_BOX || segment.boxId != null) {
         val box = buildInlineBox(segment, start)
         textBuilder.append(OBJECT_REPLACEMENT_CHARACTER)
+        runs +=
+          NativeTextRun(
+            start = box.start,
+            end = box.end,
+            style = baseStyle,
+          )
         inlineBoxes += box
         atomicSpans +=
           NativeAtomicSpan(
@@ -991,21 +997,25 @@ internal object PretextShared {
     val shapeSlices = request.shapeSlices
       .map { slice ->
         NativeShapeSlice(
-          top = slice.top,
-          height = max(0.0, slice.height),
-          left = slice.left,
-          width = max(1.0, slice.width),
+          top = finiteOrDefault(slice.top, 0.0),
+          height = max(0.0, finiteOrDefault(slice.height, 0.0)),
+          left = finiteOrDefault(slice.left, 0.0),
+          width = max(1.0, finiteOrDefault(slice.width, 1.0)),
         )
       }
       .sortedBy { it.top }
 
     return NativeLayoutRequest(
-      width = max(1.0, request.width),
-      left = request.left,
+      width = max(1.0, finiteOrDefault(request.width, 1.0)),
+      left = finiteOrDefault(request.left, 0.0),
       whiteSpace = request.whiteSpace.lowercase(),
       wordBreak = request.wordBreak.lowercase(),
       shapeSlices = shapeSlices,
     )
+  }
+
+  private fun finiteOrDefault(value: Double, fallback: Double): Double {
+    return if (value.isFinite()) value else fallback
   }
 
   private fun sumHeights(lineLayouts: List<NativeLineLayout>): Double {
@@ -1793,8 +1803,11 @@ private fun resolveAlignedLineLeft(
       ParagraphTextDirection.LTR -> false
       ParagraphTextDirection.RTL -> true
       ParagraphTextDirection.AUTO ->
-        lineText.isNotEmpty() &&
+        if (lineText.isEmpty()) {
+          isRtlLocale(textLocale)
+        } else {
           resolveTextDirectionHeuristic(textDirection, textLocale).isRtl(lineText, 0, lineText.length)
+        }
     }
 
   return if (isRtlLine) {

@@ -137,26 +137,88 @@ export function createBenchmarkDiagnostics(
 
 export function createBenchmarkDiagnosticsFromNative(
   mode: BenchmarkMode,
-  nativeDiagnostics: ParagraphLayoutDiagnostics | null,
+  nativeDiagnostics:
+    | ParagraphLayoutDiagnostics
+    | readonly ParagraphLayoutDiagnostics[]
+    | null,
   platform: BenchmarkPlatform = getBenchmarkPlatform(),
   androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
 ): BenchmarkDiagnostics {
   const fallback = createBenchmarkDiagnostics(mode, platform, androidApiLevel);
-  if (mode === "baseline" || nativeDiagnostics === null) {
+  if (mode === "baseline") {
     return fallback;
+  }
+
+  const diagnosticsList = normalizeNativeDiagnosticsList(nativeDiagnostics);
+  if (diagnosticsList.length === 0) {
+    return {
+      ...fallback,
+      driftKinds: ["engine_drift", "height_metric_drift"],
+      heightMetricSource: "unknown",
+      layoutEngine: "unknown",
+    };
   }
 
   return {
     ...fallback,
-    driftKinds: normalizeDriftKinds(nativeDiagnostics.driftKinds),
-    heightMetricDrivers: normalizeHeightMetricDrivers(
-      nativeDiagnostics.heightMetricDrivers,
+    driftKinds: unionBenchmarkValues(
+      diagnosticsList.flatMap((diagnostics) =>
+        normalizeDriftKinds(diagnostics.driftKinds),
+      ),
     ),
-    heightMetricSource:
-      nativeDiagnostics.heightMetricSource as BenchmarkDiagnostics["heightMetricSource"],
-    layoutEngine:
-      nativeDiagnostics.layoutEngine as BenchmarkDiagnostics["layoutEngine"],
+    heightMetricDrivers: normalizeHeightMetricDrivers(
+      diagnosticsList.flatMap((diagnostics) => diagnostics.heightMetricDrivers),
+    ),
+    heightMetricSource: normalizeSingleHeightMetricSource(diagnosticsList),
+    layoutEngine: normalizeSingleLayoutEngine(diagnosticsList),
   };
+}
+
+function normalizeNativeDiagnosticsList(
+  nativeDiagnostics:
+    | ParagraphLayoutDiagnostics
+    | readonly ParagraphLayoutDiagnostics[]
+    | null,
+): ParagraphLayoutDiagnostics[] {
+  if (nativeDiagnostics === null) {
+    return [];
+  }
+
+  return Array.isArray(nativeDiagnostics)
+    ? Array.from(nativeDiagnostics as readonly ParagraphLayoutDiagnostics[])
+    : [nativeDiagnostics as ParagraphLayoutDiagnostics];
+}
+
+function normalizeSingleLayoutEngine(
+  diagnosticsList: ParagraphLayoutDiagnostics[],
+): BenchmarkDiagnostics["layoutEngine"] {
+  const engines = unionBenchmarkValues(
+    diagnosticsList
+      .map((diagnostics) => diagnostics.layoutEngine)
+      .flatMap((layoutEngine) =>
+        isBenchmarkLayoutEngine(layoutEngine) ? [layoutEngine] : [],
+      ),
+  );
+
+  return engines.length === 1 ? (engines[0] ?? "unknown") : "unknown";
+}
+
+function normalizeSingleHeightMetricSource(
+  diagnosticsList: ParagraphLayoutDiagnostics[],
+): BenchmarkDiagnostics["heightMetricSource"] {
+  const sources = unionBenchmarkValues(
+    diagnosticsList
+      .map((diagnostics) => diagnostics.heightMetricSource)
+      .flatMap((source) =>
+        isBenchmarkHeightMetricSource(source) ? [source] : [],
+      ),
+  );
+
+  return sources.length === 1 ? (sources[0] ?? "unknown") : "unknown";
+}
+
+function unionBenchmarkValues<T extends string>(values: readonly T[]): T[] {
+  return Array.from(new Set(values));
 }
 
 function normalizeDriftKinds(driftKinds: string[]): BenchmarkDriftKind[] {
@@ -180,6 +242,7 @@ function isBenchmarkDriftKind(
 ): driftKind is BenchmarkDriftKind {
   return [
     "algorithm_rule_drift",
+    "cluster_boundary_drift",
     "compat_drift",
     "engine_drift",
     "emoji_metric_drift",
@@ -198,25 +261,49 @@ function isBenchmarkHeightMetricDriver(
   return HEIGHT_METRIC_DRIVERS.includes(driver as BenchmarkHeightMetricDriver);
 }
 
+function isBenchmarkLayoutEngine(
+  layoutEngine: string,
+): layoutEngine is BenchmarkDiagnostics["layoutEngine"] {
+  return [
+    "android_legacy_fallback",
+    "android_measured_text_line_breaker",
+    "android_static_layout_compat",
+    "ios_core_text",
+    "rn_text_compat",
+    "unknown",
+  ].includes(layoutEngine);
+}
+
+function isBenchmarkHeightMetricSource(
+  source: string,
+): source is BenchmarkDiagnostics["heightMetricSource"] {
+  return ["font_size_only", "platform_text_engine_metrics", "unknown"].includes(
+    source,
+  );
+}
+
 export function resolveBenchmarkDrift(args: {
   diagnostics: BenchmarkDiagnostics;
   lineTextParityMismatches: number;
   parityMismatches: number;
 }): Pick<BenchmarkDiagnostics, "driftKinds" | "heightDriftBuckets"> {
-  const driftKinds = new Set<BenchmarkDriftKind>();
-  const heightDriftBuckets = { ...EMPTY_HEIGHT_DRIFT_BUCKETS };
+  const driftKinds = new Set<BenchmarkDriftKind>(args.diagnostics.driftKinds);
+  const heightDriftBuckets = {
+    ...EMPTY_HEIGHT_DRIFT_BUCKETS,
+    ...args.diagnostics.heightDriftBuckets,
+  };
   const hasLineCountDrift = args.parityMismatches > 0;
   const hasLineTextDrift = args.lineTextParityMismatches > 0;
 
   if (hasLineCountDrift) {
     driftKinds.add("height_metric_drift");
-    heightDriftBuckets.unclassified = args.parityMismatches;
+    heightDriftBuckets.unclassified += args.parityMismatches;
   }
 
   if (hasLineTextDrift) {
     driftKinds.add("algorithm_rule_drift");
     driftKinds.add("line_break_strategy_drift");
-    heightDriftBuckets.line_break_strategy = args.lineTextParityMismatches;
+    heightDriftBuckets.line_break_strategy += args.lineTextParityMismatches;
   }
 
   if (
@@ -228,7 +315,7 @@ export function resolveBenchmarkDrift(args: {
 
   if (hasLineCountDrift && args.diagnostics.includeFontPadding === false) {
     driftKinds.add("padding_drift");
-    heightDriftBuckets.include_font_padding = args.parityMismatches;
+    heightDriftBuckets.include_font_padding += args.parityMismatches;
   }
 
   return {

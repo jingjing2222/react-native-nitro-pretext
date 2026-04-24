@@ -99,7 +99,7 @@ internal func resolveFont(style: NativeTextStyle) -> UIFont {
         break
     }
 
-    let baseFont = UIFont(name: normalizedFamily, size: size)
+    let baseFont = resolveNamedFont(normalizedFamily, size: size)
         ?? UIFont.systemFont(ofSize: size, weight: resolvedWeight)
     return applyFontTraits(
         baseFont,
@@ -107,6 +107,26 @@ internal func resolveFont(style: NativeTextStyle) -> UIFont {
         weight: resolvedWeight,
         wantsItalic: wantsItalic
     )
+}
+
+private func resolveNamedFont(_ fontNameOrFamily: String, size: Double) -> UIFont? {
+    if let exactFont = UIFont(name: fontNameOrFamily, size: size) {
+        return exactFont
+    }
+
+    let familyFontNames = UIFont.fontNames(forFamilyName: fontNameOrFamily)
+    let preferredFontName = familyFontNames.first { candidate in
+        let lowercased = candidate.lowercased()
+        return lowercased.contains("regular")
+            || lowercased.contains("roman")
+            || lowercased.contains("book")
+    } ?? familyFontNames.first
+
+    guard let preferredFontName else {
+        return nil
+    }
+
+    return UIFont(name: preferredFontName, size: size)
 }
 
 internal func buildAttributedText(
@@ -160,9 +180,8 @@ internal func textAttributes(
     if style.letterSpacing != 0 {
         attributes[.kern] = style.letterSpacing
     }
-    if !style.locale.isEmpty {
-        attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] = style.locale
-    }
+    attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] =
+        resolveLocaleIdentifier(style.locale)
     attributes[.paragraphStyle] = paragraphStyle(for: style)
     return attributes
 }
@@ -181,12 +200,7 @@ private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
 }
 
 internal func isRtlLocale(_ localeIdentifier: String) -> Bool {
-    let fallbackIdentifier = Locale.current.identifier
-    let resolvedIdentifier = localeIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        ? fallbackIdentifier
-        : localeIdentifier
-    let languageCode = resolvedIdentifier
-        .replacingOccurrences(of: "_", with: "-")
+    let languageCode = resolveLocaleIdentifier(localeIdentifier)
         .split(separator: "-")
         .first?
         .lowercased()
@@ -209,6 +223,12 @@ internal func isRtlLocale(_ localeIdentifier: String) -> Bool {
         "ur",
         "yi",
     ].contains(languageCode)
+}
+
+private func resolveLocaleIdentifier(_ localeIdentifier: String) -> String {
+    let trimmed = localeIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
+    let resolvedIdentifier = trimmed.isEmpty ? Locale.current.identifier : trimmed
+    return resolvedIdentifier.replacingOccurrences(of: "_", with: "-")
 }
 
 private func applyItalicIfNeeded(

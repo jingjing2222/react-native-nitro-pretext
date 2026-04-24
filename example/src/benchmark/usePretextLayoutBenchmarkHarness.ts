@@ -293,9 +293,8 @@ export function usePretextLayoutBenchmarkHarness({
           });
         }
 
-        const summaryLayoutWidth = Math.max(
-          1,
-          (widthSequence[0] ?? 220) - PARAGRAPH_HORIZONTAL_PADDING * 2,
+        const summaryLayoutWidths = widthSequence.map((width) =>
+          Math.max(1, width - PARAGRAPH_HORIZONTAL_PADDING * 2),
         );
         const summaryDiagnostics =
           preparedParagraphs === null
@@ -304,7 +303,7 @@ export function usePretextLayoutBenchmarkHarness({
                 mode,
                 layoutBenchmarkCorpusDiagnostics(
                   preparedParagraphs,
-                  summaryLayoutWidth,
+                  summaryLayoutWidths,
                 ),
               );
         const summary = buildSummary(

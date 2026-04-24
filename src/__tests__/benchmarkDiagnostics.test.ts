@@ -2,6 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 
 import {
   createBenchmarkDiagnostics,
+  createBenchmarkDiagnosticsFromNative,
   getCanonicalPreparedLayoutEngine,
   resolveBenchmarkDrift,
 } from "../../example/src/benchmark/diagnostics";
@@ -73,5 +74,38 @@ describe("benchmark diagnostics", () => {
     );
     expect(drift.heightDriftBuckets.unclassified).toBe(3);
     expect(drift.heightDriftBuckets.line_break_strategy).toBe(2);
+  });
+
+  it("preserves native drift when parity counters are clean", () => {
+    const diagnostics = createBenchmarkDiagnostics(
+      "pretext-compute",
+      "android",
+    );
+    diagnostics.driftKinds = ["engine_drift"];
+    diagnostics.heightDriftBuckets.fallback_font = 2;
+
+    const drift = resolveBenchmarkDrift({
+      diagnostics,
+      lineTextParityMismatches: 0,
+      parityMismatches: 0,
+    });
+
+    expect(drift.driftKinds).toContain("engine_drift");
+    expect(drift.heightDriftBuckets.fallback_font).toBe(2);
+  });
+
+  it("does not report canonical engine when native diagnostics are missing", () => {
+    expect(
+      createBenchmarkDiagnosticsFromNative(
+        "pretext-compute",
+        null,
+        "android",
+        29,
+      ),
+    ).toMatchObject({
+      driftKinds: ["engine_drift", "height_metric_drift"],
+      heightMetricSource: "unknown",
+      layoutEngine: "unknown",
+    });
   });
 });

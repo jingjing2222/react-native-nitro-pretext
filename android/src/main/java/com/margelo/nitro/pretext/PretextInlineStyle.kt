@@ -45,6 +45,12 @@ internal data class NativeTokenMetrics(
   val descent: Double,
 )
 
+private data class ParagraphBidiRun(
+  val start: Int,
+  val end: Int,
+  val isRtl: Boolean,
+)
+
 internal fun defaultTextStyle(style: ParagraphStyle): NativeTextStyle {
   return NativeTextStyle(
     fontFamily = style.fontFamily,
@@ -151,6 +157,7 @@ internal fun buildMeasuredText(
 
   val sortedRuns = runs.sortedBy { it.start }
   val sortedBoxes = inlineBoxes.sortedBy { it.start }
+  val bidiRuns = buildParagraphBidiRuns(text, defaultStyle)
   var cursor = 0
   var boxIndex = 0
 
@@ -175,40 +182,89 @@ internal fun buildMeasuredText(
     val runEnd = run?.end ?: text.length
     val end = minOf(text.length, nextBoxStart, runEnd)
     val paint = createTextPaint(style)
-    appendBidiStyleRuns(builder, text, cursor, end, paint, style)
+    appendParagraphBidiStyleRuns(builder, cursor, end, paint, bidiRuns)
     cursor = end
   }
 
   return builder.build()
 }
 
-private fun appendBidiStyleRuns(
-  builder: android.graphics.text.MeasuredText.Builder,
+private fun buildParagraphBidiRuns(
   text: String,
+  style: NativeTextStyle,
+): List<ParagraphBidiRun> {
+  if (text.isEmpty()) {
+    return emptyList()
+  }
+
+  val bidi = Bidi(text, resolveBidiBaseDirection(style))
+  if (!bidi.isMixed) {
+    return listOf(
+      ParagraphBidiRun(
+        start = 0,
+        end = text.length,
+        isRtl = !bidi.baseIsLeftToRight(),
+      ),
+    )
+  }
+
+  return (0 until bidi.runCount)
+    .mapNotNull { runIndex ->
+      val runStart = bidi.getRunStart(runIndex)
+      val runLimit = bidi.getRunLimit(runIndex)
+      if (runLimit <= runStart) {
+        null
+      } else {
+        ParagraphBidiRun(
+          start = runStart,
+          end = runLimit,
+          isRtl = bidi.getRunLevel(runIndex).toInt() % 2 == 1,
+        )
+      }
+    }
+}
+
+private fun appendParagraphBidiStyleRuns(
+  builder: android.graphics.text.MeasuredText.Builder,
   start: Int,
   end: Int,
   paint: TextPaint,
-  style: NativeTextStyle,
+  bidiRuns: List<ParagraphBidiRun>,
 ) {
   if (end <= start) {
     return
   }
 
-  val segment = text.substring(start, end)
-  val bidi = Bidi(segment, resolveBidiBaseDirection(style))
-  if (!bidi.isMixed) {
-    builder.appendStyleRun(paint, end - start, !bidi.baseIsLeftToRight())
+  if (bidiRuns.isEmpty()) {
+    builder.appendStyleRun(paint, end - start, false)
     return
   }
 
-  for (runIndex in 0 until bidi.runCount) {
-    val runStart = bidi.getRunStart(runIndex)
-    val runLimit = bidi.getRunLimit(runIndex)
-    if (runLimit <= runStart) {
-      continue
+  var cursor = start
+  bidiRuns.forEach { bidiRun ->
+    if (bidiRun.end <= cursor || bidiRun.start >= end) {
+      return@forEach
     }
-    builder.appendStyleRun(paint, runLimit - runStart, bidi.getRunLevel(runIndex).toInt() % 2 == 1)
+
+    val runStart = maxOf(cursor, bidiRun.start)
+    val runEnd = minOf(end, bidiRun.end)
+    if (runEnd <= runStart) {
+      return@forEach
+    }
+    if (runStart > cursor) {
+      builder.appendStyleRun(paint, runStart - cursor, false)
+    }
+    builder.appendStyleRun(paint, runEnd - runStart, bidiRun.isRtl)
+    cursor = runEnd
   }
+
+  if (cursor < end) {
+    builder.appendStyleRun(paint, end - cursor, false)
+  }
+}
+
+internal fun isRtlLocale(localeTag: String): Boolean {
+  return TextUtils.getLayoutDirectionFromLocale(resolveTextLocale(localeTag)) == View.LAYOUT_DIRECTION_RTL
 }
 
 private fun resolveBidiBaseDirection(style: NativeTextStyle): Int {
@@ -216,7 +272,7 @@ private fun resolveBidiBaseDirection(style: NativeTextStyle): Int {
     ParagraphTextDirection.LTR -> Bidi.DIRECTION_LEFT_TO_RIGHT
     ParagraphTextDirection.RTL -> Bidi.DIRECTION_RIGHT_TO_LEFT
     ParagraphTextDirection.AUTO ->
-      if (TextUtils.getLayoutDirectionFromLocale(resolveTextLocale(style.locale)) == View.LAYOUT_DIRECTION_RTL) {
+      if (isRtlLocale(style.locale)) {
         Bidi.DIRECTION_DEFAULT_RIGHT_TO_LEFT
       } else {
         Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT
@@ -238,7 +294,7 @@ internal fun resolveTextDirectionHeuristic(
     ParagraphTextDirection.LTR -> TextDirectionHeuristics.LTR
     ParagraphTextDirection.RTL -> TextDirectionHeuristics.RTL
     ParagraphTextDirection.AUTO ->
-      if (TextUtils.getLayoutDirectionFromLocale(resolveTextLocale(locale)) == View.LAYOUT_DIRECTION_RTL) {
+      if (isRtlLocale(locale)) {
         TextDirectionHeuristics.FIRSTSTRONG_RTL
       } else {
         TextDirectionHeuristics.FIRSTSTRONG_LTR
@@ -266,11 +322,12 @@ internal fun resolveTypeface(style: NativeTextStyle): Typeface {
 }
 
 internal fun resolveTextLocale(localeTag: String): Locale {
-  if (localeTag.isBlank()) {
+  val normalizedLocaleTag = localeTag.trim().replace('_', '-')
+  if (normalizedLocaleTag.isBlank()) {
     return Locale.getDefault()
   }
 
-  val locale = Locale.forLanguageTag(localeTag)
+  val locale = Locale.forLanguageTag(normalizedLocaleTag)
   return if (locale.toLanguageTag().isBlank() || locale.toLanguageTag() == "und") {
     Locale.getDefault()
   } else {

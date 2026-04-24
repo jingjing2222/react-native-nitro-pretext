@@ -47,6 +47,7 @@ export type BenchmarkHeightDriftBucket =
 
 export type BenchmarkDriftKind =
   | "algorithm_rule_drift"
+  | "cluster_boundary_drift"
   | "compat_drift"
   | "engine_drift"
   | "emoji_metric_drift"

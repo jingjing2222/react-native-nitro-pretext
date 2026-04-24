@@ -77,6 +77,17 @@ export function createParagraphLayoutRequest(
   width: number,
   overrides: Partial<ParagraphLayoutRequest> = {},
 ): ParagraphLayoutRequest {
+  assertFiniteLayoutNumber("width", width);
+  if (overrides.left !== undefined) {
+    assertFiniteLayoutNumber("left", overrides.left);
+  }
+  overrides.shapeSlices?.forEach((slice, index) => {
+    assertFiniteLayoutNumber(`shapeSlices[${index}].top`, slice.top);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].height`, slice.height);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].left`, slice.left);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].width`, slice.width);
+  });
+
   return {
     width,
     left: overrides.left ?? 0,
@@ -84,6 +95,12 @@ export function createParagraphLayoutRequest(
     wordBreak: overrides.wordBreak ?? "normal",
     shapeSlices: overrides.shapeSlices ?? [],
   };
+}
+
+function assertFiniteLayoutNumber(name: string, value: number): void {
+  if (!Number.isFinite(value)) {
+    throw new Error(`Pretext layout ${name} must be a finite number.`);
+  }
 }
 
 export function prepareParagraphsWithStats(

@@ -348,6 +348,29 @@ describe("react-native-nitro-pretext public API", () => {
     ]);
   });
 
+  it("rejects non-finite layout request values before native calls", () => {
+    const prepared = PublicApi.prepare("alpha", {
+      fontSize: 16,
+    });
+
+    expect(() => PublicApi.layout(prepared, Number.NaN)).toThrow(
+      "Pretext layout width must be a finite number.",
+    );
+    expect(() =>
+      PublicApi.layout(prepared, {
+        shapeSlices: [
+          {
+            height: 24,
+            left: 0,
+            top: 0,
+            width: Number.POSITIVE_INFINITY,
+          },
+        ],
+        width: 280,
+      }),
+    ).toThrow("Pretext layout shapeSlices[0].width must be a finite number.");
+  });
+
   it("summarizes metrics across prepared paragraphs", () => {
     const prepared = PublicApi.prepare(["alpha", "beta"], {
       fontFamily: "System",
