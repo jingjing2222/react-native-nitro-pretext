@@ -1,7 +1,7 @@
 {
   "name": "react-native-nitro-pretext",
   "version": "0.0.1",
-  "description": "React Native port of pretext with native text measurement backends for accurate multiline layout",
+  "description": "Layout-only Pretext engine for React Native text geometry before render",
   "keywords": [
     "android",
     "ios",
@@ -24,6 +24,8 @@
   "files": [
     "src",
     "dist",
+    "docs",
+    "CONTRIBUTING.md",
     "android",
     "ios",
     "cpp",
@@ -46,8 +48,10 @@
   ],
   "main": "./dist/module/index.js",
   "types": "./dist/types/index.d.ts",
+  "react-native": "./src/index.ts",
   "exports": {
     ".": {
+      "react-native": "./src/index.ts",
       "source": "./src/index.ts",
       "types": "./dist/types/index.d.ts",
       "default": "./dist/module/index.js"
@@ -60,14 +64,21 @@
   "scripts": {
     "example:ios": "yarn workspace react-native-nitro-pretext-example ios",
     "example:android": "yarn workspace react-native-nitro-pretext-example android",
+    "examples:ios": "yarn workspace react-native-nitro-pretext-example examples:ios",
+    "examples:android": "yarn workspace react-native-nitro-pretext-example examples:android",
+    "benchmark:ios": "yarn workspace react-native-nitro-pretext-example benchmark:ios",
+    "benchmark:android": "yarn workspace react-native-nitro-pretext-example benchmark:android",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",
-    "build": "del-cli lib dist && bob build && tsc -p tsconfig.build.json",
+    "build": "del-cli lib dist && bob build && node scripts/patch-module-imports.js && tsc -p tsconfig.build.json",
     "prepack": "yarn build",
     "nitrogen": "nitrogen",
     "changeset": "changeset",
     "release": "changeset publish",
     "typecheck": "tsc",
     "test": "jest",
+    "verify:api-examples": "node scripts/verify-api-example-map.js",
+    "verify:native-source-size": "node scripts/verify-native-source-size.js",
+    "verify:package-exports": "node scripts/verify-package-exports.js",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
@@ -81,20 +92,21 @@
     "@types/react": "^19.2.0",
     "del-cli": "^7.0.0",
     "jest": "^30.3.0",
-    "nitrogen": "^0.35.3",
+    "nitrogen": "^0.35.5",
     "oxfmt": "^0.44.0",
     "oxlint": "^1.59.0",
     "react": "19.2.3",
     "react-native": "0.85.0",
     "react-native-builder-bob": "^0.41.0",
-    "react-native-nitro-modules": "^0.35.3",
+    "react-native-nitro-modules": "^0.35.5",
+    "ts-prune": "^0.10.3",
     "turbo": "^2.8.21",
     "typescript": "^6.0.2"
   },
   "peerDependencies": {
     "react": "*",
-    "react-native": "*",
-    "react-native-nitro-modules": "^0.35.3"
+    "react-native": ">=0.81.0",
+    "react-native-nitro-modules": "*"
   },
   "jest": {
     "modulePathIgnorePatterns": [
@@ -102,7 +114,8 @@
       "<rootDir>/dist/",
       "<rootDir>/lib/"
     ],
-    "preset": "@react-native/jest-preset"
+    "preset": "@react-native/jest-preset",
+    "watchman": false
   },
   "packageManager": "yarn@4.11.0",
   "create-react-native-library": {

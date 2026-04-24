@@ -1,124 +1,146 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# Pretext Example App
 
-# Getting Started
+This workspace demonstrates the layout-only Pretext API inside a real React
+Native app. API examples are separate from benchmark screens so users can learn
+the public API without timing and parity noise.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+The package peer floor is React Native `>=0.81.0`, and
+`react-native-nitro-modules` is accepted as `*`. This example workspace uses
+React Native `0.85.0`.
 
-## Step 1: Start Metro
+## Setup
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
-
-```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
-```
-
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+Run from the repository root:
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+yarn
+yarn nitrogen
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Start Metro in one terminal:
 
 ```sh
-bundle install
+yarn workspace react-native-nitro-pretext-example start
 ```
 
-Then, and every time you update your native dependencies, run:
+Run the app in another terminal:
 
 ```sh
-bundle exec pod install
+yarn example:ios
+yarn example:android
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+Native code changes require rebuilding the example app. TypeScript-only library
+changes usually update through Metro.
+
+Run the optional Maestro flows manually after the app is installed and Metro is
+running. These flows are intentionally not part of CI because they depend on
+device/simulator state and route-level example contracts:
 
 ```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+yarn examples:ios
+yarn examples:android
 ```
 
-If you need device signing, this example also includes a minimal `fastlane match` setup.
-Recommended storage is a separate private git repository dedicated to match assets, not this source repository.
+## Screens
 
-To sync signing locally:
+Learning routes:
+
+- `examples`: examples catalog.
+- `examples/use-case`: Pretext API examples matched to `docs/api.md`.
+- `examples/use-case/prepare`: `prepare(text, style)` lifecycle.
+- `examples/use-case/layout-metrics`: `layout(..., output: "metrics")`.
+- `examples/use-case/layout-options`: width shorthand, object requests, and
+  rule options.
+- `examples/use-case/layout-lines`: line ranges and geometry.
+- `examples/use-case/layout-diagnostics`: engine, request, drift, and boundary
+  diagnostics.
+- `examples/use-case/layout-rich`: inline box segments and returned box frames.
+- `examples/use-case/use-pretext-layout`: React hook lifecycle.
+- `examples/use-case/namespace-and-types`: `Pretext.*` namespace and exported
+  types.
+
+RN-only contrast routes:
+
+- `examples/non-use-case`: plain RN workaround catalog.
+- `examples/non-use-case/prepare`: hidden measurement cache instead of
+  `prepare()`.
+- `examples/non-use-case/layout-metrics`: hidden `<Text onLayout>` height
+  measurement.
+- `examples/non-use-case/layout-options`: caller-managed rule state.
+- `examples/non-use-case/layout-lines`: `onTextLayout` line data gaps.
+- `examples/non-use-case/layout-diagnostics`: missing engine and drift data.
+- `examples/non-use-case/layout-rich`: nested `<Text>` without stable box
+  frames.
+- `examples/non-use-case/use-pretext-layout`: custom hook around hidden
+  measurement lifecycle.
+
+Benchmark routes:
+
+- `benchmark`: benchmark catalog.
+- `benchmark/base-text`: RN `<Text>` compatibility baseline.
+- `benchmark/pretext-layout`: Pretext layout benchmark screen.
+- `benchmark/measured-layout`: case study for hidden RN measurement versus
+  `Pretext.layout()` before render.
+
+## Native Builds
+
+Use these commands when you need a build without launching the CLI run command:
 
 ```sh
-yarn ios:signing
+yarn workspace react-native-nitro-pretext-example build:ios
+yarn workspace react-native-nitro-pretext-example build:android
 ```
 
-The example now reads signing values from `example/.env`.
-Useful commands:
+For iOS device signing, see the scripts in `example/package.json`. Simulator
+runs default to `iPhone 16`; set `IOS_SIMULATOR` when you need another target.
+
+## Benchmarks
+
+The benchmark scripts are Maestro drivers. They expect the example app to
+already be installed and, for debug builds, Metro to already be running.
 
 ```sh
-yarn ios:signing
-yarn ios:signing:write
-yarn ios:match
-yarn start
-yarn ios
-yarn ios:device
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 ```
 
-Run `yarn start` in one terminal first, then run `yarn ios` in another terminal.
-The `ios` script always targets a simulator and defaults to `iPhone 16`.
-If you want a different simulator, set `IOS_SIMULATOR` first.
-Use `yarn ios:device` only when you intentionally want to install on a connected device.
-The iOS scripts use `--no-packager`, so they won't try to open a new terminal window for Metro.
+Android canonical benchmark claims require API 29+ because the canonical
+Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
+`StaticLayout` compat or legacy fallback paths only.
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+Latest local benchmark status:
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+- iOS `benchmark` suite: passed on April 24, 2026 with an iPhone 16 simulator.
+- Android `benchmark` suite: completed on April 25, 2026 with a Pixel_9_Pro AVD
+  on API 36. The canonical engine metadata and local layout-only gate passed.
+- Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden
+  RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
+  `Pretext.layout()` returned the needed layout data in `8.59 ms`.
 
-## Step 3: Modify your app
+## Example Verification
 
-Now that you have successfully run the app, let's make changes!
+The API example map is verified from the repository root:
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+```sh
+yarn verify:api-examples
+```
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+That gate checks `docs/api.md`, `apiExampleManifest`, navigation types, linking
+config, registered stack screens, example index cards, and automation report
+fields. Device-level example coverage is in:
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+```sh
+yarn examples:ios
+yarn examples:android
+```
 
-## Congratulations! :tada:
+## Useful Commands
 
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+```sh
+yarn typecheck
+yarn lint
+yarn fmt:check
+yarn test
+yarn verify:api-examples
+```

@@ -58,6 +58,12 @@ jobs:
       - name: Run unit tests
         run: yarn test --maxWorkers=2 --coverage
 
+      - name: Verify API example map
+        run: yarn verify:api-examples
+
+      - name: Verify native source size
+        run: yarn verify:native-source-size
+
   codegen:
     runs-on: ubuntu-latest
 
@@ -83,6 +89,9 @@ jobs:
 
       - name: Build package
         run: yarn build
+
+      - name: Verify package exports
+        run: yarn verify:package-exports
 
   build-android:
     runs-on: ubuntu-latest
@@ -146,10 +155,10 @@ jobs:
           yarn turbo run build:android --cache-dir="${{ env.TURBO_CACHE_DIR }}"
 
   build-ios:
-    runs-on: macos-latest
+    runs-on: macos-26
 
     env:
-      XCODE_VERSION: "26"
+      XCODE_VERSION: "26.4"
       TURBO_CACHE_DIR: .turbo/ios
       RCT_USE_RN_DEP: 1
       RCT_USE_PREBUILT_RNCORE: 1

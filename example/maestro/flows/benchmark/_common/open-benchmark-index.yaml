@@ -1,0 +1,13 @@
+# 성공 흐름
+# Home -> benchmark/* landing
+# 사용하는 seed / selector anchor
+# Home CTA text, benchmark landing hero copy, benchmark index automation status line
+appId: pretext.example
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Pretext Layout Lab"
+- tapOn: "Open benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."
+- assertVisible:
+    text: "AUTOMATION_STATUS::benchmark/index::visible"

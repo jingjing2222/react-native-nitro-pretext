@@ -21,6 +21,7 @@ Pod::Spec.new do |s|
 
   s.dependency 'React-jsi'
   s.dependency 'React-callinvoker'
+  s.dependency 'React-Core'
 
   load 'nitrogen/generated/ios/Pretext+autolinking.rb'
   add_nitrogen_files(s)

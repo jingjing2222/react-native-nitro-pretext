@@ -1,40 +1,105 @@
 package com.margelo.nitro.pretext
-  
-import android.graphics.Paint
-import android.graphics.Typeface
+
 import com.facebook.proguard.annotations.DoNotStrip
+import org.json.JSONArray
 
 @DoNotStrip
 class Pretext : HybridPretextSpec() {
-  override fun measure(text: String, fontFamily: String, fontSize: Double): Double {
-    val paint = Paint().apply {
-      textSize = fontSize.toFloat()
-      typeface = resolveTypeface(fontFamily)
-      isAntiAlias = true
-    }
-    return paint.measureText(text).toDouble()
+  override fun prepareParagraphsWithStats(
+    texts: Array<String>,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    return PretextShared.prepareParagraphsWithStats(texts, style)
   }
 
-  override fun measureBatch(texts: Array<String>, fontFamily: String, fontSize: Double): DoubleArray {
-    val paint = Paint().apply {
-      textSize = fontSize.toFloat()
-      typeface = resolveTypeface(fontFamily)
-      isAntiAlias = true
-    }
-    return DoubleArray(texts.size) { index -> paint.measureText(texts[index]).toDouble() }
+  override fun prepareInlineParagraphSegmentsWithStats(
+    paragraphsPayload: String,
+    style: ParagraphStyle,
+  ): PreparedParagraphResult {
+    return PretextShared.prepareInlineParagraphsWithStats(
+      materializeInlineParagraphs(paragraphsPayload),
+      style,
+    )
   }
 
-  private fun resolveTypeface(fontFamily: String): Typeface {
-    return when (fontFamily.lowercase()) {
-      "system", "default", "" -> Typeface.DEFAULT
-      "serif" -> Typeface.SERIF
-      "monospace" -> Typeface.MONOSPACE
-      else ->
-        try {
-          Typeface.create(fontFamily, Typeface.NORMAL)
-        } catch (_: Exception) {
-          Typeface.DEFAULT
-        }
+  override fun layoutParagraphsMetadataWithRequest(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphMetrics> {
+    return PretextShared.layoutParagraphsMetadataWithRequest(preparedId, request)
+  }
+
+  override fun layoutParagraphLinesWithRequest(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphLines> {
+    return PretextShared.layoutParagraphLinesWithRequest(preparedId, request)
+  }
+
+  override fun layoutParagraphLinesWithDiagnostics(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphLinesWithDiagnostics> {
+    return PretextShared.layoutParagraphLinesWithDiagnostics(preparedId, request)
+  }
+
+  override fun layoutRichParagraphLines(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutRichParagraphLines> {
+    return PretextShared.layoutRichParagraphLines(preparedId, request)
+  }
+
+  override fun releaseParagraphs(preparedId: Double) {
+    PretextShared.releaseParagraphs(preparedId)
+  }
+
+  private fun materializeInlineParagraphs(
+    paragraphsPayload: String,
+  ): Array<Array<InlineSegment>> {
+    if (paragraphsPayload.isBlank()) {
+      return emptyArray()
     }
+
+    val root = JSONArray(paragraphsPayload)
+    val paragraphs = ArrayList<Array<InlineSegment>>(root.length())
+
+    for (paragraphIndex in 0 until root.length()) {
+      val paragraphJson = root.getJSONArray(paragraphIndex)
+      val paragraph = ArrayList<InlineSegment>(paragraphJson.length())
+
+      for (segmentIndex in 0 until paragraphJson.length()) {
+        val segmentJson = paragraphJson.getJSONObject(segmentIndex)
+        paragraph.add(
+          InlineSegment(
+            kind = segmentJson.optString("kind").takeIf { it.isNotEmpty() },
+            text = segmentJson.optString("text"),
+            breakBehavior = segmentJson.optString("breakBehavior"),
+            boxId = segmentJson.optString("boxId").takeIf { it.isNotEmpty() },
+            width = segmentJson.optDoubleOrNull("width"),
+            height = segmentJson.optDoubleOrNull("height"),
+            baseline = segmentJson.optDoubleOrNull("baseline"),
+            accessibilityLabel = segmentJson.optString("accessibilityLabel").takeIf { it.isNotEmpty() },
+            accessibilityHint = segmentJson.optString("accessibilityHint").takeIf { it.isNotEmpty() },
+            accessibilityRole = segmentJson.optString("accessibilityRole").takeIf { it.isNotEmpty() },
+            fontFamily = segmentJson.optString("fontFamily").takeIf { it.isNotEmpty() },
+            fontSize = segmentJson.optDoubleOrNull("fontSize"),
+            lineHeight = segmentJson.optDoubleOrNull("lineHeight"),
+            letterSpacing = segmentJson.optDoubleOrNull("letterSpacing"),
+            locale = segmentJson.optString("locale").takeIf { it.isNotEmpty() },
+            fontWeight = segmentJson.optString("fontWeight").takeIf { it.isNotEmpty() },
+            fontStyle = segmentJson.optString("fontStyle").takeIf { it.isNotEmpty() },
+          ),
+        )
+      }
+
+      paragraphs.add(paragraph.toTypedArray())
+    }
+
+    return paragraphs.toTypedArray()
+  }
+
+  private fun org.json.JSONObject.optDoubleOrNull(key: String): Double? {
+    return if (has(key) && !isNull(key)) getDouble(key) else null
   }
 }

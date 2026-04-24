@@ -1,0 +1,99 @@
+{
+  "default": {
+    "suite": {
+      "requireCompleted": true,
+      "maxPrepareMs": 3000,
+      "maxMeasureMs": 2500,
+      "maxBuildPreparedMs": 1500,
+      "maxTokenizeMs": 250,
+      "maxLayoutOnlyMedianMs": 80,
+      "minRenderParityChecks": 200,
+      "minRenderLineTextParityChecks": 200,
+      "minComputeParityChecks": 200,
+      "minComputeLineTextParityChecks": 200
+    },
+    "base-text": {
+      "requireCompleted": true
+    },
+    "pretext-layout": {
+      "requireCompleted": true,
+      "maxPrepareMs": 3000,
+      "maxMeasureMs": 2500,
+      "maxBuildPreparedMs": 1500,
+      "maxTokenizeMs": 250,
+      "maxLayoutOnlyMedianMs": 80,
+      "minRenderParityChecks": 200,
+      "minRenderLineTextParityChecks": 200,
+      "minComputeParityChecks": 200,
+      "minComputeLineTextParityChecks": 200
+    }
+  },
+  "local": {
+    "ios": {
+      "suite": {
+        "maxPrepareMs": 700,
+        "maxMeasureMs": 600,
+        "maxBuildPreparedMs": 400,
+        "maxTokenizeMs": 120,
+        "maxLayoutOnlyMedianMs": 25,
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
+      },
+      "pretext-layout": {
+        "maxPrepareMs": 700,
+        "maxMeasureMs": 600,
+        "maxBuildPreparedMs": 400,
+        "maxTokenizeMs": 120,
+        "maxLayoutOnlyMedianMs": 25,
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
+      }
+    },
+    "android": {
+      "suite": {
+        "maxPrepareMs": 250,
+        "maxMeasureMs": 250,
+        "maxBuildPreparedMs": 60,
+        "maxTokenizeMs": 40,
+        "maxLayoutOnlyMedianMs": 10
+      },
+      "pretext-layout": {
+        "maxPrepareMs": 250,
+        "maxMeasureMs": 250,
+        "maxBuildPreparedMs": 60,
+        "maxTokenizeMs": 40,
+        "maxLayoutOnlyMedianMs": 10
+      }
+    }
+  },
+  "manual-debug": {
+    "ios": {
+      "suite": {
+        "maxPrepareMs": 3500,
+        "maxMeasureMs": 3000,
+        "maxBuildPreparedMs": 2000,
+        "maxTokenizeMs": 300,
+        "maxLayoutOnlyMedianMs": 100,
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
+      },
+      "pretext-layout": {
+        "maxPrepareMs": 3500,
+        "maxMeasureMs": 3000,
+        "maxBuildPreparedMs": 2000,
+        "maxTokenizeMs": 300,
+        "maxLayoutOnlyMedianMs": 100,
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
+      }
+    }
+  }
+}

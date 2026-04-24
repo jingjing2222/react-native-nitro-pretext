@@ -1,0 +1,5 @@
+appId: pretext.example
+---
+- runFlow: _common/open-benchmark-index.yaml
+- runFlow: _common/run-base-text.yaml
+- runFlow: _common/run-pretext-layout.yaml

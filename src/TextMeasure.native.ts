@@ -1,22 +1,172 @@
 import { NitroModules } from "react-native-nitro-modules";
-import type { Pretext } from "./Pretext.nitro";
+import type {
+  InlineSegment,
+  LaidOutParagraphLines,
+  LaidOutParagraphLinesWithDiagnostics,
+  LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
+  ParagraphBoundaryMap,
+  ParagraphComplexShapeCounters,
+  ParagraphLayoutRequest,
+  ParagraphLineRange,
+  ParagraphShapeSlice,
+  ParagraphStyle,
+  PreparedParagraphResult,
+  PreparedParagraphState,
+  PrepareParagraphStats,
+  Pretext as NitroPretext,
+} from "./Pretext.nitro";
+import type { Pretext } from "./PublicTypes";
+import { serializeInlineParagraphs } from "./inlineParagraphSegments";
 
-export const TextMeasure = NitroModules.createHybridObject<Pretext>("Pretext");
+const NativeParagraphEngine =
+  NitroModules.createHybridObject<NitroPretext>("Pretext");
 
-export function measure(
-  text: string,
-  fontFamily: string,
-  fontSize: number,
-): number {
-  return TextMeasure.measure(text, fontFamily, fontSize);
+const ParagraphEngine: Pretext = {
+  get name() {
+    return NativeParagraphEngine.name;
+  },
+  equals(other) {
+    const candidate =
+      other === ParagraphEngine
+        ? NativeParagraphEngine
+        : (other as NitroPretext);
+
+    return NativeParagraphEngine.equals(candidate);
+  },
+  dispose() {
+    NativeParagraphEngine.dispose();
+  },
+  prepareParagraphsWithStats(texts, style) {
+    return NativeParagraphEngine.prepareParagraphsWithStats(texts, style);
+  },
+  prepareInlineParagraphsWithStats(paragraphs, style) {
+    return NativeParagraphEngine.prepareInlineParagraphSegmentsWithStats(
+      serializeInlineParagraphs(paragraphs),
+      style,
+    );
+  },
+  layoutParagraphsMetadataWithRequest(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphsMetadataWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  layoutParagraphLinesWithRequest(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphLinesWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  layoutParagraphLinesWithDiagnostics(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphLinesWithDiagnostics(
+      preparedId,
+      request,
+    );
+  },
+  layoutRichParagraphLines(preparedId, request) {
+    return NativeParagraphEngine.layoutRichParagraphLines(preparedId, request);
+  },
+  releaseParagraphs(preparedId) {
+    NativeParagraphEngine.releaseParagraphs(preparedId);
+  },
+};
+
+export function createParagraphLayoutRequest(
+  width: number,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): ParagraphLayoutRequest {
+  assertFiniteLayoutNumber("width", width);
+  if (overrides.left !== undefined) {
+    assertFiniteLayoutNumber("left", overrides.left);
+  }
+  overrides.shapeSlices?.forEach((slice, index) => {
+    assertFiniteLayoutNumber(`shapeSlices[${index}].top`, slice.top);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].height`, slice.height);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].left`, slice.left);
+    assertFiniteLayoutNumber(`shapeSlices[${index}].width`, slice.width);
+  });
+
+  return {
+    width,
+    left: overrides.left ?? 0,
+    whiteSpace: overrides.whiteSpace ?? "normal",
+    wordBreak: overrides.wordBreak ?? "normal",
+    shapeSlices: overrides.shapeSlices ?? [],
+  };
 }
 
-export function measureBatch(
+function assertFiniteLayoutNumber(name: string, value: number): void {
+  if (!Number.isFinite(value)) {
+    throw new Error(`Pretext layout ${name} must be a finite number.`);
+  }
+}
+
+export function prepareParagraphsWithStats(
   texts: string[],
-  fontFamily: string,
-  fontSize: number,
-): number[] {
-  return TextMeasure.measureBatch(texts, fontFamily, fontSize);
+  style: ParagraphStyle,
+): PreparedParagraphResult {
+  return ParagraphEngine.prepareParagraphsWithStats(texts, style);
 }
 
-export default TextMeasure;
+export function prepareInlineParagraphsWithStats(
+  paragraphs: InlineSegment[][],
+  style: ParagraphStyle,
+): PreparedParagraphResult {
+  return ParagraphEngine.prepareInlineParagraphsWithStats(paragraphs, style);
+}
+
+export function layoutParagraphsMetadataWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphMetrics[] {
+  return ParagraphEngine.layoutParagraphsMetadataWithRequest(
+    preparedId,
+    request,
+  );
+}
+
+export function layoutParagraphLinesWithRequest(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphLines[] {
+  return ParagraphEngine.layoutParagraphLinesWithRequest(preparedId, request);
+}
+
+export function layoutParagraphLinesWithDiagnostics(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutParagraphLinesWithDiagnostics[] {
+  return ParagraphEngine.layoutParagraphLinesWithDiagnostics(
+    preparedId,
+    request,
+  );
+}
+
+export function layoutRichParagraphLines(
+  preparedId: number,
+  request: ParagraphLayoutRequest,
+): LaidOutRichParagraphLines[] {
+  return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
+}
+
+export function releaseParagraphs(preparedId: number): void {
+  ParagraphEngine.releaseParagraphs(preparedId);
+}
+
+export type {
+  InlineSegment,
+  LaidOutParagraphLines,
+  LaidOutParagraphLinesWithDiagnostics,
+  LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
+  ParagraphBoundaryMap,
+  ParagraphComplexShapeCounters,
+  ParagraphLayoutRequest,
+  ParagraphLineRange,
+  ParagraphShapeSlice,
+  ParagraphStyle,
+  PreparedParagraphResult,
+  PreparedParagraphState,
+  PrepareParagraphStats,
+};

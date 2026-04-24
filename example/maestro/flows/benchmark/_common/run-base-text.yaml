@@ -1,0 +1,31 @@
+# 성공 흐름
+# benchmark landing -> benchmark/base-text -> benchmark run complete -> base report emitted
+# 사용하는 seed / selector anchor
+# benchmark/base-text CTA text, base screen title, base automation status/report lines
+appId: pretext.example
+---
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "Open benchmark/base-text"
+    timeout: 20000
+- tapOn: "Open benchmark/base-text"
+- assertVisible: "Measure plain React Native <Text> only\\."
+- assertVisible:
+    text: "AUTOMATION_STATUS::benchmark/base-text::idle::.*"
+- tapOn: "Run BaseText Benchmark"
+- extendedWaitUntil:
+    visible:
+      text: "AUTOMATION_STATUS::benchmark/base-text::completed::.*"
+    timeout: 180000
+- copyTextFrom:
+    text: "AUTOMATION_REPORT::benchmark/base-text::.*"
+- runScript:
+    file: ../../../scripts/log-benchmark-report.js
+    env:
+      reportName: baseText
+- assertTrue: ${output.reports.baseText.interactionMedianMs != null}
+- takeScreenshot:
+    path: .maestro-artifacts/base-text-complete
+- tapOn: "Back to benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."

@@ -1,0 +1,22 @@
+appId: pretext.example
+---
+- runFlow: _common/open-benchmark-index.yaml
+- runFlow: _common/run-base-text.yaml
+- runFlow: _common/run-pretext-layout.yaml
+- scrollUntilVisible:
+    direction: UP
+    element:
+      text: "AUTOMATION_REPORT::benchmark/index::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "AUTOMATION_REPORT::benchmark/index::.*"
+- runScript:
+    file: ../../scripts/log-benchmark-report.js
+    env:
+      reportName: combined
+- assertTrue: ${output.reports.combined.status == 'completed'}
+- runScript:
+    file: ../../scripts/log-benchmark-suite.js
+- takeScreenshot:
+    path: .maestro-artifacts/benchmark-suite-complete

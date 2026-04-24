@@ -1,0 +1,25 @@
+export type AppStackParamList = {
+  BenchmarkBaseText: undefined;
+  BenchmarkIndex: undefined;
+  BenchmarkMeasuredLayoutCaseStudy: undefined;
+  BenchmarkPretextLayout: undefined;
+  ExampleIndex: undefined;
+  ExampleNonUseCaseDiagnostics: undefined;
+  ExampleNonUseCaseHook: undefined;
+  ExampleNonUseCaseIndex: undefined;
+  ExampleNonUseCaseLayoutLines: undefined;
+  ExampleNonUseCaseLayoutMetrics: undefined;
+  ExampleNonUseCaseLayoutOptions: undefined;
+  ExampleNonUseCaseLayoutRich: undefined;
+  ExampleNonUseCasePrepare: undefined;
+  ExampleUseCaseDiagnostics: undefined;
+  ExampleUseCaseHook: undefined;
+  ExampleUseCaseIndex: undefined;
+  ExampleUseCaseLayoutLines: undefined;
+  ExampleUseCaseLayoutMetrics: undefined;
+  ExampleUseCaseLayoutOptions: undefined;
+  ExampleUseCaseLayoutRich: undefined;
+  ExampleUseCaseNamespaceAndTypes: undefined;
+  ExampleUseCasePrepare: undefined;
+  Home: undefined;
+};

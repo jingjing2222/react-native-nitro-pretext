@@ -1,2 +1,36 @@
-export { default, TextMeasure, measure, measureBatch } from "./TextMeasure";
-export type { Pretext } from "./Pretext.nitro";
+export { layout, prepare, Pretext, usePretextLayout } from "./Pretext";
+export type {
+  InlineBoxFrame,
+  InlineSegment,
+  LaidOutParagraphLines,
+  LaidOutParagraphLinesWithDiagnostics,
+  LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
+  ParagraphAtomicSpan,
+  ParagraphBoundaryMap,
+  ParagraphBreakOpportunity,
+  ParagraphBreakTable,
+  ParagraphComplexShapeCounters,
+  ParagraphLayoutDiagnostics,
+  ParagraphLineDiagnostics,
+  ParagraphLineRange,
+  ParagraphShapeSlice,
+  ParagraphStyle,
+  ParagraphTextDirection,
+  PrepareParagraphStats,
+} from "./Pretext.nitro";
+export type {
+  PretextDiagnosticsLayout,
+  PretextLayoutInput,
+  PretextLayout,
+  PretextLayoutOptions,
+  PretextLayoutOutput,
+  PretextLinesLayout,
+  PretextMetricsLayout,
+  PretextPrepared,
+  PretextRichLayout,
+  PretextSource,
+  PretextStyle,
+  UsePretextLayoutOptions,
+  UsePretextLayoutResult,
+} from "./Pretext";
