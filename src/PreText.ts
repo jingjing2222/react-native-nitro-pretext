@@ -28,8 +28,16 @@ export type PreTextSource =
   | readonly string[]
   | readonly (readonly InlineSegment[])[];
 
-export type PreTextStyle = Omit<ParagraphStyle, "letterSpacing" | "locale"> &
-  Partial<Pick<ParagraphStyle, "letterSpacing" | "locale">>;
+export type PreTextStyle = Omit<
+  ParagraphStyle,
+  "fontFamily" | "letterSpacing" | "lineHeight" | "locale"
+> &
+  Partial<
+    Pick<
+      ParagraphStyle,
+      "fontFamily" | "letterSpacing" | "lineHeight" | "locale"
+    >
+  >;
 
 export type PreTextLayoutOutput = "metrics" | "lines" | "diagnostics" | "rich";
 
@@ -203,6 +211,41 @@ export function usePreTextLayout({
   width,
   wordBreak,
 }: UsePreTextLayoutOptions): UsePreTextLayoutResult {
+  const {
+    fontFamily,
+    fontSize,
+    fontStyle,
+    fontWeight,
+    includeFontPadding,
+    letterSpacing,
+    lineHeight,
+    locale,
+    textDirection,
+  } = style;
+  const normalizedStyle = useMemo<ParagraphStyle>(
+    () => ({
+      fontFamily: fontFamily ?? "System",
+      fontSize,
+      fontStyle,
+      fontWeight,
+      includeFontPadding: includeFontPadding ?? true,
+      letterSpacing: letterSpacing ?? 0,
+      lineHeight: lineHeight ?? 0,
+      locale: locale ?? "",
+      textDirection: textDirection ?? "auto",
+    }),
+    [
+      fontFamily,
+      fontSize,
+      fontStyle,
+      fontWeight,
+      includeFontPadding,
+      letterSpacing,
+      lineHeight,
+      locale,
+      textDirection,
+    ],
+  );
   const [state, setState] = useState<{
     error: unknown | null;
     isPreparing: boolean;
@@ -231,7 +274,7 @@ export function usePreTextLayout({
     });
 
     try {
-      prepared = prepare(text, style);
+      prepared = prepare(text, normalizedStyle);
       setState({
         error: null,
         isPreparing: false,
@@ -248,7 +291,7 @@ export function usePreTextLayout({
     return () => {
       prepared?.release();
     };
-  }, [enabled, style, text]);
+  }, [enabled, normalizedStyle, text]);
 
   const resolvedLayout = useMemo<{
     error: unknown | null;
@@ -307,10 +350,14 @@ export const PreText = {
 
 function normalizeStyle(style: PreTextStyle): ParagraphStyle {
   return {
-    ...style,
-    includeFontPadding: style.includeFontPadding ?? true,
+    fontFamily: style.fontFamily ?? "System",
+    fontSize: style.fontSize,
+    lineHeight: style.lineHeight ?? 0,
     letterSpacing: style.letterSpacing ?? 0,
     locale: style.locale ?? "",
+    fontWeight: style.fontWeight,
+    fontStyle: style.fontStyle,
+    includeFontPadding: style.includeFontPadding ?? true,
     textDirection: style.textDirection ?? "auto",
   };
 }

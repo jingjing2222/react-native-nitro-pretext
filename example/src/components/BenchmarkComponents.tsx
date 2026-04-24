@@ -22,7 +22,7 @@ import type {
 
 const EMPTY_PREPARED_LAYOUT = {
   lineCount: 1,
-  height: BENCHMARK_STYLE.lineHeight,
+  height: BENCHMARK_STYLE.lineHeight ?? BENCHMARK_STYLE.fontSize,
   maxLineWidth: 0,
 };
 

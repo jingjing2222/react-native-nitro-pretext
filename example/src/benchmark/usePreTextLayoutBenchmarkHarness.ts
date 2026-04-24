@@ -58,7 +58,7 @@ type PreTextLayoutHarnessState = {
 
 const EMPTY_PARAGRAPH_METRIC: PreTextParagraphMetrics = {
   lineCount: 1,
-  height: BENCHMARK_STYLE.lineHeight,
+  height: BENCHMARK_STYLE.lineHeight ?? BENCHMARK_STYLE.fontSize,
   maxLineWidth: 0,
 };
 

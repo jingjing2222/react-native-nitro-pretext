@@ -236,6 +236,27 @@ describe("react-native-nitro-pretext public API", () => {
     ]);
   });
 
+  it("normalizes RN-style minimal text styles", () => {
+    PublicApi.prepare("alpha", {
+      fontSize: 16,
+    });
+
+    expect(
+      nativeParagraphEngineMock.prepareParagraphsWithStats.mock.calls.at(-1),
+    ).toEqual([
+      ["alpha"],
+      {
+        fontFamily: "System",
+        fontSize: 16,
+        lineHeight: 0,
+        includeFontPadding: true,
+        letterSpacing: 0,
+        locale: "",
+        textDirection: "auto",
+      },
+    ]);
+  });
+
   it("prepares inline paragraph sources through the serialized native path", () => {
     PublicApi.prepare([[{ text: "@pretext", breakBehavior: "never" }]], {
       fontFamily: "System",

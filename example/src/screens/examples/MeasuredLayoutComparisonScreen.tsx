@@ -73,13 +73,16 @@ const MEASURED_LAYOUT_STYLE: PreTextStyle = {
   textDirection: "auto",
 };
 
+const MEASURED_LAYOUT_FALLBACK_LINE_HEIGHT =
+  MEASURED_LAYOUT_STYLE.lineHeight ?? MEASURED_LAYOUT_STYLE.fontSize;
+
 const TEXT_RENDER_STYLE: TextStyle = {
   color: "#221f1c",
   fontFamily: MEASURED_LAYOUT_STYLE.fontFamily,
   fontSize: MEASURED_LAYOUT_STYLE.fontSize,
   includeFontPadding: MEASURED_LAYOUT_STYLE.includeFontPadding,
   letterSpacing: MEASURED_LAYOUT_STYLE.letterSpacing,
-  lineHeight: MEASURED_LAYOUT_STYLE.lineHeight,
+  lineHeight: MEASURED_LAYOUT_FALLBACK_LINE_HEIGHT,
 };
 
 const MEASURED_LAYOUT_CARDS: LayoutCard[] = [
@@ -326,12 +329,12 @@ export function MeasuredLayoutComparisonScreen() {
       getParagraphHeight: (index) => {
         const card = MEASURED_LAYOUT_CARDS[index];
         if (card === undefined) {
-          return MEASURED_LAYOUT_STYLE.lineHeight;
+          return MEASURED_LAYOUT_FALLBACK_LINE_HEIGHT;
         }
 
         return (
           onLayoutMeasurements[card.id]?.height ??
-          MEASURED_LAYOUT_STYLE.lineHeight
+          MEASURED_LAYOUT_FALLBACK_LINE_HEIGHT
         );
       },
     });
@@ -363,7 +366,7 @@ export function MeasuredLayoutComparisonScreen() {
       boardWidth,
       columnCount,
       getParagraphHeight: (index) =>
-        metrics[index]?.height ?? MEASURED_LAYOUT_STYLE.lineHeight,
+        metrics[index]?.height ?? MEASURED_LAYOUT_FALLBACK_LINE_HEIGHT,
     });
 
     return {

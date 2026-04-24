@@ -45,9 +45,7 @@ Manual lifecycle:
 
 ```ts
 const prepared = prepare("Text that affects layout", {
-  fontFamily: "System",
   fontSize: 16,
-  lineHeight: 24,
   includeFontPadding: true,
 });
 
@@ -64,9 +62,7 @@ const result = usePreTextLayout({
   text: "Text that affects layout",
   width: 280,
   style: {
-    fontFamily: "System",
     fontSize: 16,
-    lineHeight: 24,
   },
   output: "metrics",
 });
@@ -107,6 +103,8 @@ direction, and the platform line breaking strategy.
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
 If you turn it off in PreText but leave RN `<Text>` at its default, height can
 drift.
+When `lineHeight` is omitted, PreText uses platform font metrics instead of a
+`fontSize` heuristic.
 
 ## Performance Snapshot
 

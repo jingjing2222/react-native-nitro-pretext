@@ -25,6 +25,8 @@ There are no public renderer components and no public raw native ids.
 Height is not derived from `fontSize`. It depends on font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
+When `lineHeight` is omitted, PreText asks the native engine for platform font
+metrics instead of deriving height from `fontSize`.
 
 Since PreText does not own the final pixels, your visible RN `<Text>` style must
 match the style used for PreText layout. The biggest Android footgun is
@@ -38,9 +40,7 @@ is intentionally hidden.
 
 ```ts
 const prepared = prepare(["Title", "Body"], {
-  fontFamily: "System",
   fontSize: 16,
-  lineHeight: 24,
 });
 ```
 
@@ -252,9 +252,10 @@ Return value:
 | `isPreparing`    | `boolean`                       | `true` while the hook is preparing current inputs. |
 | `error`          | `unknown \| null`               | Error thrown by native prepare or layout, if any.  |
 
-Keep `text`, `style`, `shapeSlices`, and other object/array inputs stable with
-`useMemo` when they are created inside a component. Changed object identity
-means the hook prepares or lays out again.
+Keep `text` arrays, inline segment arrays, `shapeSlices`, and other non-style
+object/array inputs stable with `useMemo` when they are created inside a
+component. Plain style objects are normalized by value, so an inline style
+literal with the same scalar values does not force a new prepare.
 
 ## `PreText`
 
@@ -285,17 +286,17 @@ runs and optional atomic boxes.
 
 ### `PreTextStyle`
 
-| Field                | Type                       | Required | Default  | Description                                      |
-| -------------------- | -------------------------- | -------- | -------- | ------------------------------------------------ |
-| `fontFamily`         | `string`                   | yes      | n/a      | Platform font family, for example `"System"`.    |
-| `fontSize`           | `number`                   | yes      | n/a      | RN point size. Not enough to derive height.      |
-| `lineHeight`         | `number`                   | yes      | n/a      | Explicit line height.                            |
-| `letterSpacing`      | `number`                   | no       | `0`      | RN-style letter spacing.                         |
-| `locale`             | `string`                   | no       | `""`     | BCP-47 locale such as `"ko-KR"` or `"en-US"`.    |
-| `fontWeight`         | `string`                   | no       | platform | Weight such as `"400"`, `"700"`, or `"bold"`.    |
-| `fontStyle`          | `string`                   | no       | platform | Usually `"normal"` or `"italic"`.                |
-| `includeFontPadding` | `boolean`                  | no       | `true`   | Android padding policy, aligned with RN default. |
-| `textDirection`      | `"auto" \| "ltr" \| "rtl"` | no       | `"auto"` | Direction policy. Offsets remain source UTF-16.  |
+| Field                | Type                       | Required | Default             | Description                                                         |
+| -------------------- | -------------------------- | -------- | ------------------- | ------------------------------------------------------------------- |
+| `fontFamily`         | `string`                   | no       | `"System"`          | Platform font family, for example `"System"`.                       |
+| `fontSize`           | `number`                   | yes      | n/a                 | RN point size. Not enough to derive height.                         |
+| `lineHeight`         | `number`                   | no       | native font metrics | Explicit line height. Omit to match RN's default line box behavior. |
+| `letterSpacing`      | `number`                   | no       | `0`                 | RN-style letter spacing.                                            |
+| `locale`             | `string`                   | no       | `""`                | BCP-47 locale such as `"ko-KR"` or `"en-US"`.                       |
+| `fontWeight`         | `string`                   | no       | platform            | Weight such as `"400"`, `"700"`, or `"bold"`.                       |
+| `fontStyle`          | `string`                   | no       | platform            | Usually `"normal"` or `"italic"`.                                   |
+| `includeFontPadding` | `boolean`                  | no       | `true`              | Android padding policy, aligned with RN default.                    |
+| `textDirection`      | `"auto" \| "ltr" \| "rtl"` | no       | `"auto"`            | Direction policy. Offsets remain source UTF-16.                     |
 
 ### `PrepareParagraphStats`
 
