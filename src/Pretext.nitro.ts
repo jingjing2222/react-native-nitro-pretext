@@ -173,25 +173,47 @@ export interface ParagraphBreakTable {
   atomicSpans: ParagraphAtomicSpan[];
 }
 
+export interface ParagraphBoundaryMap {
+  utf16Length: number;
+  graphemeBoundaries: number[];
+  runBoundaries: number[];
+  hardBreaks: number[];
+  nativeSoftBreaks: number[];
+  atomicSpanBoundaries: number[];
+  clusterViolationOffsets: number[];
+}
+
+export interface ParagraphComplexShapeCounters {
+  bidiRunCount: number;
+  emojiClusterCount: number;
+  complexClusterCount: number;
+  clusterViolationCount: number;
+}
+
 export interface ParagraphLineDiagnostics {
   textStart: number;
   textEnd: number;
+  textDirection: ParagraphTextDirection;
   layoutEngine: string;
   heightMetricSource: string;
   fallbackReason?: string;
   driftKinds: string[];
+  clusterViolationOffsets: number[];
 }
 
 export interface ParagraphLayoutDiagnostics {
   normalizedRequest: ParagraphLayoutRequest;
   ruleLayer: string;
   canvasPixelParityTarget: boolean;
+  textDirection: ParagraphTextDirection;
   layoutEngine: string;
   heightMetricSource: string;
   fallbackReason?: string;
   driftKinds: string[];
   heightMetricDrivers: string[];
   breakTable: ParagraphBreakTable;
+  boundaryMap: ParagraphBoundaryMap;
+  complexShapeCounters: ParagraphComplexShapeCounters;
   lineDiagnostics: ParagraphLineDiagnostics[];
 }
 

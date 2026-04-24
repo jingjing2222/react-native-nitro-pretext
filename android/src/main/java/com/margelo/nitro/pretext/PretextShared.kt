@@ -157,6 +157,7 @@ internal object PretextShared {
     val prepared =
       NativePreparedCorpus(
         paragraphs = preparedParagraphs,
+        baseStyle = baseStyle,
         lineHeight = lineHeight,
         textPaint = basePaint,
         includeFontPadding = baseStyle.includeFontPadding,
@@ -372,7 +373,7 @@ internal object PretextShared {
     val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[resolvedParagraphIndex]
     val lineIndex = resolveLineIndex(lineLayouts, y)
     val line = lineLayouts.getOrNull(lineIndex) ?: emptyLineLayout()
-    val offset = resolveOffsetForX(paragraph, line, x)
+    val offset = snapOffsetToNearestGraphemeBoundary(paragraph.text, resolveOffsetForX(paragraph, line, x))
 
     return PreparedTextPosition(
       paragraphIndex = resolvedParagraphIndex.toDouble(),
@@ -397,8 +398,11 @@ internal object PretextShared {
     val paragraphIndex = resolveParagraphIndex(prepared, range.paragraphIndex.toInt())
     val paragraph = prepared.paragraphs[paragraphIndex]
     val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[paragraphIndex]
-    val textStart = min(range.textStart, range.textEnd).toInt().coerceIn(0, paragraph.text.length)
-    val textEnd = max(range.textStart, range.textEnd).toInt().coerceIn(0, paragraph.text.length)
+    val (textStart, textEnd) = normalizeSelectionRange(
+      paragraph.text,
+      min(range.textStart, range.textEnd).toInt(),
+      max(range.textStart, range.textEnd).toInt(),
+    )
 
     return lineLayouts.mapIndexedNotNull { lineIndex, line ->
       val rectStart = max(textStart, line.textStart)
@@ -444,8 +448,11 @@ internal object PretextShared {
     val prepared = requirePreparedCorpus(preparedId)
     val paragraphIndex = resolveParagraphIndex(prepared, range.paragraphIndex.toInt())
     val text = prepared.paragraphs[paragraphIndex].text
-    val start = min(range.textStart, range.textEnd).toInt().coerceIn(0, text.length)
-    val end = max(range.textStart, range.textEnd).toInt().coerceIn(0, text.length)
+    val (start, end) = normalizeSelectionRange(
+      text,
+      min(range.textStart, range.textEnd).toInt(),
+      max(range.textStart, range.textEnd).toInt(),
+    )
     return text.substring(start, end)
   }
 
@@ -908,10 +915,14 @@ internal object PretextShared {
     }
     val layoutEngine = lineLayouts.firstOrNull()?.layoutEngine ?: canonicalLayoutEngine
     val fallbackReason = lineLayouts.firstNotNullOfOrNull { it.fallbackReason }
+    val breakTable = buildParagraphBreakTable(paragraph, lineLayouts)
+    val boundaryMap = buildParagraphBoundaryMap(paragraph, lineLayouts, breakTable)
+    val complexShapeCounters = buildComplexShapeCounters(paragraph, boundaryMap)
     return ParagraphLayoutDiagnostics(
       normalizedRequest = buildPublicLayoutRequest(request),
       ruleLayer = RULE_LAYER_PRETEXT_NATIVE,
       canvasPixelParityTarget = false,
+      textDirection = corpus.textDirection,
       layoutEngine = layoutEngine,
       heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
       fallbackReason = fallbackReason,
@@ -920,17 +931,26 @@ internal object PretextShared {
         corpus = corpus,
         request = request,
         lineLayouts = lineLayouts,
+        boundaryMap = boundaryMap,
       ).toTypedArray(),
       heightMetricDrivers = HEIGHT_METRIC_DRIVERS,
-      breakTable = buildParagraphBreakTable(paragraph, lineLayouts),
+      breakTable = breakTable,
+      boundaryMap = boundaryMap,
+      complexShapeCounters = complexShapeCounters,
       lineDiagnostics = lineLayouts.map { line ->
         ParagraphLineDiagnostics(
           textStart = line.textStart.toDouble(),
           textEnd = line.textEnd.toDouble(),
+          textDirection = corpus.textDirection,
           layoutEngine = line.layoutEngine,
           heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
           fallbackReason = line.fallbackReason,
           driftKinds = collectLineDriftKinds(line, canonicalLayoutEngine).toTypedArray(),
+          clusterViolationOffsets = collectLineClusterViolationOffsets(
+            line,
+            boundaryMap,
+            paragraph.atomicSpans,
+          ).map { it.toDouble() }.toDoubleArray(),
         )
       }.toTypedArray(),
     )
@@ -982,7 +1002,7 @@ internal object PretextShared {
     return ParagraphBreakTable(
       hardBreaks = hardBreaks.toTypedArray(),
       nativeSoftBreaks = nativeSoftBreaks.toTypedArray(),
-      graphemeBoundaries = collectGraphemeBoundaries(paragraph.text).map { it.toDouble() }.toDoubleArray(),
+      graphemeBoundaries = collectGraphemeBoundaries(paragraph).map { it.toDouble() }.toDoubleArray(),
       atomicSpans = paragraph.atomicSpans.map { span ->
         ParagraphAtomicSpan(
           textStart = span.start.toDouble(),
@@ -990,6 +1010,34 @@ internal object PretextShared {
           source = span.source,
         )
       }.toTypedArray(),
+    )
+  }
+
+  private fun buildParagraphBoundaryMap(
+    paragraph: NativePreparedParagraph,
+    lineLayouts: List<NativeLineLayout>,
+    breakTable: ParagraphBreakTable,
+  ): ParagraphBoundaryMap {
+    val graphemeBoundaries = breakTable.graphemeBoundaries.map { it.toInt() }.sorted()
+    val runBoundaries = collectRunBoundaries(paragraph)
+    val atomicSpanBoundaries = paragraph.atomicSpans
+      .flatMap { span -> listOf(span.start, span.end) }
+      .distinct()
+      .sorted()
+    val clusterViolations = collectParagraphClusterViolationOffsets(
+      lineLayouts,
+      graphemeBoundaries.toSet(),
+      paragraph.atomicSpans,
+    )
+
+    return ParagraphBoundaryMap(
+      utf16Length = paragraph.text.length.toDouble(),
+      graphemeBoundaries = graphemeBoundaries.map { it.toDouble() }.toDoubleArray(),
+      runBoundaries = runBoundaries.map { it.toDouble() }.toDoubleArray(),
+      hardBreaks = breakTable.hardBreaks.map { it.offset }.toDoubleArray(),
+      nativeSoftBreaks = breakTable.nativeSoftBreaks.map { it.offset }.toDoubleArray(),
+      atomicSpanBoundaries = atomicSpanBoundaries.map { it.toDouble() }.toDoubleArray(),
+      clusterViolationOffsets = clusterViolations.map { it.toDouble() }.toDoubleArray(),
     )
   }
 
@@ -1007,20 +1055,204 @@ internal object PretextShared {
     return breaks
   }
 
-  private fun collectGraphemeBoundaries(text: String): List<Int> {
+  private fun collectGraphemeBoundaries(paragraph: NativePreparedParagraph): List<Int> {
+    val text = paragraph.text
     if (text.isEmpty()) {
       return listOf(0)
     }
 
-    val breaker = BreakIterator.getCharacterInstance()
+    val locale = paragraph.runs.firstOrNull()?.style?.locale ?: ""
+    val breaker = BreakIterator.getCharacterInstance(resolveTextLocale(locale))
     breaker.setText(text)
-    val boundaries = ArrayList<Int>()
+    val rawBoundaries = ArrayList<Int>()
     var boundary = breaker.first()
     while (boundary != BreakIterator.DONE) {
-      boundaries += boundary
+      rawBoundaries += boundary
       boundary = breaker.next()
     }
+    return rawBoundaries
+      .filter { candidate -> candidate == 0 || candidate == text.length || !isUnsafeGraphemeBoundary(text, candidate) }
+      .distinct()
+      .sorted()
+      .let { boundaries ->
+        when {
+          boundaries.firstOrNull() != 0 -> listOf(0) + boundaries
+          boundaries.lastOrNull() != text.length -> boundaries + text.length
+          else -> boundaries
+        }
+      }
+  }
+
+  private fun isUnsafeGraphemeBoundary(text: String, boundary: Int): Boolean {
+    if (boundary <= 0 || boundary >= text.length) {
+      return false
+    }
+
+    if (Character.isHighSurrogate(text[boundary - 1]) || Character.isLowSurrogate(text[boundary])) {
+      return true
+    }
+
+    val before = text.codePointBefore(boundary)
+    val after = text.codePointAt(boundary)
+    return before == ZERO_WIDTH_JOINER ||
+      after == ZERO_WIDTH_JOINER ||
+      isVariationSelector(after) ||
+      isEmojiModifier(after) ||
+      isRegionalIndicator(before) && isRegionalIndicator(after) ||
+      isIndicVirama(before) ||
+      isIndicVirama(after) ||
+      isCombiningMark(after)
+  }
+
+  private fun collectRunBoundaries(paragraph: NativePreparedParagraph): List<Int> {
+    return (listOf(0, paragraph.text.length) + paragraph.runs.flatMap { run ->
+      listOf(run.start, run.end)
+    })
+      .map { it.coerceIn(0, paragraph.text.length) }
+      .distinct()
+      .sorted()
+  }
+
+  private fun collectParagraphClusterViolationOffsets(
+    lineLayouts: List<NativeLineLayout>,
+    graphemeBoundarySet: Set<Int>,
+    atomicSpans: List<NativeAtomicSpan>,
+  ): List<Int> {
+    return lineLayouts
+      .flatMap { line -> collectLineClusterViolationOffsets(line, graphemeBoundarySet, atomicSpans) }
+      .distinct()
+      .sorted()
+  }
+
+  private fun collectLineClusterViolationOffsets(
+    line: NativeLineLayout,
+    boundaryMap: ParagraphBoundaryMap,
+    atomicSpans: List<NativeAtomicSpan>,
+  ): List<Int> {
+    return collectLineClusterViolationOffsets(
+      line,
+      boundaryMap.graphemeBoundaries.map { it.toInt() }.toSet(),
+      atomicSpans,
+    )
+  }
+
+  private fun collectLineClusterViolationOffsets(
+    line: NativeLineLayout,
+    graphemeBoundarySet: Set<Int>,
+    atomicSpans: List<NativeAtomicSpan>,
+  ): List<Int> {
+    val violations = LinkedHashSet<Int>()
+    if (!graphemeBoundarySet.contains(line.textStart)) {
+      violations += line.textStart
+    }
+    if (!graphemeBoundarySet.contains(line.textEnd)) {
+      violations += line.textEnd
+    }
+    atomicSpans.forEach { span ->
+      if (line.textStart > span.start && line.textStart < span.end) {
+        violations += line.textStart
+      }
+      if (line.textEnd > span.start && line.textEnd < span.end) {
+        violations += line.textEnd
+      }
+    }
+    return violations.toList()
+  }
+
+  private fun buildComplexShapeCounters(
+    paragraph: NativePreparedParagraph,
+    boundaryMap: ParagraphBoundaryMap,
+  ): ParagraphComplexShapeCounters {
+    val boundaries = boundaryMap.graphemeBoundaries.map { it.toInt() }
+    return ParagraphComplexShapeCounters(
+      bidiRunCount = countBidiRuns(paragraph.text).toDouble(),
+      emojiClusterCount = countClusters(paragraph.text, boundaries, ::containsEmoji).toDouble(),
+      complexClusterCount = countComplexClusters(paragraph.text, boundaries).toDouble(),
+      clusterViolationCount = boundaryMap.clusterViolationOffsets.size.toDouble(),
+    )
+  }
+
+  private fun countClusters(
+    text: String,
+    boundaries: List<Int>,
+    predicate: (String) -> Boolean,
+  ): Int {
     return boundaries
+      .zipWithNext()
+      .count { (start, end) -> end > start && predicate(text.substring(start, end)) }
+  }
+
+  private fun countComplexClusters(text: String, boundaries: List<Int>): Int {
+    return boundaries
+      .zipWithNext()
+      .count { (start, end) ->
+        if (end <= start) {
+          false
+        } else {
+          val cluster = text.substring(start, end)
+          cluster.length > Character.charCount(cluster.codePointAt(0)) ||
+            cluster.codePoints().anyMatch { codePoint ->
+              isCombiningMark(codePoint) ||
+                isVariationSelector(codePoint) ||
+                isEmojiModifier(codePoint) ||
+                isRegionalIndicator(codePoint) ||
+                isIndicVirama(codePoint) ||
+                codePoint == ZERO_WIDTH_JOINER
+            }
+        }
+      }
+  }
+
+  private fun countBidiRuns(text: String): Int {
+    var runs = 0
+    var previousDirection: Int? = null
+    text.codePoints().forEachOrdered { codePoint ->
+      val direction = when (Character.getDirectionality(codePoint)) {
+        Character.DIRECTIONALITY_LEFT_TO_RIGHT -> 0
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT,
+        Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC -> 1
+        else -> null
+      }
+      if (direction != null && direction != previousDirection) {
+        runs += 1
+        previousDirection = direction
+      }
+    }
+    return runs
+  }
+
+  private fun snapOffsetToNearestGraphemeBoundary(text: String, offset: Int): Int {
+    val boundaries = collectGraphemeBoundariesForText(text)
+    val clamped = offset.coerceIn(0, text.length)
+    val lower = boundaries.lastOrNull { it <= clamped } ?: 0
+    val upper = boundaries.firstOrNull { it >= clamped } ?: text.length
+    return if (clamped - lower <= upper - clamped) lower else upper
+  }
+
+  private fun normalizeSelectionRange(text: String, start: Int, end: Int): Pair<Int, Int> {
+    val boundaries = collectGraphemeBoundariesForText(text)
+    val clampedStart = start.coerceIn(0, text.length)
+    val clampedEnd = end.coerceIn(0, text.length)
+    val safeStart = boundaries.lastOrNull { it <= clampedStart } ?: 0
+    val safeEnd = boundaries.firstOrNull { it >= clampedEnd } ?: text.length
+    return safeStart to max(safeStart, safeEnd)
+  }
+
+  private fun collectGraphemeBoundariesForText(text: String): List<Int> {
+    return collectGraphemeBoundaries(
+      NativePreparedParagraph(
+        text = text,
+        styledText = text,
+        measuredText = null,
+        tokens = emptyList(),
+        breakUnits = emptyList(),
+        runs = emptyList(),
+        atomicSpans = emptyList(),
+        inlineBoxes = emptyList(),
+        forceTokenLayout = true,
+        hasStyledRuns = false,
+      ),
+    )
   }
 
   private fun collectLineDriftKinds(
@@ -1042,6 +1274,7 @@ internal object PretextShared {
     corpus: NativePreparedCorpus,
     request: NativeLayoutRequest,
     lineLayouts: List<NativeLineLayout>,
+    boundaryMap: ParagraphBoundaryMap,
   ): List<String> {
     val driftKinds = LinkedHashSet<String>()
     val canonicalEngine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -1075,6 +1308,9 @@ internal object PretextShared {
     }
     if (containsEmoji(paragraph.text)) {
       driftKinds += DRIFT_EMOJI_METRIC
+    }
+    if (boundaryMap.clusterViolationOffsets.isNotEmpty()) {
+      driftKinds += DRIFT_CLUSTER_BOUNDARY
     }
     return driftKinds.toList()
   }
@@ -1434,7 +1670,8 @@ internal object PretextShared {
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
         includeFontPadding = corpus.includeFontPadding,
-        textDirection = corpus.textDirection,
+        textDirection = corpus.baseStyle.textDirection,
+        textLocale = corpus.baseStyle.locale,
       )
     }
 
@@ -1906,6 +2143,7 @@ private object StaticLayoutLineLayout {
     defaultLineHeight: Double,
     includeFontPadding: Boolean,
     textDirection: ParagraphTextDirection,
+    textLocale: String,
   ): List<NativeLineLayout> {
     val layout =
       StaticLayout.Builder.obtain(
@@ -1918,7 +2156,7 @@ private object StaticLayoutLineLayout {
         .setAlignment(Layout.Alignment.ALIGN_NORMAL)
         .setLineSpacing(0f, 1f)
         .setIncludePad(includeFontPadding)
-        .setTextDirection(resolveTextDirectionHeuristic(textDirection))
+        .setTextDirection(resolveTextDirectionHeuristic(textDirection, textLocale))
         .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
         .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
         .apply {
@@ -2057,6 +2295,7 @@ internal data class NativeInlineBox(
 
 internal class NativePreparedCorpus(
   val paragraphs: List<NativePreparedParagraph>,
+  val baseStyle: NativeTextStyle,
   val lineHeight: Double,
   val textPaint: TextPaint,
   val includeFontPadding: Boolean,
@@ -2190,6 +2429,7 @@ internal const val HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS =
 internal const val RULE_LAYER_PRETEXT_NATIVE = "pretext_native_rules"
 internal const val BREAK_KIND_HARD = "hard_break"
 internal const val BREAK_KIND_NATIVE_SOFT = "native_soft_break"
+internal const val DRIFT_CLUSTER_BOUNDARY = "cluster_boundary_drift"
 internal const val DRIFT_ALGORITHM_RULE = "algorithm_rule_drift"
 internal const val DRIFT_EMOJI_METRIC = "emoji_metric_drift"
 internal const val DRIFT_ENGINE = "engine_drift"
@@ -2208,3 +2448,48 @@ internal val HEIGHT_METRIC_DRIVERS =
     "include_font_padding",
     "line_break_strategy",
   )
+private const val ZERO_WIDTH_JOINER = 0x200D
+
+private fun isCombiningMark(codePoint: Int): Boolean {
+  return when (Character.getType(codePoint)) {
+    Character.NON_SPACING_MARK.toInt(),
+    Character.COMBINING_SPACING_MARK.toInt(),
+    Character.ENCLOSING_MARK.toInt() -> true
+    else -> false
+  }
+}
+
+private fun isVariationSelector(codePoint: Int): Boolean {
+  return codePoint in 0xFE00..0xFE0F || codePoint in 0xE0100..0xE01EF
+}
+
+private fun isEmojiModifier(codePoint: Int): Boolean {
+  return codePoint in 0x1F3FB..0x1F3FF
+}
+
+private fun isRegionalIndicator(codePoint: Int): Boolean {
+  return codePoint in 0x1F1E6..0x1F1FF
+}
+
+private fun isIndicVirama(codePoint: Int): Boolean {
+  return codePoint in setOf(
+    0x094D,
+    0x09CD,
+    0x0A4D,
+    0x0ACD,
+    0x0B4D,
+    0x0BCD,
+    0x0C4D,
+    0x0CCD,
+    0x0D4D,
+    0x0DCA,
+    0x0E3A,
+    0x0F84,
+    0x1039,
+    0x103A,
+    0x1714,
+    0x1734,
+    0x17D2,
+    0x1A60,
+  )
+}

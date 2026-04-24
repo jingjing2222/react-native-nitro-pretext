@@ -11,6 +11,8 @@ import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.style.MetricAffectingSpan
 import android.text.style.ReplacementSpan
+import android.text.TextUtils
+import android.view.View
 import java.util.Locale
 
 internal const val FONT_STYLE_NORMAL = "normal"
@@ -172,7 +174,7 @@ internal fun buildMeasuredText(
     val runEnd = run?.end ?: text.length
     val end = minOf(text.length, nextBoxStart, runEnd)
     val paint = createTextPaint(style)
-    val isRtl = resolveTextDirectionHeuristic(style.textDirection)
+    val isRtl = resolveTextDirectionHeuristic(style)
       .isRtl(text, cursor, end - cursor)
     builder.appendStyleRun(paint, end - cursor, isRtl)
     cursor = end
@@ -182,12 +184,24 @@ internal fun buildMeasuredText(
 }
 
 internal fun resolveTextDirectionHeuristic(
+  style: NativeTextStyle,
+): TextDirectionHeuristic {
+  return resolveTextDirectionHeuristic(style.textDirection, style.locale)
+}
+
+internal fun resolveTextDirectionHeuristic(
   textDirection: ParagraphTextDirection,
+  locale: String,
 ): TextDirectionHeuristic {
   return when (textDirection) {
     ParagraphTextDirection.LTR -> TextDirectionHeuristics.LTR
     ParagraphTextDirection.RTL -> TextDirectionHeuristics.RTL
-    ParagraphTextDirection.AUTO -> TextDirectionHeuristics.FIRSTSTRONG_LTR
+    ParagraphTextDirection.AUTO ->
+      if (TextUtils.getLayoutDirectionFromLocale(resolveTextLocale(locale)) == View.LAYOUT_DIRECTION_RTL) {
+        TextDirectionHeuristics.FIRSTSTRONG_RTL
+      } else {
+        TextDirectionHeuristics.FIRSTSTRONG_LTR
+      }
   }
 }
 

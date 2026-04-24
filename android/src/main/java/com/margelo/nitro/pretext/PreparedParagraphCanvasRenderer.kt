@@ -58,7 +58,7 @@ internal object PreparedParagraphCanvasRenderer {
         color = textColor
       }
       val segmentX = x + resolveAdvance(drawing, line.textStart, segmentStart, fallbackPaint)
-      val isRtl = resolveTextDirectionHeuristic(run.style.textDirection)
+      val isRtl = resolveTextDirectionHeuristic(run.style)
         .isRtl(drawing.text, segmentStart, segmentEnd - segmentStart)
       canvas.drawTextRun(
         drawing.text,

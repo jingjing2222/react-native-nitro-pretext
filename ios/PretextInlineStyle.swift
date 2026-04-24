@@ -148,7 +148,21 @@ internal func textAttributes(
     if !style.locale.isEmpty {
         attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] = style.locale
     }
+    attributes[.paragraphStyle] = paragraphStyle(for: style)
     return attributes
+}
+
+private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
+    let paragraphStyle = NSMutableParagraphStyle()
+    switch style.textDirection {
+    case .ltr:
+        paragraphStyle.baseWritingDirection = .leftToRight
+    case .rtl:
+        paragraphStyle.baseWritingDirection = .rightToLeft
+    case .auto:
+        paragraphStyle.baseWritingDirection = .natural
+    }
+    return paragraphStyle
 }
 
 internal func resolvedLineHeightValue(

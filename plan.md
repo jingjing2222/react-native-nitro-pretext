@@ -268,19 +268,37 @@ Result:
 
 ## Plan 08: Bidi, Grapheme, Complex Shaping
 
-- [ ] Add `textDirection?: "auto" | "ltr" | "rtl"`.
-- [ ] Android removes hardcoded `FIRSTSTRONG_LTR`.
-- [ ] Add shared boundary map for UTF-16 offsets, grapheme clusters, run boundaries, break opportunities.
-- [ ] Never split surrogate pairs, ZWJ emoji, flags, combining sequences, Indic clusters.
-- [ ] Add line diagnostics for direction, cluster violations, fallback reason.
-- [ ] Add height fixtures for RTL, emoji ZWJ sequences, flags, combining marks, CJK locale fallback, and Indic clusters.
-- [ ] Document visual order belongs to native renderer, not JS slicing.
+- [x] Add `textDirection?: "auto" | "ltr" | "rtl"`.
+- [x] Android removes hardcoded `FIRSTSTRONG_LTR`.
+- [x] Add shared boundary map for UTF-16 offsets, grapheme clusters, run boundaries, break opportunities.
+- [x] Never split surrogate pairs, ZWJ emoji, flags, combining sequences, Indic clusters.
+- [x] Add line diagnostics for direction, cluster violations, fallback reason.
+- [x] Add height fixtures for RTL, emoji ZWJ sequences, flags, combining marks, CJK locale fallback, and Indic clusters.
+- [x] Document visual order belongs to native renderer, not JS slicing.
 
 Acceptance:
 
 - Bidi/emoji/complex-script fixtures are tracked by dedicated counters.
 - `agent-device` visual verification captures RTL, emoji, and complex-script fixtures.
 - Local CI passes before final docs and migration notes begin.
+
+Result:
+
+- `ParagraphStyle.textDirection` remains public and diagnostics now report resolved request direction at the paragraph and line levels.
+- Android `auto` direction no longer hardcodes `FIRSTSTRONG_LTR`; it chooses `FIRSTSTRONG_RTL` or `FIRSTSTRONG_LTR` from the resolved locale layout direction, while explicit `ltr`/`rtl` map to native fixed heuristics.
+- iOS attributed strings now carry Core Text paragraph writing direction through `NSParagraphStyle`, with `.natural`, `.leftToRight`, and `.rightToLeft` matching the public direction option.
+- Diagnostic output now includes `boundaryMap` with UTF-16 length, grapheme boundaries, styled-run boundaries, hard breaks, native soft breaks, atomic-span boundaries, and cluster violation offsets.
+- Diagnostic output now includes `complexShapeCounters` for bidi runs, emoji clusters, complex clusters, and cluster violations.
+- Line diagnostics now include `textDirection`, `clusterViolationOffsets`, and existing fallback/height provenance.
+- Android hit testing and selection ranges now snap to grapheme-safe boundaries over surrogate pairs, ZWJ emoji, flag regional indicators, combining marks, emoji modifiers, and Indic virama clusters.
+- iOS hit testing and selection ranges now snap to `NSString` composed-character boundaries from the same Core Text source offsets used for line records.
+- The prepared-view example text now includes Hebrew/Arabic RTL, a ZWJ family emoji, a flag emoji, and an Indic conjunct fixture so complex shaping can affect native height and line boxes.
+- Visual order remains native-renderer owned; JS diagnostics and public ranges stay in source UTF-16 offsets.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`: navigated to `examples/prepared-view`, verified RTL/emoji/Indic fixture text was rendered, and select-all preserved a grapheme-safe range (`Selection 0-162`).
+- Artifact: `example/.maestro-artifacts/plan08/prepared-complex-ios.png`.
+- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
 
 ## Final Docs And Reports
 

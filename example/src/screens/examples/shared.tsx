@@ -27,7 +27,7 @@ import { MetricPill } from "../../components/BenchmarkComponents";
 import { BENCHMARK_STYLE } from "../../relayoutBenchmark";
 
 export const EXAMPLE_TEXT =
-  "Prepared paragraph state stays stable while the width changes. The example view is for API inspection, not for benchmark timing.";
+  "שלום مرحبا 👨‍👩‍👧‍👦 🇰🇷 क्‍षि Prepared paragraph state stays stable while the width changes. The example view is for API inspection, not for benchmark timing.";
 export const INLINE_EXAMPLE: InlineSegment[] = [
   {
     text: "Prepared paragraph state can carry ",

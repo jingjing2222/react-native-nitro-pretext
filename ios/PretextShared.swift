@@ -17,6 +17,7 @@ internal let ruleLayerPretextNative = "pretext_native_rules"
 internal let breakKindHard = "hard_break"
 internal let breakKindNativeSoft = "native_soft_break"
 internal let driftAlgorithmRule = "algorithm_rule_drift"
+internal let driftClusterBoundary = "cluster_boundary_drift"
 internal let driftEmojiMetric = "emoji_metric_drift"
 internal let driftEngine = "engine_drift"
 internal let driftFallbackFont = "fallback_font_drift"
@@ -33,6 +34,56 @@ internal let heightMetricDrivers = [
     "include_font_padding",
     "line_break_strategy",
 ]
+private let zeroWidthJoiner: UInt32 = 0x200D
+
+private func isCombiningMark(_ scalar: UnicodeScalar) -> Bool {
+    CharacterSet.nonBaseCharacters.contains(scalar)
+}
+
+private func isVariationSelector(_ scalar: UnicodeScalar) -> Bool {
+    (0xFE00...0xFE0F).contains(scalar.value) || (0xE0100...0xE01EF).contains(scalar.value)
+}
+
+private func isEmojiModifier(_ scalar: UnicodeScalar) -> Bool {
+    (0x1F3FB...0x1F3FF).contains(scalar.value)
+}
+
+private func isRegionalIndicator(_ scalar: UnicodeScalar) -> Bool {
+    (0x1F1E6...0x1F1FF).contains(scalar.value)
+}
+
+private func isIndicVirama(_ scalar: UnicodeScalar) -> Bool {
+    [
+        0x094D,
+        0x09CD,
+        0x0A4D,
+        0x0ACD,
+        0x0B4D,
+        0x0BCD,
+        0x0C4D,
+        0x0CCD,
+        0x0D4D,
+        0x0DCA,
+        0x0E3A,
+        0x0F84,
+        0x1039,
+        0x103A,
+        0x1714,
+        0x1734,
+        0x17D2,
+        0x1A60,
+    ].contains(scalar.value)
+}
+
+private func isRtlScalar(_ scalar: UnicodeScalar) -> Bool {
+    (0x0590...0x08FF).contains(scalar.value)
+        || (0xFB1D...0xFDFF).contains(scalar.value)
+        || (0xFE70...0xFEFF).contains(scalar.value)
+}
+
+private func isLtrScalar(_ scalar: UnicodeScalar) -> Bool {
+    CharacterSet.letters.contains(scalar) || CharacterSet.decimalDigits.contains(scalar)
+}
 
 internal struct NativeTokenDescriptor {
     let text: String
@@ -136,6 +187,7 @@ internal struct NativeInlineBox {
 
 internal final class NativePreparedCorpus {
     let paragraphs: [NativePreparedParagraph]
+    let baseStyle: NativeTextStyle
     let lineHeight: Double
 
     private let layoutCacheLimit = 12
@@ -145,9 +197,11 @@ internal final class NativePreparedCorpus {
 
     init(
         paragraphs: [NativePreparedParagraph],
+        baseStyle: NativeTextStyle,
         lineHeight: Double
     ) {
         self.paragraphs = paragraphs
+        self.baseStyle = baseStyle
         self.lineHeight = lineHeight
     }
 
@@ -407,6 +461,7 @@ internal final class PretextShared {
         let buildPreparedStartedAt = nowMs()
         let prepared = NativePreparedCorpus(
             paragraphs: paragraphs,
+            baseStyle: baseTextStyle,
             lineHeight: lineHeight
         )
         let buildPreparedMs = nowMs() - buildPreparedStartedAt
@@ -621,7 +676,10 @@ internal final class PretextShared {
         )[resolvedParagraphIndex]
         let lineIndex = resolveLineIndex(lineLayouts: lineLayouts, y: y)
         let line = lineLayouts.indices.contains(lineIndex) ? lineLayouts[lineIndex] : emptyLineLayout()
-        let offset = resolveOffsetForX(paragraph: paragraph, line: line, x: x)
+        let offset = snapOffsetToNearestGraphemeBoundary(
+            text: paragraph.text,
+            offset: resolveOffsetForX(paragraph: paragraph, line: line, x: x)
+        )
 
         return PreparedTextPosition(
             paragraphIndex: Double(resolvedParagraphIndex),
@@ -652,8 +710,13 @@ internal final class PretextShared {
             prepared: prepared,
             request: normalizeLayoutRequest(request)
         )[paragraphIndex]
-        let textStart = Int(min(range.textStart, range.textEnd)).clamped(to: 0...paragraph.text.length)
-        let textEnd = Int(max(range.textStart, range.textEnd)).clamped(to: 0...paragraph.text.length)
+        let normalizedRange = normalizeSelectionRange(
+            text: paragraph.text,
+            start: Int(min(range.textStart, range.textEnd)),
+            end: Int(max(range.textStart, range.textEnd))
+        )
+        let textStart = normalizedRange.start
+        let textEnd = normalizedRange.end
 
         return lineLayouts.enumerated().compactMap { lineIndex, line in
             let rectStart = max(textStart, line.textStartUTF16)
@@ -722,8 +785,13 @@ internal final class PretextShared {
             requestedIndex: Int(range.paragraphIndex)
         )
         let text = prepared.paragraphs[paragraphIndex].text
-        let start = Int(min(range.textStart, range.textEnd)).clamped(to: 0...text.length)
-        let end = Int(max(range.textStart, range.textEnd)).clamped(to: 0...text.length)
+        let normalizedRange = normalizeSelectionRange(
+            text: text,
+            start: Int(min(range.textStart, range.textEnd)),
+            end: Int(max(range.textStart, range.textEnd))
+        )
+        let start = normalizedRange.start
+        let end = normalizedRange.end
         return text.substring(with: NSRange(location: start, length: end - start))
     }
 
@@ -955,6 +1023,7 @@ internal final class PretextShared {
                 lines: buildParagraphLineRanges(lineLayouts: lineLayouts),
                 diagnostics: buildParagraphLayoutDiagnostics(
                     paragraph: paragraph,
+                    corpus: prepared,
                     request: request,
                     lineLayouts: lineLayouts
                 )
@@ -986,6 +1055,7 @@ internal final class PretextShared {
                 ),
                 diagnostics: buildParagraphLayoutDiagnostics(
                     paragraph: paragraph,
+                    corpus: prepared,
                     request: request,
                     lineLayouts: lineLayouts
                 )
@@ -1329,32 +1399,52 @@ internal final class PretextShared {
 
     private func buildParagraphLayoutDiagnostics(
         paragraph: NativePreparedParagraph,
+        corpus: NativePreparedCorpus,
         request: NativeLayoutRequest,
         lineLayouts: [NativeLineLayout]
     ) -> ParagraphLayoutDiagnostics {
+        let breakTable = buildParagraphBreakTable(paragraph: paragraph, lineLayouts: lineLayouts)
+        let boundaryMap = buildParagraphBoundaryMap(
+            paragraph: paragraph,
+            lineLayouts: lineLayouts,
+            breakTable: breakTable
+        )
         let driftKinds = collectDriftKinds(
             paragraph: paragraph,
             request: request,
-            lineLayouts: lineLayouts
+            lineLayouts: lineLayouts,
+            boundaryMap: boundaryMap
         )
         return ParagraphLayoutDiagnostics(
             normalizedRequest: buildPublicLayoutRequest(request),
             ruleLayer: ruleLayerPretextNative,
             canvasPixelParityTarget: false,
+            textDirection: corpus.baseStyle.textDirection,
             layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosCoreText,
             heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
             fallbackReason: lineLayouts.compactMap { $0.fallbackReason }.first,
             driftKinds: driftKinds,
             heightMetricDrivers: heightMetricDrivers,
-            breakTable: buildParagraphBreakTable(paragraph: paragraph, lineLayouts: lineLayouts),
+            breakTable: breakTable,
+            boundaryMap: boundaryMap,
+            complexShapeCounters: buildComplexShapeCounters(
+                paragraph: paragraph,
+                boundaryMap: boundaryMap
+            ),
             lineDiagnostics: lineLayouts.map { line in
                 ParagraphLineDiagnostics(
                     textStart: Double(line.textStartUTF16),
                     textEnd: Double(line.textEndUTF16),
+                    textDirection: corpus.baseStyle.textDirection,
                     layoutEngine: line.layoutEngine,
                     heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
                     fallbackReason: line.fallbackReason,
-                    driftKinds: collectLineDriftKinds(line)
+                    driftKinds: collectLineDriftKinds(line),
+                    clusterViolationOffsets: collectLineClusterViolationOffsets(
+                        line: line,
+                        boundaryMap: boundaryMap,
+                        atomicSpans: paragraph.atomicSpans
+                    ).map(Double.init)
                 )
             }
         )
@@ -1411,6 +1501,35 @@ internal final class PretextShared {
         )
     }
 
+    private func buildParagraphBoundaryMap(
+        paragraph: NativePreparedParagraph,
+        lineLayouts: [NativeLineLayout],
+        breakTable: ParagraphBreakTable
+    ) -> ParagraphBoundaryMap {
+        let graphemeBoundaries = breakTable.graphemeBoundaries.map(Int.init).sorted()
+        let runBoundaries = collectRunBoundaries(paragraph: paragraph)
+        let atomicSpanBoundaries = Array(
+            Set(paragraph.atomicSpans.flatMap { span in
+                [span.startUTF16, span.endUTF16]
+            })
+        ).sorted()
+        let clusterViolations = collectParagraphClusterViolationOffsets(
+            lineLayouts: lineLayouts,
+            graphemeBoundarySet: Set(graphemeBoundaries),
+            atomicSpans: paragraph.atomicSpans
+        )
+
+        return ParagraphBoundaryMap(
+            utf16Length: Double(paragraph.text.length),
+            graphemeBoundaries: graphemeBoundaries.map(Double.init),
+            runBoundaries: runBoundaries.map(Double.init),
+            hardBreaks: breakTable.hardBreaks.map(\.offset),
+            nativeSoftBreaks: breakTable.nativeSoftBreaks.map(\.offset),
+            atomicSpanBoundaries: atomicSpanBoundaries.map(Double.init),
+            clusterViolationOffsets: clusterViolations.map(Double.init)
+        )
+    }
+
     private func collectHardBreaks(_ text: NSString) -> [ParagraphBreakOpportunity] {
         var breaks: [ParagraphBreakOpportunity] = []
         var cursor = 0
@@ -1441,6 +1560,158 @@ internal final class PretextShared {
         return boundaries
     }
 
+    private func collectRunBoundaries(paragraph: NativePreparedParagraph) -> [Int] {
+        Array(
+            Set(
+                [0, paragraph.text.length] + paragraph.runs.flatMap { run in
+                    [run.startUTF16, run.endUTF16]
+                }
+            )
+        )
+        .map { min(max($0, 0), paragraph.text.length) }
+        .sorted()
+    }
+
+    private func collectParagraphClusterViolationOffsets(
+        lineLayouts: [NativeLineLayout],
+        graphemeBoundarySet: Set<Int>,
+        atomicSpans: [NativeAtomicSpan]
+    ) -> [Int] {
+        Array(
+            Set(
+                lineLayouts.flatMap { line in
+                    collectLineClusterViolationOffsets(
+                        line: line,
+                        graphemeBoundarySet: graphemeBoundarySet,
+                        atomicSpans: atomicSpans
+                    )
+                }
+            )
+        ).sorted()
+    }
+
+    private func collectLineClusterViolationOffsets(
+        line: NativeLineLayout,
+        boundaryMap: ParagraphBoundaryMap,
+        atomicSpans: [NativeAtomicSpan]
+    ) -> [Int] {
+        collectLineClusterViolationOffsets(
+            line: line,
+            graphemeBoundarySet: Set(boundaryMap.graphemeBoundaries.map(Int.init)),
+            atomicSpans: atomicSpans
+        )
+    }
+
+    private func collectLineClusterViolationOffsets(
+        line: NativeLineLayout,
+        graphemeBoundarySet: Set<Int>,
+        atomicSpans: [NativeAtomicSpan]
+    ) -> [Int] {
+        var violations = Set<Int>()
+        if !graphemeBoundarySet.contains(line.textStartUTF16) {
+            violations.insert(line.textStartUTF16)
+        }
+        if !graphemeBoundarySet.contains(line.textEndUTF16) {
+            violations.insert(line.textEndUTF16)
+        }
+        for span in atomicSpans {
+            if line.textStartUTF16 > span.startUTF16 && line.textStartUTF16 < span.endUTF16 {
+                violations.insert(line.textStartUTF16)
+            }
+            if line.textEndUTF16 > span.startUTF16 && line.textEndUTF16 < span.endUTF16 {
+                violations.insert(line.textEndUTF16)
+            }
+        }
+        return Array(violations).sorted()
+    }
+
+    private func buildComplexShapeCounters(
+        paragraph: NativePreparedParagraph,
+        boundaryMap: ParagraphBoundaryMap
+    ) -> ParagraphComplexShapeCounters {
+        let boundaries = boundaryMap.graphemeBoundaries.map(Int.init)
+        return ParagraphComplexShapeCounters(
+            bidiRunCount: Double(countBidiRuns(paragraph.text)),
+            emojiClusterCount: Double(
+                countClusters(text: paragraph.text, boundaries: boundaries, predicate: containsEmoji)
+            ),
+            complexClusterCount: Double(countComplexClusters(text: paragraph.text, boundaries: boundaries)),
+            clusterViolationCount: Double(boundaryMap.clusterViolationOffsets.count)
+        )
+    }
+
+    private func countClusters(
+        text: NSString,
+        boundaries: [Int],
+        predicate: (NSString) -> Bool
+    ) -> Int {
+        zip(boundaries, boundaries.dropFirst()).filter { pair in
+            let (start, end) = pair
+            return end > start &&
+                predicate(text.substring(with: NSRange(location: start, length: end - start)) as NSString)
+        }.count
+    }
+
+    private func countComplexClusters(text: NSString, boundaries: [Int]) -> Int {
+        zip(boundaries, boundaries.dropFirst()).filter { pair in
+            let (start, end) = pair
+            guard end > start else {
+                return false
+            }
+            let cluster = text.substring(with: NSRange(location: start, length: end - start))
+            let scalarCount = cluster.unicodeScalars.count
+            return scalarCount > 1 || cluster.unicodeScalars.contains { scalar in
+                isCombiningMark(scalar)
+                    || isVariationSelector(scalar)
+                    || isEmojiModifier(scalar)
+                    || isRegionalIndicator(scalar)
+                    || isIndicVirama(scalar)
+                    || scalar.value == zeroWidthJoiner
+            }
+        }.count
+    }
+
+    private func countBidiRuns(_ text: NSString) -> Int {
+        var runs = 0
+        var previousDirection: Int?
+        for scalar in (text as String).unicodeScalars {
+            let direction: Int?
+            if isRtlScalar(scalar) {
+                direction = 1
+            } else if isLtrScalar(scalar) {
+                direction = 0
+            } else {
+                direction = nil
+            }
+            if let direction, direction != previousDirection {
+                runs += 1
+                previousDirection = direction
+            }
+        }
+        return runs
+    }
+
+    private func snapOffsetToNearestGraphemeBoundary(text: NSString, offset: Int) -> Int {
+        let boundaries = collectGraphemeBoundaries(text).map(Int.init)
+        let clamped = min(max(offset, 0), text.length)
+        let lower = boundaries.last(where: { $0 <= clamped }) ?? 0
+        let upper = boundaries.first(where: { $0 >= clamped }) ?? text.length
+        return clamped - lower <= upper - clamped ? lower : upper
+    }
+
+    private func normalizeSelectionRange(
+        text: NSString,
+        start: Int,
+        end: Int
+    ) -> (start: Int, end: Int) {
+        let boundaries = collectGraphemeBoundaries(text).map(Int.init)
+        let clampedStart = min(max(start, 0), text.length)
+        let clampedEnd = min(max(end, 0), text.length)
+        let safeStart = boundaries.last(where: { $0 <= clampedStart }) ?? 0
+        let safeEnd = boundaries.first(where: { $0 >= clampedEnd }) ?? text.length
+        return (safeStart, max(safeStart, safeEnd))
+    }
+
     private func collectLineDriftKinds(_ line: NativeLineLayout) -> [String] {
         var driftKinds: [String] = []
         if line.layoutEngine != layoutEngineIosCoreText {
@@ -1455,7 +1726,8 @@ internal final class PretextShared {
     private func collectDriftKinds(
         paragraph: NativePreparedParagraph,
         request: NativeLayoutRequest,
-        lineLayouts: [NativeLineLayout]
+        lineLayouts: [NativeLineLayout],
+        boundaryMap: ParagraphBoundaryMap
     ) -> [String] {
         var driftKinds: [String] = []
         func appendDrift(_ driftKind: String) {
@@ -1488,6 +1760,9 @@ internal final class PretextShared {
         }
         if containsEmoji(paragraph.text) {
             appendDrift(driftEmojiMetric)
+        }
+        if !boundaryMap.clusterViolationOffsets.isEmpty {
+            appendDrift(driftClusterBoundary)
         }
         return driftKinds
     }
