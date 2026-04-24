@@ -103,6 +103,12 @@ Android canonical benchmark claims require API 29+ because the canonical
 Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
 `StaticLayout` compat or legacy fallback paths only.
 
+Latest local benchmark status:
+
+- iOS `benchmark` suite: passed on April 24, 2026 with an iPhone 16 simulator.
+- Android `benchmark` suite: not run in the latest pass because no `adb` target
+  was connected and the available local AVD did not boot.
+
 ## Example Verification
 
 The API example map is verified from the repository root:

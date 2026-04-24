@@ -6,14 +6,15 @@ machine-local artifacts and are not part of the package.
 
 ## Current Validation Status
 
-| Platform          | Status                                | Notes                                                        |
-| ----------------- | ------------------------------------- | ------------------------------------------------------------ |
-| iOS               | layout example and benchmark verified | Latest local validation: April 24, 2026.                     |
-| Android API 29+   | no release-device numbers published   | Canonical engine is `MeasuredText + LineBreaker`.            |
-| Android API 24-28 | StaticLayout compat/fallback only     | Supported, but not a canonical performance or parity target. |
+| Platform          | Status                                      | Notes                                                        |
+| ----------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| iOS               | layout example and benchmark suite verified | Latest local validation: April 24, 2026.                     |
+| Android API 29+   | not run in latest local pass                | No connected Android target; AVD boot failed locally.        |
+| Android API 24-28 | StaticLayout compat/fallback only           | Supported, but not a canonical performance or parity target. |
 
 Do not extrapolate Android performance from iOS numbers. Android adoption
-confidence needs a release-device run on the target device class.
+confidence needs a successful API 29+ release-device run on the target device
+class.
 
 ## Layout-Only Example Snapshot
 
@@ -46,14 +47,16 @@ Latest local iOS benchmark suite:
 - Device target: iPhone 16 simulator
 - Build mode: debug app with Metro
 - Flow: `benchmark` suite
+- Maestro gate profile: `local`
+- Gate result: pass
 
 | Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
 | ---------------------- | ----------: | --------------------------: | ----------: |
-| Interaction median     | `229.98 ms` |                 `232.66 ms` |  `+2.68 ms` |
-| Interaction p95        | `398.94 ms` |                 `378.43 ms` | `-20.51 ms` |
-| Layout-only median     | RN internal |                   `0.22 ms` |         n/a |
-| Prepare once           |         n/a |                  `46.50 ms` |         n/a |
-| Measure inside prepare |         n/a |                  `46.37 ms` |         n/a |
+| Interaction median     | `247.11 ms` |                 `230.95 ms` | `-16.16 ms` |
+| Interaction p95        | `388.88 ms` |                 `365.26 ms` | `-23.62 ms` |
+| Layout-only median     | RN internal |                   `0.23 ms` |         n/a |
+| Prepare once           |         n/a |                  `47.40 ms` |         n/a |
+| Measure inside prepare |         n/a |                  `47.26 ms` |         n/a |
 
 Canonical paths in this run:
 
@@ -66,7 +69,7 @@ Observed parity drift:
 
 | Bucket                   | Mismatches |
 | ------------------------ | ---------: |
-| Line-count parity        |    `5/240` |
+| Line-count parity        |    `0/240` |
 | Sampled line-text parity |   `35/240` |
 
 The drift is classified as native algorithm rule and line-break strategy drift.
@@ -77,6 +80,14 @@ The visible RN surface is reported for context only. The layout-only API gates
 the hot native layout median, prepare cost, engine metadata, and parity
 contracts; it does not require the final RN render pass to beat RN `<Text>` in
 every debug run.
+
+Latest local Android attempt:
+
+- Date: April 24, 2026
+- Command: `yarn benchmark:android`
+- Result: not executed
+- Reason: no connected `adb` target. A local `Pixel_9_Pro` AVD was available but
+  failed to boot, so no Android Maestro contract was updated from this run.
 
 ## API-Level Performance Meaning
 

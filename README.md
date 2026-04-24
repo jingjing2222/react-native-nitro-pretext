@@ -135,13 +135,15 @@ debug build.
 | Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.              |
 | `Pretext.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.         |
 | Example improvement              |     `98.8%` | Demonstration screen, not release-device CI.      |
-| Maestro hot layout median        |   `0.22 ms` | iOS debug simulator suite, Core Text layout only. |
+| RN `<Text>` benchmark median     | `247.11 ms` | iOS debug simulator suite.                        |
+| Pretext surface median           | `230.95 ms` | Layout before the final RN surface.               |
+| Maestro hot layout median        |   `0.23 ms` | iOS debug simulator suite, Core Text layout only. |
 
 Current benchmark details and validation limits are in the
 [Benchmark Report](docs/benchmark-improvement-report.md). Android
-release-device numbers are not published yet, so Android speedup claims should
-wait for a target-device run. Android correctness and performance expectations
-are API 29+ unless stated otherwise.
+release-device numbers are not published yet. The latest local Android attempt
+had no connected `adb` target and the available AVD failed to boot, so Android
+speedup claims should wait for a successful API 29+ target-device run.
 
 ## Install
 
