@@ -1,8 +1,8 @@
 # Pretext Example App
 
 This workspace demonstrates the layout-only Pretext API inside a real React
-Native app. The main example compares hidden RN `<Text onLayout>` measurement
-with `Pretext.layout()` height calculation before render.
+Native app. API examples are separate from benchmark screens so users can learn
+the public API without timing and parity noise.
 
 ## Setup
 
@@ -31,11 +31,44 @@ changes usually update through Metro.
 
 ## Screens
 
-- `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
-  `Pretext.layout()` before render.
+Learning routes:
+
+- `examples`: examples catalog.
+- `examples/use-case`: Pretext API examples matched to `docs/api.md`.
+- `examples/use-case/prepare`: `prepare(text, style)` lifecycle.
+- `examples/use-case/layout-metrics`: `layout(..., output: "metrics")`.
+- `examples/use-case/layout-options`: width shorthand, object requests, and
+  rule options.
+- `examples/use-case/layout-lines`: line ranges and geometry.
+- `examples/use-case/layout-diagnostics`: engine, request, drift, and boundary
+  diagnostics.
+- `examples/use-case/layout-rich`: inline box segments and returned box frames.
+- `examples/use-case/use-pretext-layout`: React hook lifecycle.
+- `examples/use-case/namespace-and-types`: `Pretext.*` namespace and exported
+  types.
+
+RN-only contrast routes:
+
+- `examples/non-use-case`: plain RN workaround catalog.
+- `examples/non-use-case/prepare`: hidden measurement cache instead of
+  `prepare()`.
+- `examples/non-use-case/layout-metrics`: hidden `<Text onLayout>` height
+  measurement.
+- `examples/non-use-case/layout-options`: caller-managed rule state.
+- `examples/non-use-case/layout-lines`: `onTextLayout` line data gaps.
+- `examples/non-use-case/layout-diagnostics`: missing engine and drift data.
+- `examples/non-use-case/layout-rich`: nested `<Text>` without stable box
+  frames.
+- `examples/non-use-case/use-pretext-layout`: custom hook around hidden
+  measurement lifecycle.
+
+Benchmark routes:
+
+- `benchmark`: benchmark catalog.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
-- `benchmark/pretext`: Pretext layout benchmark screens.
-- `benchmark/results`: benchmark summary and parity diagnostics.
+- `benchmark/pretext-layout`: Pretext layout benchmark screen.
+- `benchmark/measured-layout`: case study for hidden RN measurement versus
+  `Pretext.layout()` before render.
 
 ## Native Builds
 
@@ -63,6 +96,22 @@ Android canonical benchmark claims require API 29+ because the canonical
 Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use the legacy
 fallback path only.
 
+## Example Verification
+
+The API example map is verified from the repository root:
+
+```sh
+yarn verify:api-examples
+```
+
+That gate checks `docs/api.md`, `apiExampleManifest`, navigation types, linking
+config, registered stack screens, example index cards, and automation report
+fields. Device-level example coverage is in:
+
+```sh
+maestro test example/maestro/flows/examples/suite.yaml
+```
+
 ## Useful Commands
 
 ```sh
@@ -70,4 +119,5 @@ yarn typecheck
 yarn lint
 yarn fmt:check
 yarn test
+yarn verify:api-examples
 ```

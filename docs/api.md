@@ -13,6 +13,10 @@ import {
 
 There are no public renderer components and no public raw native ids.
 
+Example app coverage is kept in sync by `yarn verify:api-examples`. The
+learning routes live under `examples/use-case/*`; the matching plain RN
+workarounds live under `examples/non-use-case/*`.
+
 ## Platform Contract
 
 | Platform          | Layout path                       | Notes                                                               |
@@ -37,6 +41,11 @@ defaults it to `true`. Changing one side without the other can change height.
 
 Prepares native paragraph state and returns an opaque JS object. The native id
 is intentionally hidden.
+
+Example route: `examples/use-case/prepare`
+([source](../example/src/screens/examples/use-case/ExampleUseCasePrepareScreen.tsx)).
+RN-only contrast: `examples/non-use-case/prepare`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCasePrepareScreen.tsx)).
 
 ```ts
 const prepared = prepare(["Title", "Body"], {
@@ -76,6 +85,17 @@ Calling `layout()` after `prepared.release()` throws
 ## `layout(prepared, widthOrOptions)`
 
 Layouts a prepared object for a width and optional request rules.
+
+Example routes:
+
+| Use case      | Pretext route                          | RN-only contrast                             |
+| ------------- | -------------------------------------- | -------------------------------------------- |
+| Metrics       | `examples/use-case/layout-metrics`     | `examples/non-use-case/layout-metrics`       |
+| Options/rules | `examples/use-case/layout-options`     | `examples/non-use-case/layout-options`       |
+| Lines         | `examples/use-case/layout-lines`       | `examples/non-use-case/layout-lines`         |
+| Diagnostics   | `examples/use-case/layout-diagnostics` | `examples/non-use-case/layout-diagnostics`   |
+| Rich inline   | `examples/use-case/layout-rich`        | `examples/non-use-case/layout-rich`          |
+| Case study    | `benchmark/measured-layout`            | Hidden RN `<Text onLayout>` measurement path |
 
 ```ts
 const metrics = layout(prepared, 320);
@@ -122,6 +142,11 @@ Return value depends on `output`.
 
 Default output. Use this for height-before-render placement.
 
+Example route: `examples/use-case/layout-metrics`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen.tsx)).
+RN-only contrast: `examples/non-use-case/layout-metrics`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen.tsx)).
+
 ```ts
 type PretextMetricsLayout = {
   output: "metrics";
@@ -149,6 +174,11 @@ and `lineCount` are summed and `maxLineWidth` is the widest paragraph.
 Returns line ranges and geometry for custom placement or hit testing that you
 own outside this package.
 
+Example route: `examples/use-case/layout-lines`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutLinesScreen.tsx)).
+RN-only contrast: `examples/non-use-case/layout-lines`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen.tsx)).
+
 ```ts
 type PretextLinesLayout = {
   output: "lines";
@@ -172,6 +202,11 @@ type PretextLinesLayout = {
 ### `output: "diagnostics"`
 
 Returns line geometry plus engine, rule, drift, and boundary diagnostics.
+
+Example route: `examples/use-case/layout-diagnostics`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseDiagnosticsScreen.tsx)).
+RN-only contrast: `examples/non-use-case/layout-diagnostics`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen.tsx)).
 
 ```ts
 type PretextDiagnosticsLayout = {
@@ -200,6 +235,11 @@ Important diagnostics fields:
 ### `output: "rich"`
 
 Returns line geometry plus inline box frames.
+
+Example route: `examples/use-case/layout-rich`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseLayoutRichScreen.tsx)).
+RN-only contrast: `examples/non-use-case/layout-rich`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseLayoutRichScreen.tsx)).
 
 ```ts
 type PretextRichLayout = {
@@ -230,6 +270,11 @@ type PretextRichLayout = {
 
 React hook that prepares native state, runs layout, and releases native state
 on unmount or dependency change.
+
+Example route: `examples/use-case/use-pretext-layout`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseHookScreen.tsx)).
+RN-only contrast: `examples/non-use-case/use-pretext-layout`
+([source](../example/src/screens/examples/non-use-case/ExampleNonUseCaseHookScreen.tsx)).
 
 ```tsx
 const result = usePretextLayout({
@@ -275,6 +320,9 @@ literal with the same scalar values does not force a new prepare.
 ## `Pretext`
 
 Namespace object with the same functions:
+
+Example route: `examples/use-case/namespace-and-types`
+([source](../example/src/screens/examples/use-case/ExampleUseCaseNamespaceAndTypesScreen.tsx)).
 
 ```ts
 Pretext.prepare(text, style);

@@ -22,7 +22,7 @@ Latest local iOS example validation:
 - Date: April 24, 2026
 - Device target: iPhone 16 simulator
 - Build mode: debug
-- Screen: `examples/measured-layout`
+- Screen: `benchmark/measured-layout`
 
 | Path                            |        Time | Render passes | Layout shifts |
 | ------------------------------- | ----------: | ------------: | ------------: |
@@ -33,6 +33,10 @@ Latest local iOS example validation:
 This screen is a product-shaped demonstration, not a release-device benchmark.
 It shows the core value of the public API: text height is available before the
 visible RN surface mounts.
+
+API learning examples are intentionally separate from this case study. They live
+under `examples/use-case/*`, with matching plain RN workarounds under
+`examples/non-use-case/*`.
 
 ## Current iOS Maestro Suite Snapshot
 
@@ -118,6 +122,13 @@ legacy fallback path only.
 The gate checks timing, line-count parity, sampled line-text parity, layout
 engine, renderer kind, parity role, Android `includeFontPadding`, and height
 metric source.
+
+API example coverage is a separate gate:
+
+```sh
+yarn verify:api-examples
+maestro test example/maestro/flows/examples/suite.yaml
+```
 
 ## Practical Meaning
 

@@ -150,11 +150,17 @@ Module.
 
 ## Example App
 
-The example app focuses on the layout-only problem:
+The example app is split into learning examples and benchmark routes:
 
-- `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
-  `Pretext.layout()` before render
-- `benchmark/*`: compatibility and benchmark screens used during validation
+- `examples/use-case`: API-matched Pretext examples for `prepare`, `layout`
+  outputs, `usePretextLayout`, and the `Pretext` namespace.
+- `examples/non-use-case`: matching RN-only workarounds that show the hidden
+  `<Text>`, `onLayout`, `onTextLayout`, callback fan-in, and render-pass state
+  you would otherwise manage yourself.
+- `benchmark/measured-layout`: case study for hidden RN measurement versus
+  `Pretext.layout()` before render.
+- `benchmark/base-text` and `benchmark/pretext-layout`: validation screens for
+  compatibility, timing, and parity diagnostics.
 
 Run it locally:
 
@@ -180,6 +186,7 @@ yarn typecheck
 yarn lint
 yarn fmt:check
 yarn test
+yarn verify:api-examples
 yarn build
 ```
 
