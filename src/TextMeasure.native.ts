@@ -22,7 +22,7 @@ import { serializeInlineParagraphs } from "./inlineParagraphSegments";
 const NativeParagraphEngine =
   NitroModules.createHybridObject<NitroPretext>("Pretext");
 
-export const ParagraphEngine: Pretext = {
+const ParagraphEngine: Pretext = {
   get name() {
     return NativeParagraphEngine.name;
   },
@@ -71,7 +71,6 @@ export const ParagraphEngine: Pretext = {
     NativeParagraphEngine.releaseParagraphs(preparedId);
   },
 };
-export const TextMeasure = ParagraphEngine;
 
 export function createParagraphLayoutRequest(
   width: number,
@@ -154,8 +153,6 @@ export function layoutRichParagraphLines(
 export function releaseParagraphs(preparedId: number): void {
   ParagraphEngine.releaseParagraphs(preparedId);
 }
-
-export default ParagraphEngine;
 
 export type {
   InlineSegment,

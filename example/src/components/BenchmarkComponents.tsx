@@ -141,49 +141,6 @@ export function CatalogCard({
   );
 }
 
-export function AutomationReportCard({
-  description,
-  label,
-  reportLine,
-  reportTestID,
-  statusLine,
-  statusTestID,
-}: {
-  description: string;
-  label: string;
-  reportLine: string;
-  reportTestID: string;
-  statusLine: string;
-  statusTestID: string;
-}) {
-  return (
-    <View style={styles.summaryCard}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={styles.summaryDescription}>{description}</Text>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {}}
-        style={styles.codeList}
-        testID={statusTestID}
-      >
-        <Text selectable style={styles.codeRow}>
-          {statusLine}
-        </Text>
-      </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {}}
-        style={styles.codeList}
-        testID={reportTestID}
-      >
-        <Text selectable style={styles.codeRow}>
-          {reportLine}
-        </Text>
-      </Pressable>
-    </View>
-  );
-}
-
 export function HeroAutomationPanel({
   reportLine,
   reportTestID,

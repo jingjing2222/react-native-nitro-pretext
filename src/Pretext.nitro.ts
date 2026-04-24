@@ -44,11 +44,6 @@ export interface InlineSegment {
   fontStyle?: string;
 }
 
-export interface InlineParagraphSegments {
-  segments: InlineSegment[];
-  paragraphSegmentOffsets: number[];
-}
-
 export interface PreparedParagraphState {
   id: number;
   paragraphCount: number;

@@ -23,7 +23,7 @@ function unsupported(): never {
   throw new Error(UNSUPPORTED_PLATFORM_ERROR);
 }
 
-export const ParagraphEngine: Pretext = {
+const ParagraphEngine: Pretext = {
   name: "Pretext",
   equals(_other) {
     unsupported();
@@ -71,7 +71,6 @@ export const ParagraphEngine: Pretext = {
     unsupported();
   },
 };
-export const TextMeasure = ParagraphEngine;
 
 export function createParagraphLayoutRequest(
   width: number,
@@ -154,8 +153,6 @@ export function layoutRichParagraphLines(
 export function releaseParagraphs(preparedId: number): void {
   ParagraphEngine.releaseParagraphs(preparedId);
 }
-
-export default ParagraphEngine;
 
 export type {
   InlineSegment,
