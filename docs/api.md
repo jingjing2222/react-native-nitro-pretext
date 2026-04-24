@@ -186,6 +186,15 @@ type PretextLinesLayout = {
 };
 ```
 
+`LaidOutParagraphLines`:
+
+| Field          | Type                   | Description                  |
+| -------------- | ---------------------- | ---------------------------- |
+| `lineCount`    | `number`               | Number of native text lines. |
+| `height`       | `number`               | Native paragraph height.     |
+| `maxLineWidth` | `number`               | Widest line width.           |
+| `lines`        | `ParagraphLineRange[]` | Native line ranges.          |
+
 `ParagraphLineRange`:
 
 | Field       | Type     | Description                                   |
@@ -215,7 +224,17 @@ type PretextDiagnosticsLayout = {
 };
 ```
 
-Important diagnostics fields:
+`LaidOutParagraphLinesWithDiagnostics`:
+
+| Field          | Type                         | Description                   |
+| -------------- | ---------------------------- | ----------------------------- |
+| `lineCount`    | `number`                     | Number of native text lines.  |
+| `height`       | `number`                     | Native paragraph height.      |
+| `maxLineWidth` | `number`                     | Widest line width.            |
+| `lines`        | `ParagraphLineRange[]`       | Native line ranges.           |
+| `diagnostics`  | `ParagraphLayoutDiagnostics` | Engine, rule, and drift data. |
+
+`ParagraphLayoutDiagnostics`:
 
 | Field                     | Description                                                                                                                                       |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -232,6 +251,67 @@ Important diagnostics fields:
 | `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                                                                     |
 | `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                                                                     |
 
+Nested diagnostics types:
+
+`ParagraphBreakOpportunity`
+
+| Field    | Type     | Description                                                |
+| -------- | -------- | ---------------------------------------------------------- |
+| `offset` | `number` | Source UTF-16 offset.                                      |
+| `kind`   | `string` | Break kind such as `hard_break` or `native_soft_break`.    |
+| `source` | `string` | Source of the break opportunity, usually native or source. |
+
+`ParagraphAtomicSpan`
+
+| Field       | Type     | Description                   |
+| ----------- | -------- | ----------------------------- |
+| `textStart` | `number` | Source UTF-16 start offset.   |
+| `textEnd`   | `number` | Source UTF-16 end offset.     |
+| `source`    | `string` | Span source, for example box. |
+
+`ParagraphBreakTable`
+
+| Field                | Type                          | Description                        |
+| -------------------- | ----------------------------- | ---------------------------------- |
+| `hardBreaks`         | `ParagraphBreakOpportunity[]` | Source hard break opportunities.   |
+| `nativeSoftBreaks`   | `ParagraphBreakOpportunity[]` | Native line-break opportunities.   |
+| `graphemeBoundaries` | `number[]`                    | Source UTF-16 grapheme boundaries. |
+| `atomicSpans`        | `ParagraphAtomicSpan[]`       | Atomic inline span ranges.         |
+
+`ParagraphBoundaryMap`
+
+| Field                     | Type       | Description                           |
+| ------------------------- | ---------- | ------------------------------------- |
+| `utf16Length`             | `number`   | Source paragraph UTF-16 length.       |
+| `graphemeBoundaries`      | `number[]` | Grapheme cluster boundaries.          |
+| `runBoundaries`           | `number[]` | Style run boundaries.                 |
+| `hardBreaks`              | `number[]` | Hard break offsets.                   |
+| `nativeSoftBreaks`        | `number[]` | Native soft break offsets.            |
+| `atomicSpanBoundaries`    | `number[]` | Atomic inline span boundaries.        |
+| `clusterViolationOffsets` | `number[]` | Offsets where a line split a cluster. |
+
+`ParagraphComplexShapeCounters`
+
+| Field                   | Type     | Description                     |
+| ----------------------- | -------- | ------------------------------- |
+| `bidiRunCount`          | `number` | Detected bidi run count.        |
+| `emojiClusterCount`     | `number` | Detected emoji cluster count.   |
+| `complexClusterCount`   | `number` | Detected complex cluster count. |
+| `clusterViolationCount` | `number` | Detected cluster split count.   |
+
+`ParagraphLineDiagnostics`
+
+| Field                     | Type                       | Description                                    |
+| ------------------------- | -------------------------- | ---------------------------------------------- |
+| `textStart`               | `number`                   | Source UTF-16 start offset.                    |
+| `textEnd`                 | `number`                   | Source UTF-16 end offset.                      |
+| `textDirection`           | `"auto" \| "ltr" \| "rtl"` | Direction policy used for the line.            |
+| `layoutEngine`            | `string`                   | Native engine label for this line.             |
+| `heightMetricSource`      | `string`                   | Height source, normally native engine metrics. |
+| `fallbackReason`          | `string`                   | Optional fallback reason.                      |
+| `driftKinds`              | `string[]`                 | Drift classes detected for this line.          |
+| `clusterViolationOffsets` | `number[]`                 | Cluster split offsets detected on this line.   |
+
 ### `output: "rich"`
 
 Returns line geometry plus inline box frames.
@@ -247,6 +327,17 @@ type PretextRichLayout = {
   paragraphs: LaidOutRichParagraphLines[];
 };
 ```
+
+`LaidOutRichParagraphLines`:
+
+| Field          | Type                         | Description                   |
+| -------------- | ---------------------------- | ----------------------------- |
+| `lineCount`    | `number`                     | Number of native text lines.  |
+| `height`       | `number`                     | Native paragraph height.      |
+| `maxLineWidth` | `number`                     | Widest line width.            |
+| `lines`        | `ParagraphLineRange[]`       | Native line ranges.           |
+| `boxFrames`    | `InlineBoxFrame[]`           | Returned inline box frames.   |
+| `diagnostics`  | `ParagraphLayoutDiagnostics` | Engine, rule, and drift data. |
 
 `InlineBoxFrame`:
 

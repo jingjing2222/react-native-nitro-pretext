@@ -79,7 +79,7 @@ export function BaseTextBenchmarkScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>
             This screen owns the baseline interaction cost and the sample
-            line-count compatibility baseline used by the prepared view
+            line-count compatibility baseline used by the Pretext layout
             benchmark.
           </Text>
 
