@@ -13,7 +13,7 @@ function buildSummary(reports, suite) {
     suite ?? {
       baseText: reports["benchmark/base-text"] ?? null,
       combined: reports["benchmark/index"] ?? null,
-      preparedView: reports["benchmark/prepared-view"] ?? null,
+      preparedView: reports["benchmark/pretext-layout"] ?? null,
     }
   );
 }

@@ -12,28 +12,31 @@ import {
   MODE_DESCRIPTIONS,
   styles,
 } from "../../benchmark/constants";
-import { usePreparedViewBenchmarkHarness } from "../../benchmark/usePreparedViewBenchmarkHarness";
+import { usePreTextLayoutBenchmarkHarness } from "../../benchmark/usePreTextLayoutBenchmarkHarness";
 import {
   HeroAutomationPanel,
   MetricPill,
-  PreparedParagraphSurfaceCard,
+  PreTextLayoutSurfaceCard,
   PrimaryButton,
   SummaryCard,
   SummaryMetric,
 } from "../../components/BenchmarkComponents";
 import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
-import { usePreparedParagraphs } from "../../benchmark/usePreparedParagraphs";
+import { usePreTextPreparedCorpus } from "../../benchmark/usePreTextPreparedCorpus";
 import type { AppStackParamList } from "../../benchmark/types";
 
-type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkPreparedView">;
+type Props = NativeStackScreenProps<
+  AppStackParamList,
+  "BenchmarkPreTextLayout"
+>;
 
-export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
+export function PreTextLayoutBenchmarkScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { baselineResults, preparedViewResults, setPreparedViewResults } =
     useBenchmarkResults();
   const { isPreparing, prepareMs, prepareStats, preparedParagraphs } =
-    usePreparedParagraphs();
-  const benchmark = usePreparedViewBenchmarkHarness({
+    usePreTextPreparedCorpus();
+  const benchmark = usePreTextLayoutBenchmarkHarness({
     baselineInteractionMedianMs:
       baselineResults.summary?.interactionMedianMs ?? null,
     baselineSampleLineCountsByWidth: baselineResults.sampleLineCountsByWidth,
@@ -59,7 +62,7 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
   const comparisonNote =
     baselineResults.summary === null
       ? "Run benchmark/base-text once so this page can compare against the RN Text compatibility baseline."
-      : "BaseText calibration is loaded. Prepared batch runs can compare parity and amortization.";
+      : "BaseText calibration is loaded. PreText layout runs can compare parity and amortization.";
   const automationStatus = isPreparing
     ? "preparing"
     : benchmark.isRunning
@@ -70,12 +73,12 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
           ? "idle"
           : "ready";
   const automationStatusLine = createAutomationStatusLine(
-    "benchmark/prepared-view",
+    "benchmark/pretext-layout",
     automationStatus,
     benchmark.runStatus,
   );
   const automationReportLine = serializeAutomationReport(
-    "benchmark/prepared-view",
+    "benchmark/pretext-layout",
     createPreparedViewAutomationReport({
       completedAt: benchmark.lastCompletedAt,
       computeSummary: benchmark.summaries["pretext-compute"],
@@ -117,15 +120,14 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>benchmark/prepared-view</Text>
+          <Text style={styles.eyebrow}>benchmark/pretext-layout</Text>
           <Text style={styles.title}>
-            Feed prepared paragraph state directly into a native paragraph
-            surface.
+            Run PreText layout before the visible RN text surface.
           </Text>
           <Text style={styles.subtitle}>
-            This screen benchmarks the renderer-oriented path: prepared
-            paragraph state, native self-relayout, and one native surface for
-            the full corpus.
+            This screen benchmarks the layout-only path: prepare once, compute
+            native text metrics for each width, then render ordinary React
+            Native text into reserved boxes.
           </Text>
 
           <View style={styles.metricRow}>
@@ -158,28 +160,28 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
               isPreparing
                 ? "Preparing Paragraph State"
                 : benchmark.isRunning
-                  ? "Running Prepared View Benchmark"
-                  : "Run Prepared View Benchmark"
+                  ? "Running PreText Layout Benchmark"
+                  : "Run PreText Layout Benchmark"
             }
             onPress={() => {
               void benchmark.runBenchmarkSuite();
             }}
             showSpinner={isPreparing}
-            testID="benchmark.prepared-view.run"
+            testID="benchmark.pretext-layout.run"
           />
 
           <PrimaryButton
             disabled={isPreparing || benchmark.isRunning}
             label="Back to benchmark/*"
             onPress={() => navigation.navigate("BenchmarkIndex")}
-            testID="benchmark.prepared-view.back"
+            testID="benchmark.pretext-layout.back"
           />
 
           <HeroAutomationPanel
             reportLine={automationReportLine}
-            reportTestID="benchmark.prepared-view.report"
+            reportTestID="benchmark.pretext-layout.report"
             statusLine={automationStatusLine}
-            statusTestID="benchmark.prepared-view.status"
+            statusTestID="benchmark.pretext-layout.status"
           />
 
           <Text style={styles.note}>{comparisonNote}</Text>
@@ -187,13 +189,13 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
 
         <SummaryCard
           description={MODE_DESCRIPTIONS["pretext-render"]}
-          label="Prepared Native Batch Render"
+          label="PreText Layout + RN Surface"
           summary={benchmark.summaries["pretext-render"]}
         />
 
         <SummaryCard
           description={MODE_DESCRIPTIONS["pretext-compute"]}
-          label="Prepared Line Layout Only"
+          label="PreText Layout Only"
           summary={benchmark.summaries["pretext-compute"]}
         />
 
@@ -256,7 +258,7 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
           </View>
         </View>
 
-        <PreparedParagraphSurfaceCard
+        <PreTextLayoutSurfaceCard
           activeMode={benchmark.activeMode}
           lastCompletedAt={benchmark.lastCompletedAt}
           onParagraphLayout={benchmark.handleParagraphLayout}

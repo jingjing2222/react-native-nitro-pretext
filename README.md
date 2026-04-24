@@ -112,13 +112,14 @@ drift.
 Latest local iOS example validation: April 24, 2026, iPhone 16 simulator,
 debug build.
 
-| Path                             |        Time | Notes                                        |
-| -------------------------------- | ----------: | -------------------------------------------- |
-| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.         |
-| `PreText.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.    |
-| Example improvement              |     `98.8%` | Demonstration screen, not release-device CI. |
+| Path                             |        Time | Notes                                             |
+| -------------------------------- | ----------: | ------------------------------------------------- |
+| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.              |
+| `PreText.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.         |
+| Example improvement              |     `98.8%` | Demonstration screen, not release-device CI.      |
+| Maestro hot layout median        |   `0.22 ms` | iOS debug simulator suite, Core Text layout only. |
 
-Historical iOS release-style benchmark data and validation limits are in the
+Current benchmark details and validation limits are in the
 [Benchmark Report](docs/benchmark-improvement-report.md). Android
 release-device numbers are not published yet, so Android speedup claims should
 wait for a target-device run. Android correctness and performance expectations

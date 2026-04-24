@@ -27,8 +27,8 @@ describe("benchmark diagnostics", () => {
       heightMetricSource: "platform_text_engine_metrics",
       includeFontPadding: null,
       layoutEngine: "ios_core_text",
-      parityRole: "canonical_prepared_native_render",
-      rendererKind: "prepared_native_batch",
+      parityRole: "canonical_prepared_compute",
+      rendererKind: "rn_text",
     });
   });
 
@@ -55,7 +55,6 @@ describe("benchmark diagnostics", () => {
         "algorithm_rule_drift",
         "height_metric_drift",
         "line_break_strategy_drift",
-        "renderer_drift",
       ]),
     );
     expect(drift.heightDriftBuckets.unclassified).toBe(3);

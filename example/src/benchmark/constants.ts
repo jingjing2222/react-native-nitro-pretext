@@ -4,16 +4,16 @@ import { BENCHMARK_STYLE, type BenchmarkMode } from "../relayoutBenchmark";
 
 export const MODE_LABELS: Record<BenchmarkMode, string> = {
   baseline: "BaseText",
-  "pretext-render": "Prepared Native Batch",
-  "pretext-compute": "Prepared Layout Only",
+  "pretext-render": "PreText Layout + RN Surface",
+  "pretext-compute": "PreText Layout Only",
 };
 
 export const MODE_DESCRIPTIONS: Record<BenchmarkMode, string> = {
   baseline: "문단당 단일 <Text>{rawText}</Text>",
   "pretext-render":
-    "prepared paragraph state -> native self-layout -> one batched custom native surface",
+    "PreText layout metrics reserve the boxes before ordinary RN Text renders visibly",
   "pretext-compute":
-    "render surface는 유지하고, relayout hot path는 prepared paragraph layout 계산만 다시 수행",
+    "visible render surface is skipped so the hot path only measures native PreText layout",
 };
 
 export const PARAGRAPH_HORIZONTAL_PADDING = 14;

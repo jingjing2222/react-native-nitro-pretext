@@ -18,7 +18,7 @@ import {
   layoutCorpusMetadataPoC,
   layoutCorpusSampleLineTextsPoC,
   now,
-  type PreparedParagraphMetrics,
+  type PreTextParagraphMetrics,
 } from "../relayoutBenchmark";
 import {
   beginJankTracker,
@@ -34,7 +34,7 @@ import {
   type SummaryRecord,
 } from "./types";
 
-type PreparedViewRenderPass = {
+type PreTextLayoutRenderPass = {
   expectedParagraphs: number;
   seenParagraphs: Set<number>;
   startedAt: number;
@@ -42,12 +42,12 @@ type PreparedViewRenderPass = {
   stopJankTracking: () => number;
 };
 
-type PreparedViewHarnessState = {
+type PreTextLayoutHarnessState = {
   activeMode: "pretext-render" | "pretext-compute";
   handleParagraphLayout: (index: number) => void;
   isRunning: boolean;
   lastCompletedAt: string | null;
-  paragraphMetrics: PreparedParagraphMetrics[];
+  paragraphMetrics: PreTextParagraphMetrics[];
   paragraphWidth: number;
   runBenchmarkSuite: () => Promise<void>;
   runStatus: RunStatus;
@@ -56,17 +56,17 @@ type PreparedViewHarnessState = {
   widthSequence: number[];
 };
 
-const EMPTY_PARAGRAPH_METRIC: PreparedParagraphMetrics = {
+const EMPTY_PARAGRAPH_METRIC: PreTextParagraphMetrics = {
   lineCount: 1,
   height: BENCHMARK_STYLE.lineHeight,
   maxLineWidth: 0,
 };
 
-function createEmptyParagraphMetrics(): PreparedParagraphMetrics[] {
+function createEmptyParagraphMetrics(): PreTextParagraphMetrics[] {
   return BENCHMARK_CORPUS.map(() => EMPTY_PARAGRAPH_METRIC);
 }
 
-export function usePreparedViewBenchmarkHarness({
+export function usePreTextLayoutBenchmarkHarness({
   baselineInteractionMedianMs,
   baselineSampleLineCountsByWidth,
   baselineSampleLineTextsByWidth,
@@ -75,7 +75,7 @@ export function usePreparedViewBenchmarkHarness({
   onCompleted,
   prepareMs,
   preparedParagraphs,
-}: Omit<BenchmarkHarnessArgs, "modes">): PreparedViewHarnessState {
+}: Omit<BenchmarkHarnessArgs, "modes">): PreTextLayoutHarnessState {
   const { width: windowWidth } = useWindowDimensions();
   const availableParagraphWidth = Math.max(220, windowWidth - 48);
   const widthSequence = useMemo(
@@ -85,7 +85,7 @@ export function usePreparedViewBenchmarkHarness({
   const initialParagraphWidth = widthSequence[widthSequence.length - 1] ?? 220;
   const totalRuns = BENCHMARK_WARMUP_RUNS + BENCHMARK_MEASURED_RUNS;
   const [paragraphMetrics, setParagraphMetrics] = useState<
-    PreparedParagraphMetrics[]
+    PreTextParagraphMetrics[]
   >(createEmptyParagraphMetrics);
   const [paragraphWidth, setParagraphWidth] = useState<number>(
     initialParagraphWidth,
@@ -107,7 +107,7 @@ export function usePreparedViewBenchmarkHarness({
     width: initialParagraphWidth,
     label: "Ready",
   });
-  const activeRenderPassRef = useRef<PreparedViewRenderPass | null>(null);
+  const activeRenderPassRef = useRef<PreTextLayoutRenderPass | null>(null);
   const sampleLineTextsByWidth = useMemo(() => {
     if (!preparedParagraphs) {
       return {};
@@ -183,7 +183,7 @@ export function usePreparedViewBenchmarkHarness({
   const measureRenderInteraction = useCallback(
     (
       width: number,
-      nextParagraphMetrics: PreparedParagraphMetrics[],
+      nextParagraphMetrics: PreTextParagraphMetrics[],
       startedAt: number,
     ) =>
       new Promise<{

@@ -87,7 +87,7 @@ type PreparedViewAutomationReport = {
   renderParityMismatches: number | null;
   renderParityRole: BenchmarkDiagnostics["parityRole"] | null;
   renderRendererKind: BenchmarkDiagnostics["rendererKind"] | null;
-  screen: "benchmark/prepared-view";
+  screen: "benchmark/pretext-layout";
   status: AutomationStatus;
   tokenizeMs: number | null;
   totalRuns: number;
@@ -293,7 +293,7 @@ export function createPreparedViewAutomationReport(args: {
     renderParityMismatches: renderSummary?.parityMismatches ?? null,
     renderParityRole: renderSummary?.parityRole ?? null,
     renderRendererKind: renderSummary?.rendererKind ?? null,
-    screen: "benchmark/prepared-view",
+    screen: "benchmark/pretext-layout",
     status: args.status,
     tokenizeMs:
       args.prepareState === null

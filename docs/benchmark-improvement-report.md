@@ -6,11 +6,11 @@ machine-local artifacts and are not part of the package.
 
 ## Current Validation Status
 
-| Platform          | Status                              | Notes                                                        |
-| ----------------- | ----------------------------------- | ------------------------------------------------------------ |
-| iOS               | layout example verified             | Latest local agent-device validation: April 24, 2026.        |
-| Android API 29+   | no release-device numbers published | Canonical engine is `MeasuredText + LineBreaker`.            |
-| Android API 24-28 | fallback only                       | Supported, but not a canonical performance or parity target. |
+| Platform          | Status                                | Notes                                                        |
+| ----------------- | ------------------------------------- | ------------------------------------------------------------ |
+| iOS               | layout example and benchmark verified | Latest local validation: April 24, 2026.                     |
+| Android API 29+   | no release-device numbers published   | Canonical engine is `MeasuredText + LineBreaker`.            |
+| Android API 24-28 | fallback only                         | Supported, but not a canonical performance or parity target. |
 
 Do not extrapolate Android performance from iOS numbers. Android adoption
 confidence needs a release-device run on the target device class.
@@ -34,26 +34,45 @@ This screen is a product-shaped demonstration, not a release-device benchmark.
 It shows the core value of the public API: text height is available before the
 visible RN surface mounts.
 
-## Historical iOS Benchmark Context
+## Current iOS Maestro Suite Snapshot
 
-Before the public API was narrowed to layout-only, the validation suite also
-measured a native prepared render path. That renderer is no longer public, but
-the layout timing remains useful context for the native engine cost.
+Latest local iOS benchmark suite:
 
-| Metric                 | RN baseline | Native prepared path |        Delta |
-| ---------------------- | ----------: | -------------------: | -----------: |
-| Interaction median     | `231.35 ms` |           `67.08 ms` | `-164.27 ms` |
-| Interaction p95        | `364.52 ms` |          `103.79 ms` | `-260.73 ms` |
-| Layout-only median     | RN internal |            `0.18 ms` |          n/a |
-| Prepare once           |         n/a |           `48.10 ms` |          n/a |
-| Measure inside prepare |         n/a |           `48.01 ms` |          n/a |
+- Date: April 24, 2026
+- Device target: iPhone 16 simulator
+- Build mode: debug app with Metro
+- Flow: `benchmark` suite
 
-Canonical paths in that run:
+| Metric                 | RN baseline | PreText layout + RN surface |       Delta |
+| ---------------------- | ----------: | --------------------------: | ----------: |
+| Interaction median     | `229.98 ms` |                 `232.66 ms` |  `+2.68 ms` |
+| Interaction p95        | `398.94 ms` |                 `378.43 ms` | `-20.51 ms` |
+| Layout-only median     | RN internal |                   `0.22 ms` |         n/a |
+| Prepare once           |         n/a |                  `46.50 ms` |         n/a |
+| Measure inside prepare |         n/a |                  `46.37 ms` |         n/a |
+
+Canonical paths in this run:
 
 | Path           | Engine           | Role                         |
 | -------------- | ---------------- | ---------------------------- |
 | RN baseline    | `rn_text_compat` | `rn_text_compat_oracle`      |
 | PreText layout | `ios_core_text`  | `canonical_prepared_compute` |
+
+Observed parity drift:
+
+| Bucket                   | Mismatches |
+| ------------------------ | ---------: |
+| Line-count parity        |    `5/240` |
+| Sampled line-text parity |   `35/240` |
+
+The drift is classified as native algorithm rule and line-break strategy drift.
+It is expected until RN `<Text>` style, fallback font, locale, and line-break
+policy are fully aligned with the native layout request.
+
+The visible RN surface is reported for context only. The layout-only API gates
+the hot native layout median, prepare cost, engine metadata, and parity
+contracts; it does not require the final RN render pass to beat RN `<Text>` in
+every debug run.
 
 ## API-Level Performance Meaning
 

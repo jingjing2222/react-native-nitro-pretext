@@ -1,22 +1,18 @@
 import {
-  layoutParagraphLines,
-  layoutParagraphs,
-  layoutParagraphsMetadata,
-  prepareParagraphsWithStats,
-  releaseParagraphs,
-  type LaidOutParagraph,
-  type LaidOutParagraphMetrics,
-  type ParagraphStyle,
-  type PrepareParagraphStats,
-  type PreparedParagraphState,
-} from "./pretextLegacy";
+  layout,
+  prepare,
+  type PreTextLinesLayout,
+  type PreTextMetricsLayout,
+  type PreTextPrepared,
+  type PreTextStyle,
+} from "react-native-nitro-pretext";
 
 export const BENCHMARK_PARAGRAPH_COUNT = 48;
 export const BENCHMARK_SAMPLE_SIZE = 8;
 export const BENCHMARK_WARMUP_RUNS = 5;
 export const BENCHMARK_MEASURED_RUNS = 30;
 
-export const BENCHMARK_STYLE: ParagraphStyle = {
+export const BENCHMARK_STYLE: PreTextStyle = {
   fontFamily: "System",
   fontSize: 18,
   lineHeight: 28,
@@ -27,9 +23,16 @@ export const BENCHMARK_STYLE: ParagraphStyle = {
 };
 
 export type BenchmarkMode = "baseline" | "pretext-render" | "pretext-compute";
-export type PreparedParagraph = PreparedParagraphState;
-export type PreparedParagraphPrepareStats = PrepareParagraphStats;
-export type PreparedParagraphMetrics = LaidOutParagraphMetrics;
+export type PreTextPreparedCorpus = PreTextPrepared;
+export type PreTextPrepareStats = PreTextPrepared["stats"];
+export type PreTextParagraphMetrics =
+  PreTextMetricsLayout["paragraphs"][number];
+export type LaidOutParagraph = {
+  brokenText: string;
+  height: number;
+  lineCount: number;
+  maxLineWidth: number;
+};
 
 const CORPUS_LEADS = [
   "회의 직전에 카드 폭이 바뀌면 문단이 다시 접히는지 바로 보여줘야 한다.",
@@ -103,27 +106,31 @@ export function now(): number {
 
 export function prepareCorpusPoC(texts: string[]): {
   prepareMs: number;
-  prepareStats: PrepareParagraphStats;
-  prepared: PreparedParagraphState;
+  prepareStats: PreTextPrepareStats;
+  prepared: PreTextPrepared;
 } {
-  const result = prepareParagraphsWithStats(texts, BENCHMARK_STYLE);
+  const prepared = prepare(texts, BENCHMARK_STYLE);
 
   return {
-    prepareMs: result.stats.totalMs,
-    prepareStats: result.stats,
-    prepared: result.prepared,
+    prepareMs: prepared.stats.totalMs,
+    prepareStats: prepared.stats,
+    prepared,
   };
 }
 
 export function layoutCorpusPoC(
-  prepared: PreparedParagraphState,
+  prepared: PreTextPrepared,
   maxWidth: number,
 ): {
   layoutOnlyMs: number;
   paragraphs: LaidOutParagraph[];
 } {
   const startedAt = now();
-  const paragraphs = layoutParagraphs(prepared.id, maxWidth);
+  const result = layout(prepared, {
+    output: "lines",
+    width: maxWidth,
+  });
+  const paragraphs = materializeLineParagraphs(result);
 
   return {
     layoutOnlyMs: now() - startedAt,
@@ -132,43 +139,86 @@ export function layoutCorpusPoC(
 }
 
 export function layoutCorpusMetadataPoC(
-  prepared: PreparedParagraphState,
+  prepared: PreTextPrepared,
   maxWidth: number,
 ): {
   layoutOnlyMs: number;
-  paragraphs: LaidOutParagraphMetrics[];
+  paragraphs: PreTextParagraphMetrics[];
 } {
   const startedAt = now();
-  const paragraphs = layoutParagraphsMetadata(prepared.id, maxWidth);
+  const result = layout(prepared, {
+    width: maxWidth,
+  });
 
   return {
     layoutOnlyMs: now() - startedAt,
-    paragraphs,
+    paragraphs: getMetricsParagraphs(result),
   };
 }
 
 export function layoutCorpusSampleLineTextsPoC(
-  prepared: PreparedParagraphState,
+  prepared: PreTextPrepared,
   maxWidth: number,
 ): string[][] {
-  const paragraphs = layoutParagraphLines(prepared.id, maxWidth);
-
-  return paragraphs.slice(0, BENCHMARK_SAMPLE_SIZE).map((paragraph, index) => {
-    const text = BENCHMARK_CORPUS[index] ?? "";
-
-    return paragraph.lines.map((line) => {
-      const textStart = Math.max(0, Math.min(text.length, line.textStart));
-      const textEnd = Math.max(textStart, Math.min(text.length, line.textEnd));
-
-      return text.slice(textStart, textEnd);
-    });
+  const result = layout(prepared, {
+    output: "lines",
+    width: maxWidth,
   });
+
+  return result.paragraphs
+    .slice(0, BENCHMARK_SAMPLE_SIZE)
+    .map((paragraph, index) => {
+      const text = BENCHMARK_CORPUS[index] ?? "";
+
+      return paragraph.lines.map((line) => {
+        const textStart = Math.max(0, Math.min(text.length, line.textStart));
+        const textEnd = Math.max(
+          textStart,
+          Math.min(text.length, line.textEnd),
+        );
+
+        return text.slice(textStart, textEnd);
+      });
+    });
 }
 
-export function disposePreparedCorpusPoC(
-  prepared: PreparedParagraphState,
-): void {
-  releaseParagraphs(prepared.id);
+export function disposePreparedCorpusPoC(prepared: PreTextPrepared): void {
+  prepared.release();
+}
+
+function getMetricsParagraphs(
+  result: ReturnType<typeof layout>,
+): PreTextParagraphMetrics[] {
+  if (result.output !== "metrics") {
+    throw new Error(`Expected metrics layout, received ${result.output}`);
+  }
+
+  return result.paragraphs;
+}
+
+function materializeLineParagraphs(
+  result: PreTextLinesLayout,
+): LaidOutParagraph[] {
+  return result.paragraphs.map((paragraph, index) => {
+    const text = BENCHMARK_CORPUS[index] ?? "";
+
+    return {
+      brokenText: paragraph.lines
+        .map((line) => {
+          const textStart = Math.max(0, Math.min(text.length, line.textStart));
+          const textEnd = Math.max(
+            textStart,
+            Math.min(text.length, line.textEnd),
+          );
+
+          return text.slice(textStart, textEnd);
+        })
+        .join("\n"),
+      height: paragraph.height,
+      lineCount: paragraph.lineCount,
+      maxLineWidth: paragraph.maxLineWidth,
+    };
+  });
 }
 
 export function median(values: number[]): number | null {

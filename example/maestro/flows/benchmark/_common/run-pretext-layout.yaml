@@ -1,35 +1,35 @@
 # 성공 흐름
-# benchmark landing -> prepared state ready -> prepared view benchmark complete -> prepared report emitted
+# benchmark landing -> PreText layout ready -> PreText layout benchmark complete -> report emitted
 # 사용하는 seed / selector anchor
-# benchmark/prepared-view CTA text, prepared hero copy, prepared automation status/report lines
+# benchmark/pretext-layout CTA text, hero copy, automation status/report lines
 appId: pretext.example
 ---
 - scrollUntilVisible:
     direction: DOWN
     element:
-      text: "Open benchmark/prepared-view"
+      text: "Open benchmark/pretext-layout"
     timeout: 20000
-- tapOn: "Open benchmark/prepared-view"
-- assertVisible: "Feed prepared paragraph state directly into a native paragraph surface\\."
+- tapOn: "Open benchmark/pretext-layout"
+- assertVisible: "Run PreText layout before the visible RN text surface\\."
 - assertVisible:
-    text: "AUTOMATION_STATUS::benchmark/prepared-view::(ready|completed)::.*"
+    text: "AUTOMATION_STATUS::benchmark/pretext-layout::(ready|completed)::.*"
 - extendedWaitUntil:
     visible:
-      text: "Run Prepared View Benchmark"
+      text: "Run PreText Layout Benchmark"
     timeout: 120000
-- tapOn: "Run Prepared View Benchmark"
+- tapOn: "Run PreText Layout Benchmark"
 - extendedWaitUntil:
     visible:
-      text: "AUTOMATION_STATUS::benchmark/prepared-view::completed::.*"
+      text: "AUTOMATION_STATUS::benchmark/pretext-layout::completed::.*"
     timeout: 180000
 - scrollUntilVisible:
     direction: DOWN
     element:
-      text: "AUTOMATION_REPORT::benchmark/prepared-view::.*"
+      text: "AUTOMATION_REPORT::benchmark/pretext-layout::.*"
     timeout: 20000
     visibilityPercentage: 1
 - copyTextFrom:
-    text: "AUTOMATION_REPORT::benchmark/prepared-view::.*"
+    text: "AUTOMATION_REPORT::benchmark/pretext-layout::.*"
 - runScript:
     file: ../../../scripts/log-benchmark-report.js
     env:
@@ -37,6 +37,6 @@ appId: pretext.example
 - assertTrue: ${output.reports.preparedView.renderInteractionMedianMs != null}
 - assertTrue: ${output.reports.preparedView.computeLayoutOnlyMedianMs != null}
 - takeScreenshot:
-    path: .maestro-artifacts/prepared-view-complete
+    path: .maestro-artifacts/pretext-layout-complete
 - tapOn: "Back to benchmark/\\*"
 - assertVisible: "Benchmark routes stay isolated from API examples\\."

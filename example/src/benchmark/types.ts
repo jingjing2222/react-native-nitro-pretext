@@ -1,31 +1,21 @@
 import type {
   BenchmarkMode,
-  PreparedParagraphPrepareStats,
-  PreparedParagraphMetrics as ImportedPreparedParagraphMetrics,
-  PreparedParagraph as ImportedPreparedParagraph,
+  PreTextParagraphMetrics as ImportedPreTextParagraphMetrics,
+  PreTextPreparedCorpus as ImportedPreTextPreparedCorpus,
+  PreTextPrepareStats,
 } from "../relayoutBenchmark";
 
 export type AppStackParamList = {
   Home: undefined;
   BenchmarkIndex: undefined;
   BenchmarkBaseText: undefined;
-  BenchmarkPreparedView: undefined;
+  BenchmarkPreTextLayout: undefined;
   ExampleIndex: undefined;
-  ExampleSlitesIndex: undefined;
-  ExampleSlitesAccordion: undefined;
-  ExampleSlitesBubbles: undefined;
-  ExampleSlitesDynamicLayout: undefined;
-  ExampleSlitesRichNote: undefined;
-  ExamplePreparedView: undefined;
-  ExamplePreparedLines: undefined;
-  ExamplePreparedText: undefined;
-  ExampleInlineSegments: undefined;
-  ExampleLineCursor: undefined;
   ExampleMeasuredLayout: undefined;
 };
 
-export type PreparedParagraph = ImportedPreparedParagraph;
-export type PreparedParagraphMetrics = ImportedPreparedParagraphMetrics;
+export type PreTextPreparedCorpus = ImportedPreTextPreparedCorpus;
+export type PreTextParagraphMetrics = ImportedPreTextParagraphMetrics;
 
 export type BenchmarkPlatform = "android" | "ios" | "unknown";
 
@@ -37,16 +27,10 @@ export type BenchmarkLayoutEngine =
   | "rn_text_compat"
   | "unknown";
 
-export type BenchmarkRendererKind =
-  | "prepared_compute"
-  | "prepared_native_batch"
-  | "prepared_native_view"
-  | "rn_text"
-  | "unknown";
+export type BenchmarkRendererKind = "prepared_compute" | "rn_text" | "unknown";
 
 export type BenchmarkParityRole =
   | "canonical_prepared_compute"
-  | "canonical_prepared_native_render"
   | "fallback_legacy"
   | "rn_text_compat_oracle";
 
@@ -156,7 +140,7 @@ export type PreparedViewResultState = {
   completedAt: string | null;
   computeSummary: BenchmarkSummary | null;
   prepareMs: number | null;
-  prepareStats: PreparedParagraphPrepareStats | null;
+  prepareStats: PreTextPrepareStats | null;
   renderSummary: BenchmarkSummary | null;
 };
 
@@ -176,7 +160,7 @@ export type BenchmarkHarnessArgs = {
   modes: BenchmarkMode[];
   onCompleted: (completion: BenchmarkHarnessCompletion) => void;
   prepareMs: number | null;
-  preparedParagraphs: PreparedParagraph | null;
+  preparedParagraphs: PreTextPreparedCorpus | null;
 };
 
 export type BenchmarkHarnessState = {
@@ -211,13 +195,13 @@ export type SurfaceCardProps = {
   texts: string[];
 };
 
-export type PreparedParagraphSurfaceCardProps = {
+export type PreTextLayoutSurfaceCardProps = {
   activeMode: BenchmarkMode;
   lastCompletedAt: string | null;
   onParagraphLayout: (index: number) => void;
-  paragraphMetrics: PreparedParagraphMetrics[];
+  paragraphMetrics: PreTextParagraphMetrics[];
   paragraphWidth: number;
-  prepared: PreparedParagraph | null;
+  prepared: PreTextPreparedCorpus | null;
 };
 
 export const EMPTY_BASELINE_RESULTS: BaseTextResultState = {

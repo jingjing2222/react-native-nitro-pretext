@@ -1,319 +1,117 @@
-# Native Engine Canonicalization Plan
+# PreText Layout-Only Migration Plan
 
-## Execution Rule
+## Current Direction
 
-- Execute exactly one plan at a time, in order from Plan 01 through Plan 08.
-- Do not start Plan N+1 until Plan N has implementation, `agent-device` verification, and local CI results recorded.
-- Keep each implementation session scoped to the active plan only.
-- RN `<Text>` and Android `StaticLayout` are compatibility or fallback references only. They are never the canonical correctness source.
+- This package is a layout engine, not a renderer.
+- Public runtime API is limited to `PreText`, `prepare`, `layout`, and
+  `usePreTextLayout`.
+- Visible rendering remains normal React Native UI.
+- The library does not render through native text views, hidden measurement
+  views, or public renderer components.
+- Text height comes from native text engines, not from `fontSize` heuristics.
+
+## Platform Contract
+
 - Android API 29+ canonical layout uses `MeasuredText + LineBreaker`.
-- iOS canonical layout and rendering use Core Text: `CTTypesetter + CTLine + CTLineDraw`.
-- Android `includeFontPadding` is explicit, defaults to `true` for RN compatibility, and is reported in Android parity output.
-- Height is never derived from `fontSize` alone. Line and paragraph height must come from platform text-engine metrics after shaping and line breaking.
-- Height calculation must account for font metrics, explicit `lineHeight`, fallback fonts, emoji glyph fallback, locale, `includeFontPadding`, text direction, and the selected line-break strategy.
+- Android API 24-28 remains supported as a named legacy fallback only.
+- iOS canonical layout uses Core Text: `CTTypesetter + CTLine`.
+- RN `<Text>` is the expected visible renderer, but not the correctness source.
+- Android `includeFontPadding` defaults to `true` to match RN `<Text>`.
+- Height must account for font metrics, explicit `lineHeight`, fallback fonts,
+  emoji, locale, `includeFontPadding`, text direction, and line-break strategy.
 
-## Height Metric Contract
+## Session Rules
 
-- Android API 29+ canonical metrics come from the `MeasuredText + LineBreaker` line records, with the same `TextPaint`, locale, typeface, letter spacing, text direction, break strategy, and `includeFontPadding` policy used by rendering.
-- Android `StaticLayout` is required for RN `<Text>` compatibility height checks and Android legacy/fallback paths. When used, it must be reported as `android_static_layout_compat` or `android_legacy_fallback`, not as canonical.
-- Android canonical code must not replace line height with JS/manual `fontSize`, token height, or a fixed `lineHeight` shortcut. Explicit `lineHeight` is applied as a policy over native ascender/descender metrics, not as the only source of truth.
-- iOS canonical metrics come from Core Text line creation and typographic bounds: `CTTypesetterCreateLine`, `CTLineGetTypographicBounds`, and related run metrics.
-- iOS TextKit may be used only as an RN compatibility baseline if needed, and must be labeled separately from the Core Text canonical path.
-- Emoji, fallback fonts, CJK locale shaping, RTL text, and combining clusters must be included in height fixtures because they can change ascent, descent, leading, and line boxes.
-- Diagnostics must expose the metric source so a report can distinguish `font_metrics`, `explicit_line_height`, `fallback_font`, `emoji_fallback`, `locale`, `include_font_padding`, and `line_break_strategy` effects.
+Each session is completed independently:
 
-## Required Gate For Every Plan
+1. Implement only the active session scope.
+2. Run the required local verification.
+3. Run `agent-device` verification when the session affects visible behavior.
+4. Fix failures before moving on.
+5. Commit the session changes before starting the next session.
 
-- Implementation is limited to the active plan checklist.
-- `agent-device` verification is run for affected platforms.
-- Before each `agent-device` run, load its bootstrap and exploration references, confirm the app/device/session, then inspect before interacting.
-- Verification output is recorded with benchmark or fixture artifacts.
-- Local CI is run before moving to the next plan:
+## Sessions
+
+### Session 1: Layout-Only Public API
+
+- [x] Added `PreText`, `prepare`, `layout`, and `usePreTextLayout`.
+- [x] Kept native prepared ids hidden behind an opaque JS object.
+- [x] Exposed manual release only as `prepared.release()`.
+- [x] Left existing APIs in place for later removal.
+- [x] Verified with `yarn typecheck` and `yarn test`.
+- [x] Committed as `31d934e feat: add layout-only PreText public API`.
+
+### Session 2: JS Renderer Removal
+
+- [x] Removed public prepared renderer component exports.
+- [x] Removed old public raw API exports from root.
+- [x] Updated JS tests around the layout-only public surface.
+- [x] Kept example compatibility temporary shims internal to the example app.
+- [x] Verified with `yarn typecheck`, `yarn test`, and `yarn lint`.
+- [x] Committed as `e7930af refactor: remove public prepared renderers`.
+
+### Session 3: Native View / Renderer Removal
+
+- [x] Removed Android prepared paragraph view managers and renderer classes from source.
+- [x] Removed iOS prepared paragraph view managers and drawing renderer classes from source.
+- [x] Changed the Android package view manager list to empty.
+- [x] Verified with `yarn typecheck`, Android build, and iOS build.
+- [x] Committed as `b5a5f94 refactor: remove native prepared text renderers`.
+
+### Session 4: Nitro Bridge Narrowing
+
+- [x] Kept only preparation, request layout, diagnostics, rich layout, and release bridge methods.
+- [x] Removed raw measurement, width-only aliases, materialized broken-text layout, cursor, hit testing, selection, copy, and renderer bridge methods.
+- [x] Regenerated Nitro artifacts.
+- [x] Verified with `yarn nitrogen`, `yarn typecheck`, `yarn test`, Android build, and iOS build.
+- [x] Committed as `83dc023 refactor: narrow native layout bridge`.
+
+### Session 5: Layout-Only Example
+
+- [x] Rebuilt the main example around hidden RN `<Text onLayout>` measurement versus `PreText.layout()` before render.
+- [x] Kept the PreText path layout-only; visible output is ordinary RN `View` and `Text`.
+- [x] Added on-screen render pass, first stable height, layout shift, onLayout time, and PreText layout time metrics.
+- [x] Removed old example route links and focused the example index on measured layout.
+- [x] Verified with `yarn typecheck`, `yarn test`, iOS build/install, and `agent-device` iOS screen inspection.
+- [x] Committed as `6b91813 docs: show layout-only PreText example`.
+
+### Session 6: README / Docs
+
+- [x] Rewrote README as a simple public-facing layout-only introduction.
+- [x] Rewrote `docs/api.md` around `PreText`, `prepare`, `layout`, and `usePreTextLayout`.
+- [x] Updated the benchmark report without local artifact links.
+- [x] Made Android API 29+ performance/accuracy scope explicit.
+- [x] Verified with `yarn fmt:check`, `yarn typecheck`, and `git diff --check`.
+- [x] Committed as `3735606 docs: simplify PreText API documentation`.
+
+### Session 7: Final CI / PR Cleanup
+
+- [x] Run full local CI:
   - `yarn typecheck`
   - `yarn lint`
   - `yarn fmt:check`
   - `yarn test`
-- If native code changed, also run platform builds where available:
+- [x] Run available native builds:
   - `yarn workspace react-native-nitro-pretext-example build:android`
   - `yarn workspace react-native-nitro-pretext-example build:ios`
-- If benchmark behavior changed, run the relevant benchmark flow after the app is installed:
-  - `yarn benchmark:android`
-  - `yarn benchmark:ios`
-- A plan is complete only when its acceptance criteria and all required gates pass or a blocker is recorded.
+- [x] Ran iOS Maestro suite on iPhone 16 simulator with
+      `BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios`.
+- [x] Confirmed Android benchmark could not run because no Android device was
+      visible to `agent-device`.
+- [x] Replaced the stale prepared-view Maestro route with
+      `benchmark/pretext-layout`.
+- [x] Removed the remaining example-only legacy renderer shim and dead prepared
+      renderer example screens.
+- [x] Updated PR #4 description to describe the layout-only API.
+- [x] Confirmed public docs and package changes do not expose old renderer APIs,
+      native drawing views, or local artifact links.
+- [x] Commit final cleanup as `chore: finalize PreText layout-only migration`.
 
-## Plan 01: Parity Diagnostics And Gates
+## Remaining Limits
 
-- [x] Add required report fields: `layoutEngine`, `rendererKind`, `includeFontPadding`, `parityRole`, `heightMetricSource`.
-- [x] Split parity buckets:
-  - canonical prepared compute
-  - canonical prepared native render
-  - RN Text compat oracle
-  - fallback/legacy
-- [x] Fail gates when Android parity output omits `includeFontPadding`.
-- [x] Fail gates when canonical Android output is not `android_measured_text_line_breaker`.
-- [x] Fail gates when canonical iOS output is not `ios_core_text`.
-- [x] Fail gates when any canonical height report is sourced from `fontSize` alone.
-- [x] Add height drift buckets for font metrics, explicit lineHeight, fallback font, emoji fallback, locale, includeFontPadding, and line-break strategy.
-- [x] Rename BaseText docs to RN Text compat baseline, not canonical oracle.
-- [x] Separate timing gates from parity-contract gates.
-
-Acceptance:
-
-- Benchmark output tells whether mismatch is engine, renderer, padding, height-metric source, or compat drift.
-- `agent-device` benchmark verification records the new metadata fields.
-- Local CI passes before Plan 02 begins.
-
-Result:
-
-- Implemented in the benchmark summary schema, automation reports, UI summary cards, Maestro summary formatter, and quality gate script.
-- Added JS coverage for diagnostics schema and gate failure cases.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; base-text and prepared-view reports exposed `layoutEngine`, `rendererKind`, `parityRole`, `heightMetricSource`, drift fields, and height drift buckets.
-- `yarn benchmark:ios` passed. Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/plan01/prepared-view-diagnostics.png`.
-- Android device verification was attempted, but no Android device was connected. Android contract behavior is covered by JS gate tests until an Android device is available.
-
-## Plan 02: Canonical Engine Alignment
-
-- [x] Keep Android minSdk 24, but mark API 24-28 as `android_legacy_fallback`.
-- [x] On Android API 29+, route normal prepared layout to `MeasuredText + LineBreaker` before any `StaticLayout` branch.
-- [x] Keep `StaticLayout` only as named compat/fallback path.
-- [x] Keep a `StaticLayout` RN Text compatibility height path with matching `TextPaint`, `includePad`, break strategy, hyphenation, locale, and text direction.
-- [x] Add `includeFontPadding?: boolean` to `ParagraphStyle`.
-- [x] Default Android `includeFontPadding` to `true`.
-- [x] Apply padding policy to Android line metrics and diagnostics, using native ascent/descent/top/bottom metrics instead of `fontSize`.
-- [x] Add `textDirection?: "auto" | "ltr" | "rtl"` to `ParagraphStyle`.
-- [x] Keep iOS layout on `CTTypesetterCreateLine` + `CTLineGetTypographicBounds`.
-- [x] Ensure iOS line height uses Core Text typographic bounds and fallback glyph metrics, with explicit `lineHeight` applied over those metrics.
-- [x] Mark manual token layout as degraded fallback with `fallbackReason`.
-- [x] Mark any manual/token height estimate as degraded with `fallbackReason: "manual_height_estimate"`.
-
-Acceptance:
-
-- API 29+ normal Android canonical layout never enters `StaticLayout`.
-- iOS line metrics come from `CTLine`.
-- No canonical line or paragraph height is computed from `fontSize` alone.
-- `agent-device` fixture or benchmark verification confirms canonical engine metadata on affected platforms.
-- Local CI passes before Plan 03 begins.
-
-Result:
-
-- Added `ParagraphStyle.includeFontPadding?: boolean` and `ParagraphStyle.textDirection?: "auto" | "ltr" | "rtl"` to the Nitro API.
-- Android API 29+ now checks the `MeasuredText + LineBreaker` path before `StaticLayout`, while API 24-28/manual token paths are marked as degraded fallback with `fallbackReason: "manual_height_estimate"`.
-- Android `StaticLayout` remains as compatibility/fallback only and now receives explicit `includePad` and text-direction policy.
-- Android line heights now use native ascent/descent plus first/last-line `includeFontPadding` policy, with explicit `lineHeight` applied as a floor rather than a font-size shortcut.
-- iOS layout remains on `CTTypesetterCreateLine` and `CTLineGetTypographicBounds`; token fallback measurement now uses `CTLineGetTypographicBounds` so fallback glyph/emoji metrics can raise line height.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; `yarn benchmark:ios` passed and reported prepared compute/render `layoutEngine: ios_core_text` with `heightMetricSource: platform_text_engine_metrics`.
-- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`.
-- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
-
-## Plan 03: Canonical Native Rendering
-
-- [x] iOS `PreparedParagraphView` primary path uses `CTLineDraw`.
-- [x] iOS stops using `NSString.draw` / `NSAttributedString.draw` for canonical rendering.
-- [x] Android primary rendering stops using per-line `StaticLayout`.
-- [x] Android primary rendering uses MeasuredText/LineBreaker line records and direct native drawing.
-- [x] `PreparedParagraphLinesView` removes hardcoded `includeFontPadding: false`; make it explicit compat prop.
-- [x] Cache one platform line record for geometry, drawing, hit testing, height metrics, and later selection.
-- [x] Render using the same line box top/baseline/descent data returned by the native metric engine.
-
-Acceptance:
-
-- Native render output uses the same engine artifacts and height metrics as layout.
-- `agent-device` visual verification captures iOS and Android prepared native render output.
-- Local CI passes before Plan 04 begins.
-
-Result:
-
-- iOS `PreparedParagraphView` now renders prepared lines with `CTLineDraw` from the Core Text line record generated during layout.
-- iOS canonical rendering no longer uses `NSString.draw` or `NSAttributedString.draw`; fallback line creation still produces a `CTLine` before drawing.
-- Android `PreparedParagraphView` no longer builds per-line `StaticLayout` instances for canonical rendering.
-- Android canonical rendering now draws styled run segments directly with `Canvas.drawTextRun`, using `MeasuredText` advances and the prepared LineBreaker line ranges.
-- `PreparedParagraphLinesView` now exposes `includeFontPadding?: boolean` as an explicit compatibility prop instead of hardcoding `includeFontPadding: false`.
-- Platform line records now carry the canonical drawing artifact needed by layout, drawing, hit testing, height metrics, and later selection work.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; `yarn benchmark:ios` passed with prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_view`, `parityRole: canonical_prepared_native_render`, and `heightMetricSource: platform_text_engine_metrics`.
-- iOS benchmark median results: BaseText 229.69 ms, Prepared View render 74.07 ms, layout-only 0.18 ms.
-- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
-- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
-- Note: the iOS simulator showed an RN debugger warning badge during visual verification; it did not affect benchmark completion or report generation.
-
-## Plan 04: Batched Native Renderer
-
-- [x] Add `PreparedParagraphsView` as primary batched native renderer.
-- [x] It consumes canonical Android/iOS layout records directly.
-- [x] It does not use RN `<Text>` internally.
-- [x] It reports `rendererKind: "prepared_native_batch"`.
-- [x] It carries height metric provenance per paragraph and per line.
-- [x] Existing `PreparedParagraphText` and `PreparedParagraphLinesView` remain compat exports.
-
-Acceptance:
-
-- Prepared benchmark can render a corpus through one native surface without RN Text dependency.
-- `agent-device` benchmark verification records `rendererKind: "prepared_native_batch"`.
-- Local CI passes before Plan 05 begins.
-
-Result:
-
-- Added JS `PreparedParagraphsView` and native Android/iOS `PreparedParagraphsView` managers.
-- Prepared benchmark render mode now mounts one batched native surface for the corpus instead of one native view per paragraph.
-- Android batch rendering resolves all paragraph drawing records through `PretextShared.resolveParagraphsDrawing`, then draws with the shared direct `Canvas.drawTextRun` renderer.
-- iOS batch rendering resolves all paragraph drawing records through `PretextShared.resolveParagraphsDrawing`, then draws with the shared `CTLineDraw` renderer.
-- Batch line records carry `layoutEngine`, `fallbackReason`, and `heightMetricSource: "platform_text_engine_metrics"` provenance internally per paragraph and per line.
-- `PreparedParagraphText`, `PreparedParagraphLinesView`, and single-paragraph `PreparedParagraphView` remain exported compatibility surfaces.
-- Benchmark diagnostics and quality gates now require prepared render `rendererKind: "prepared_native_batch"`.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed and `yarn benchmark:ios` passed.
-- iOS benchmark median results: BaseText 211.87 ms, Prepared Batch render 66.77 ms, layout-only 0.19 ms.
-- iOS benchmark reported prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_batch`, `parityRole: canonical_prepared_native_render`, and `heightMetricSource: platform_text_engine_metrics`.
-- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
-- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
-
-## Plan 05: Pretext-Compatible Rules Over Native Engines
-
-- [x] Do not target browser canvas pixel parity.
-- [x] Implement pretext-style rules as a rule layer over MeasuredText/LineBreaker and Core Text.
-- [x] Add diagnostics: `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`.
-- [x] Add diagnostics: `height_metric_drift`, `fallback_font_drift`, `emoji_metric_drift`, `locale_metric_drift`, `line_break_strategy_drift`.
-- [x] Normalize request model: width, left, shapeSlices, whitespace, wordBreak, source UTF-16 offsets.
-- [x] Add legal break tables for hard breaks, native soft breaks, grapheme boundaries, and atomic spans.
-- [x] Keep public `textStart/textEnd` as source UTF-16 offsets.
-- [x] Define pretext-compatible height rules as a policy layer over native line metrics, never as a font-size shortcut.
-
-Acceptance:
-
-- Rule fixtures compare native diagnostic traces, including height metric sources, not browser canvas output.
-- `agent-device` benchmark verification shows drift categories in emitted reports.
-- Local CI passes before Plan 06 begins.
-
-Result:
-
-- Added `layoutParagraphLinesWithDiagnostics(...)` as the diagnostic API over normalized `ParagraphLayoutRequest`.
-- Diagnostic output now includes `ruleLayer: "pretext_native_rules"`, `canvasPixelParityTarget: false`, canonical `layoutEngine`, `heightMetricSource`, `fallbackReason`, `driftKinds`, `heightMetricDrivers`, per-line diagnostics, and legal break tables.
-- Android diagnostics are built from prepared `MeasuredText + LineBreaker` line records on API 29+ and from named legacy fallback records on API 24-28/manual paths.
-- iOS diagnostics are built from prepared Core Text `CTTypesetter`/`CTLine` line records.
-- Legal break tables expose hard breaks, native soft breaks, grapheme boundaries, and atomic inline spans while preserving public `textStart`/`textEnd` as source UTF-16 offsets.
-- Height remains sourced from platform text-engine metrics. Drift categories now cover engine, renderer, padding, algorithm rule, height metric, fallback font, emoji metric, locale metric, and line-break strategy effects.
-- Benchmark diagnostics now emit `line_break_strategy_drift` for line text drift and keep browser canvas pixel parity explicitly out of scope.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed, Metro was started for the debug bundle, and `yarn benchmark:ios` passed.
-- iOS benchmark median results: BaseText 231.35 ms, Prepared Batch render 67.08 ms, layout-only 0.18 ms.
-- iOS benchmark reported prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_batch`, `parityRole: canonical_prepared_native_render`, `heightMetricSource: platform_text_engine_metrics`, and drift categories including `height_metric_drift`, `algorithm_rule_drift`, `line_break_strategy_drift`, and `renderer_drift`.
-- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
-- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
-
-## Plan 06: Rich Inline Boxes
-
-- [x] Extend `InlineSegment` into text and box segments.
-- [x] Box metrics are caller-supplied: `boxId`, `width`, `height`, `baseline`, `breakBehavior`.
-- [x] Android boxes use object replacement with MeasuredText replacement runs.
-- [x] iOS boxes use object replacement with `CTRunDelegate`.
-- [x] Return `InlineBoxFrame[]` from rich layout.
-- [x] Optional RN overlays may render boxes, but never participate in text layout.
-- [x] Merge box metrics with native text ascent/descent/fallback metrics to compute final line height.
-
-Acceptance:
-
-- Boxes wrap atomically and line height expands from native box metrics.
-- `agent-device` visual verification captures inline box layout on iOS and Android.
-- Local CI passes before Plan 07 begins.
-
-Result:
-
-- Added text/box inline segment fields to the Nitro API and public TypeScript exports.
-- Added `layoutRichParagraphLines(...)`, returning canonical line ranges, diagnostics, and `InlineBoxFrame[]` for caller-rendered overlays.
-- Android inline boxes now materialize as U+FFFC object replacements and API 29+ `MeasuredText.Builder.appendReplacementRun(...)` entries while reporting atomic `inline_box` spans in diagnostics.
-- iOS inline boxes now materialize as U+FFFC object replacements with `CTRunDelegate` ascent, descent, and width metrics, so Core Text line creation reserves box geometry.
-- Android and iOS line height policies now merge native text ascent/descent/fallback metrics with caller-supplied box height/baseline metrics.
-- The inline segments example renders boxes as RN overlays from `InlineBoxFrame[]`; overlays do not participate in text layout.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed, Metro was started for the debug bundle, and the inline box example displayed the `OK` overlay at the native rich layout frame.
-- Artifact: `example/.maestro-artifacts/plan06/inline-box-ios.png`.
-- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
-
-## Plan 07: Selection And Accessibility
-
-- [x] Build hit testing from canonical native line records.
-- [x] Preserve height metric provenance on line records used by hit testing and selection rects.
-- [x] Android offset/rects derive from LineBreaker lines + MeasuredText advances.
-- [x] iOS offset/rects derive from `CTLineGetStringIndexForPosition` and `CTLineGetOffsetForStringIndex`.
-- [x] Add `selectable`, controlled `selection`, `onSelectionChange`, copy/select-all.
-- [x] Add per-box accessibility metadata.
-- [x] Keep paste/editing out of scope.
-
-Acceptance:
-
-- Selection/copy/accessibility works on native prepared renderer without RN Text.
-- `agent-device` interaction verification covers tap/drag/select/copy flows on affected platforms.
-- Local CI passes before Plan 08 begins.
-
-Result:
-
-- Public APIs now expose `PreparedTextPosition`, `PreparedTextRange`, `PreparedTextSelectionRect`, hit testing, selection rect layout, select-all, selected-text readback, and native clipboard copy.
-- `PreparedParagraphView` supports `selectable`, controlled/uncontrolled `selection`, `onSelectionChange`, `onSelectionCopy`, select-all/copy long press, tap-to-line selection, and drag-to-range selection through a transparent touch overlay above the native renderer.
-- Android selection geometry uses canonical prepared line records and `MeasuredText` advances on API 29+, with legacy fallback records retaining `fallbackReason` and `heightMetricSource`.
-- iOS selection geometry uses prepared Core Text line records with `CTLineGetStringIndexForPosition` and `CTLineGetOffsetForStringIndex`.
-- Inline box accessibility metadata is carried from JS segments into native box frames and example overlays.
-- Paste/editing remains intentionally out of scope.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example pods`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`: navigated to `examples/prepared-view`, verified tap selection (`Selection 67-91`), drag selection (`Selection 68-91`), select-all (`Selection 0-128`), copy (`128 chars copied`), and clipboard contents.
-- Artifacts: `example/.maestro-artifacts/plan07/prepared-view-before-tap.png`, `example/.maestro-artifacts/plan07/prepared-selection-ios.png`, `example/.maestro-artifacts/plan07/prepared-select-all-ios.png`.
-- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
-
-## Plan 08: Bidi, Grapheme, Complex Shaping
-
-- [x] Add `textDirection?: "auto" | "ltr" | "rtl"`.
-- [x] Android removes hardcoded `FIRSTSTRONG_LTR`.
-- [x] Add shared boundary map for UTF-16 offsets, grapheme clusters, run boundaries, break opportunities.
-- [x] Never split surrogate pairs, ZWJ emoji, flags, combining sequences, Indic clusters.
-- [x] Add line diagnostics for direction, cluster violations, fallback reason.
-- [x] Add height fixtures for RTL, emoji ZWJ sequences, flags, combining marks, CJK locale fallback, and Indic clusters.
-- [x] Document visual order belongs to native renderer, not JS slicing.
-
-Acceptance:
-
-- Bidi/emoji/complex-script fixtures are tracked by dedicated counters.
-- `agent-device` visual verification captures RTL, emoji, and complex-script fixtures.
-- Local CI passes before final docs and migration notes begin.
-
-Result:
-
-- `ParagraphStyle.textDirection` remains public and diagnostics now report resolved request direction at the paragraph and line levels.
-- Android `auto` direction no longer hardcodes `FIRSTSTRONG_LTR`; it chooses `FIRSTSTRONG_RTL` or `FIRSTSTRONG_LTR` from the resolved locale layout direction, while explicit `ltr`/`rtl` map to native fixed heuristics.
-- iOS attributed strings now carry Core Text paragraph writing direction through `NSParagraphStyle`, with `.natural`, `.leftToRight`, and `.rightToLeft` matching the public direction option.
-- Diagnostic output now includes `boundaryMap` with UTF-16 length, grapheme boundaries, styled-run boundaries, hard breaks, native soft breaks, atomic-span boundaries, and cluster violation offsets.
-- Diagnostic output now includes `complexShapeCounters` for bidi runs, emoji clusters, complex clusters, and cluster violations.
-- Line diagnostics now include `textDirection`, `clusterViolationOffsets`, and existing fallback/height provenance.
-- Android hit testing and selection ranges now snap to grapheme-safe boundaries over surrogate pairs, ZWJ emoji, flag regional indicators, combining marks, emoji modifiers, and Indic virama clusters.
-- iOS hit testing and selection ranges now snap to `NSString` composed-character boundaries from the same Core Text source offsets used for line records.
-- The prepared-view example text now includes Hebrew/Arabic RTL, a ZWJ family emoji, a flag emoji, and an Indic conjunct fixture so complex shaping can affect native height and line boxes.
-- Visual order remains native-renderer owned; JS diagnostics and public ranges stay in source UTF-16 offsets.
-- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
-- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
-- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`: navigated to `examples/prepared-view`, verified RTL/emoji/Indic fixture text was rendered, and select-all preserved a grapheme-safe range (`Selection 0-162`).
-- Artifact: `example/.maestro-artifacts/plan08/prepared-complex-ios.png`.
-- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
-
-## Final Docs And Reports
-
-- [ ] Update docs with the canonical engine model and migration notes.
-- [ ] Publish benchmark report with engine, renderer, padding, and drift metadata.
-- [ ] Document that height is measured by platform text engines and is not derived from `fontSize`.
-- [ ] Document remaining limits and any platform-specific fallback behavior.
-
-## Agent Plan Audit After Height Correction
-
-- Plan 01 needed revision: diagnostics must report `heightMetricSource` and fail canonical `fontSize`-only height.
-- Plan 02 needed revision: engine alignment must explicitly preserve native font metrics, fallback glyph metrics, locale, line-break strategy, and `includeFontPadding`.
-- Plan 03 needed revision: renderer alignment must reuse the same native line boxes and baselines used for measurement.
-- Plan 04 remains directionally correct, but batched rendering must carry metric-source metadata per paragraph.
-- Plan 05 needed revision: pretext-compatible rules must sit over native height metrics as well as native break decisions.
-- Plan 06 needed revision: inline box metrics must merge with native text metrics rather than replacing them.
-- Plan 07 remains directionally correct, because hit testing already depends on canonical line records; those records must now include height metric provenance.
-- Plan 08 needed revision: complex shaping fixtures must include height-sensitive glyph fallback and cluster cases, not only break-offset correctness.
+- Android release-device benchmark numbers are still required before publishing
+  Android speedup claims.
+- Android API 24-28 is supported as fallback, not canonical parity.
+- RN `<Text>` pixel parity depends on matching style, font fallback, locale,
+  line-height, text direction, and Android `includeFontPadding` policy.
+- Browser canvas pixel parity is explicitly out of scope.

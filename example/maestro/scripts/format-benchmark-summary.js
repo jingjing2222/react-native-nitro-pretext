@@ -102,7 +102,7 @@ function buildComparisonNotes() {
 
     if (delta < 0) {
       notes.push(
-        `  verdict              prepared render is faster end-to-end by ${formatMs(
+        `  verdict              PreText surface is faster end-to-end by ${formatMs(
           Math.abs(delta),
         )}`,
       );
@@ -116,23 +116,23 @@ function buildComparisonNotes() {
       }
     } else if (delta > 0) {
       notes.push(
-        `  verdict              prepared render is slower end-to-end by ${formatMs(
+        `  verdict              PreText surface is slower end-to-end by ${formatMs(
           delta,
         )}`,
       );
       notes.push(
-        "  amortization         no payback while prepared render stays slower",
+        "  amortization         no payback while PreText surface stays slower",
       );
     } else {
       notes.push(
-        "  verdict              prepared render matches BaseText on median interaction",
+        "  verdict              PreText surface matches BaseText on median interaction",
       );
     }
   }
 
   if (preparedLayoutOnly !== null) {
     notes.push(
-      `  hot path             prepared layout-only relayout costs ${formatMs(
+      `  hot path             PreText layout-only relayout costs ${formatMs(
         preparedLayoutOnly,
       )}`,
     );
@@ -140,7 +140,7 @@ function buildComparisonNotes() {
 
   if (renderOverheadMs !== null) {
     notes.push(
-      `  bottleneck           renderer/materialization still costs ${formatMs(
+      `  bottleneck           visible RN surface still costs ${formatMs(
         renderOverheadMs,
       )} beyond hot layout`,
     );
@@ -194,7 +194,7 @@ if (baseText) {
 }
 
 if (preparedView) {
-  reportLines.push("Prepared View");
+  reportLines.push("PreText Layout");
   reportLines.push(
     labelValue("completed", preparedView.completedAt ?? "n/a"),
     labelValue("prepare once", formatMs(preparedView.prepareMs)),
@@ -206,28 +206,28 @@ if (preparedView) {
       formatMs(preparedView.computeLayoutOnlyMedianMs),
     ),
     labelValue(
-      "render median",
+      "surface median",
       formatMs(preparedView.renderInteractionMedianMs),
     ),
-    labelValue("render p95", formatMs(preparedView.renderInteractionP95Ms)),
-    labelValue("render overhead", formatMs(renderOverheadMs)),
+    labelValue("surface p95", formatMs(preparedView.renderInteractionP95Ms)),
+    labelValue("surface overhead", formatMs(renderOverheadMs)),
     labelValue("engine share", formatPercent(engineShare)),
     labelValue("measure share", formatPercent(measurementShare)),
-    labelValue("render engine", preparedView.renderLayoutEngine ?? "n/a"),
-    labelValue("render renderer", preparedView.renderRendererKind ?? "n/a"),
-    labelValue("render role", preparedView.renderParityRole ?? "n/a"),
+    labelValue("surface engine", preparedView.renderLayoutEngine ?? "n/a"),
+    labelValue("surface renderer", preparedView.renderRendererKind ?? "n/a"),
+    labelValue("surface role", preparedView.renderParityRole ?? "n/a"),
     labelValue(
-      "render height src",
+      "surface height src",
       preparedView.renderHeightMetricSource ?? "n/a",
     ),
     labelValue(
-      "render font pad",
+      "surface font pad",
       preparedView.renderIncludeFontPadding === null ||
         preparedView.renderIncludeFontPadding === undefined
         ? "n/a"
         : String(preparedView.renderIncludeFontPadding),
     ),
-    labelValue("render drift", formatList(preparedView.renderDriftKinds)),
+    labelValue("surface drift", formatList(preparedView.renderDriftKinds)),
     labelValue("compute engine", preparedView.computeLayoutEngine ?? "n/a"),
     labelValue("compute renderer", preparedView.computeRendererKind ?? "n/a"),
     labelValue("compute role", preparedView.computeParityRole ?? "n/a"),
@@ -244,13 +244,13 @@ if (preparedView) {
     ),
     labelValue("compute drift", formatList(preparedView.computeDriftKinds)),
     labelValue(
-      "render line parity",
+      "surface line parity",
       `${formatCount(preparedView.renderParityMismatches)}/${formatCount(
         preparedView.renderParityChecks,
       )} mismatches`,
     ),
     labelValue(
-      "render text parity",
+      "surface text parity",
       `${formatCount(preparedView.renderLineTextParityMismatches)}/${formatCount(
         preparedView.renderLineTextParityChecks,
       )} mismatches`,
@@ -276,16 +276,16 @@ if (combined) {
   reportLines.push("Comparison");
   reportLines.push(
     labelValue("base median", formatMs(combined.baseMedianMs)),
-    labelValue("prepared median", formatMs(combined.preparedMedianMs)),
+    labelValue("PreText median", formatMs(combined.preparedMedianMs)),
     labelValue(
       "median delta",
-      `${formatSignedMs(combined.medianDeltaMs)} (${combined.medianDeltaMs > 0 ? "prepared slower" : combined.medianDeltaMs < 0 ? "prepared faster" : "tied"})`,
+      `${formatSignedMs(combined.medianDeltaMs)} (${combined.medianDeltaMs > 0 ? "PreText slower" : combined.medianDeltaMs < 0 ? "PreText faster" : "tied"})`,
     ),
     labelValue("median ratio", formatRatio(performanceRatio)),
-    labelValue("prepared p95", formatMs(combined.preparedP95Ms)),
+    labelValue("PreText p95", formatMs(combined.preparedP95Ms)),
     labelValue(
       "p95 delta",
-      `${formatSignedMs(combined.p95DeltaMs)} (${combined.p95DeltaMs > 0 ? "prepared slower" : combined.p95DeltaMs < 0 ? "prepared faster" : "tied"})`,
+      `${formatSignedMs(combined.p95DeltaMs)} (${combined.p95DeltaMs > 0 ? "PreText slower" : combined.p95DeltaMs < 0 ? "PreText faster" : "tied"})`,
     ),
     labelValue("p95 ratio", formatRatio(p95Ratio)),
     labelValue(
@@ -294,15 +294,15 @@ if (combined) {
     ),
     labelValue("base engine", combined.baseLayoutEngine ?? "n/a"),
     labelValue(
-      "prepared render engine",
+      "PreText surface engine",
       combined.preparedRenderLayoutEngine ?? "n/a",
     ),
     labelValue(
-      "prepared compute engine",
+      "PreText compute engine",
       combined.preparedComputeLayoutEngine ?? "n/a",
     ),
     labelValue(
-      "render height src",
+      "surface height src",
       combined.preparedRenderHeightMetricSource ?? "n/a",
     ),
     labelValue(
@@ -310,7 +310,7 @@ if (combined) {
       combined.preparedComputeHeightMetricSource ?? "n/a",
     ),
     labelValue(
-      "render text parity",
+      "surface text parity",
       `${formatCount(
         combined.preparedRenderLineTextParityMismatches,
       )}/${formatCount(combined.preparedRenderLineTextParityChecks)} mismatches`,

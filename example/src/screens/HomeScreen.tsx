@@ -87,7 +87,7 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
             Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then PreText batch layout, and come back here for the combined read.
+            then PreText layout, and come back here for the combined read.
           </Text>
           <View style={styles.summaryMetricList}>
             <SummaryMetric
@@ -97,14 +97,14 @@ export function HomeScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="PreText batch median"
+              label="PreText surface median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="PreText batch p95"
+              label="PreText surface p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

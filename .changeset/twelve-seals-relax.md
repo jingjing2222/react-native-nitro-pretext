@@ -2,10 +2,11 @@
 "react-native-nitro-pretext": patch
 ---
 
-Document the new prepared paragraph API surface and renderer components added in this release.
+Add the layout-only PreText API for computing React Native text geometry before visible render.
 
-- Added prepared paragraph engine exports for relayout workflows: `ParagraphEngine`, `prepareParagraphs()`, `prepareParagraphsWithStats()`, `prepareInlineParagraphs()`, `prepareInlineParagraphsWithStats()`, `layoutParagraphs()`, `layoutParagraphsMetadata()`, `layoutParagraphLines()`, `layoutParagraphsWithRequest()`, `layoutParagraphsMetadataWithRequest()`, `layoutParagraphLinesWithRequest()`, `createParagraphLayoutRequest()`, `createParagraphLineCursor()`, `nextParagraphLine()`, `releaseParagraphLineCursor()`, and `releaseParagraphs()`.
-- Added exported paragraph types: `ParagraphStyle`, `PreparedParagraphState`, `PreparedParagraphResult`, `PrepareParagraphStats`, `InlineSegment`, `ParagraphLayoutRequest`, `ParagraphShapeSlice`, `ParagraphLineRange`, `ParagraphLineCursorState`, `ParagraphLineCursorStep`, `LaidOutParagraph`, `LaidOutParagraphMetrics`, and `LaidOutParagraphLines`.
-- Added `PreparedParagraphView`, a native paragraph surface component that renders prepared paragraph state directly from `prepared`, `paragraphIndex`, `layoutWidth`, `paragraphHeight`, and `paragraphStyle`.
-- Added `PreparedParagraphText`, a React Native `<Text>` compatibility component that rematerializes prepared paragraph breaks from `prepared`, `paragraphIndex`, `layoutWidth`, and optional `layoutRequest`.
-- Added benchmark compatibility helpers `prepareBenchmarkCorpus()`, `layoutPreparedBenchmarkCorpus()`, and `releasePreparedBenchmarkCorpus()` so existing benchmark flows can adopt the prepared paragraph API incrementally.
+- Added the public `PreText` namespace plus named `prepare()`, `layout()`, and `usePreTextLayout()` exports.
+- `prepare()` creates opaque native prepared state without exposing raw native ids, and `prepared.release()` is the only manual lifecycle API.
+- `layout()` returns native text-engine metrics by default and can optionally return line geometry, diagnostics, or rich inline box frames.
+- `usePreTextLayout()` prepares, layouts, and releases native state from React components.
+- Removed public renderer components and raw prepared paragraph APIs from the package export surface.
+- Documented Android API 29+ as the canonical `MeasuredText + LineBreaker` path, Android API 24-28 as legacy fallback, and iOS as Core Text.

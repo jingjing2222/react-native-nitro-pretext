@@ -1,9 +1,12 @@
 import { memo } from "react";
 import { ActivityIndicator, Pressable, Text, View } from "react-native";
 import type { TextLayoutEvent } from "react-native";
-import { PreparedParagraphsView } from "../pretextLegacy";
 
-import { BENCHMARK_STYLE, BENCHMARK_SAMPLE_SIZE } from "../relayoutBenchmark";
+import {
+  BENCHMARK_CORPUS,
+  BENCHMARK_STYLE,
+  BENCHMARK_SAMPLE_SIZE,
+} from "../relayoutBenchmark";
 import {
   formatMilliseconds,
   MODE_LABELS,
@@ -13,7 +16,7 @@ import {
 } from "../benchmark/constants";
 import type {
   BenchmarkSummary,
-  PreparedParagraphSurfaceCardProps,
+  PreTextLayoutSurfaceCardProps,
   SurfaceCardProps,
 } from "../benchmark/types";
 
@@ -337,14 +340,14 @@ export function SurfaceCard({
   );
 }
 
-export function PreparedParagraphSurfaceCard({
+export function PreTextLayoutSurfaceCard({
   activeMode,
   lastCompletedAt,
   onParagraphLayout,
   paragraphMetrics,
   paragraphWidth,
   prepared,
-}: PreparedParagraphSurfaceCardProps) {
+}: PreTextLayoutSurfaceCardProps) {
   return (
     <View style={styles.stageCard}>
       <View style={styles.stageHeader}>
@@ -361,7 +364,7 @@ export function PreparedParagraphSurfaceCard({
         </Text>
       </View>
 
-      <PreparedParagraphBatch
+      <PreTextLayoutPreviewBatch
         onParagraphLayout={onParagraphLayout}
         paragraphMetrics={paragraphMetrics}
         paragraphWidth={paragraphWidth}
@@ -412,16 +415,16 @@ const ParagraphList = memo(function ParagraphList({
   );
 });
 
-const PreparedParagraphBatch = memo(function PreparedParagraphBatch({
+const PreTextLayoutPreviewBatch = memo(function PreTextLayoutPreviewBatch({
   onParagraphLayout,
   paragraphMetrics,
   paragraphWidth,
   prepared,
 }: {
   onParagraphLayout: (index: number) => void;
-  paragraphMetrics: PreparedParagraphSurfaceCardProps["paragraphMetrics"];
+  paragraphMetrics: PreTextLayoutSurfaceCardProps["paragraphMetrics"];
   paragraphWidth: number;
-  prepared: PreparedParagraphSurfaceCardProps["prepared"];
+  prepared: PreTextLayoutSurfaceCardProps["prepared"];
 }) {
   if (prepared === null) {
     return <View style={styles.paragraphStack} />;
@@ -434,21 +437,36 @@ const PreparedParagraphBatch = memo(function PreparedParagraphBatch({
 
   return (
     <View style={styles.paragraphStack}>
-      <PreparedParagraphsView
-        contentInsetHorizontal={PARAGRAPH_HORIZONTAL_PADDING}
-        contentInsetVertical={PARAGRAPH_VERTICAL_PADDING}
-        layoutWidth={layoutWidth}
+      <View
         onLayout={() => onParagraphLayout(0)}
-        paragraphGap={16}
-        paragraphMetrics={
-          paragraphMetrics.length === 0
-            ? [EMPTY_PREPARED_LAYOUT]
-            : paragraphMetrics
-        }
-        paragraphStyle={BENCHMARK_STYLE}
-        prepared={prepared}
-        style={[styles.paragraphBatchSurface, { width: paragraphWidth }]}
-      />
+        style={[
+          styles.paragraphBatchSurface,
+          {
+            gap: 16,
+            width: paragraphWidth,
+          },
+        ]}
+      >
+        {(paragraphMetrics.length === 0
+          ? [EMPTY_PREPARED_LAYOUT]
+          : paragraphMetrics
+        ).map((paragraph, index) => (
+          <Text
+            key={`pretext-layout-preview-${index}`}
+            allowFontScaling={false}
+            numberOfLines={Math.max(1, paragraph.lineCount)}
+            style={[
+              styles.paragraph,
+              {
+                minHeight: paragraph.height + PARAGRAPH_VERTICAL_PADDING * 2,
+                width: layoutWidth + PARAGRAPH_HORIZONTAL_PADDING * 2,
+              },
+            ]}
+          >
+            {BENCHMARK_CORPUS[index] ?? ""}
+          </Text>
+        ))}
+      </View>
     </View>
   );
 });

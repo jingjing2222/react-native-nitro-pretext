@@ -7,7 +7,7 @@ import { BenchmarkResultsProvider } from "./context/BenchmarkResultsContext";
 import { HomeScreen } from "./screens/HomeScreen";
 import { BaseTextBenchmarkScreen } from "./screens/benchmark/BaseTextBenchmarkScreen";
 import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
-import { PreparedParagraphViewBenchmarkScreen } from "./screens/benchmark/PreparedParagraphViewBenchmarkScreen";
+import { PreTextLayoutBenchmarkScreen } from "./screens/benchmark/PreTextLayoutBenchmarkScreen";
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { MeasuredLayoutComparisonScreen } from "./screens/examples/MeasuredLayoutComparisonScreen";
 
@@ -31,7 +31,7 @@ const linking = {
       Home: "",
       BenchmarkIndex: "benchmark",
       BenchmarkBaseText: "benchmark/base-text",
-      BenchmarkPreparedView: "benchmark/prepared-view",
+      BenchmarkPreTextLayout: "benchmark/pretext-layout",
       ExampleIndex: "examples",
       ExampleMeasuredLayout: "examples/measured-layout",
     },
@@ -75,9 +75,9 @@ export default function App() {
               options={{ title: "benchmark/base-text" }}
             />
             <Stack.Screen
-              component={PreparedParagraphViewBenchmarkScreen}
-              name="BenchmarkPreparedView"
-              options={{ title: "benchmark/prepared-view" }}
+              component={PreTextLayoutBenchmarkScreen}
+              name="BenchmarkPreTextLayout"
+              options={{ title: "benchmark/pretext-layout" }}
             />
             <Stack.Screen
               component={ExampleIndexScreen}

@@ -283,17 +283,17 @@ const baseText = summary.baseText;
 const preparedView = summary.preparedView;
 const combined = summary.combined;
 const baseMedian =
-  flow === "prepared-view"
+  flow === "pretext-layout"
     ? (baseText?.interactionMedianMs ?? null)
     : (combined?.baseMedianMs ?? baseText?.interactionMedianMs ?? null);
 const preparedMedian =
-  flow === "prepared-view"
+  flow === "pretext-layout"
     ? (preparedView?.renderInteractionMedianMs ?? null)
     : (combined?.preparedMedianMs ??
       preparedView?.renderInteractionMedianMs ??
       null);
 const preparedP95 =
-  flow === "prepared-view"
+  flow === "pretext-layout"
     ? (preparedView?.renderInteractionP95Ms ?? null)
     : (combined?.preparedP95Ms ?? preparedView?.renderInteractionP95Ms ?? null);
 const preparedMedianRatio = numericRatio(preparedMedian, baseMedian);
@@ -304,12 +304,12 @@ const contractChecks = createCheckState();
 if (thresholds.requireCompleted) {
   if (flow === "base-text") {
     requireCompletedStatus(contractChecks, "base-text", baseText);
-  } else if (flow === "prepared-view") {
+  } else if (flow === "pretext-layout") {
     requireCompletedStatus(contractChecks, "base-text", baseText);
-    requireCompletedStatus(contractChecks, "prepared-view", preparedView);
+    requireCompletedStatus(contractChecks, "pretext-layout", preparedView);
   } else {
     requireCompletedStatus(contractChecks, "base-text", baseText);
-    requireCompletedStatus(contractChecks, "prepared-view", preparedView);
+    requireCompletedStatus(contractChecks, "pretext-layout", preparedView);
     requireCompletedStatus(contractChecks, "combined", combined);
   }
 }
@@ -323,7 +323,7 @@ if (flow === "base-text") {
   assertBaseTextContract(contractChecks, baseText);
 }
 
-if (flow === "prepared-view" || flow === "suite") {
+if (flow === "pretext-layout" || flow === "suite") {
   assertBaseTextContract(contractChecks, baseText);
   assertPreparedContract(
     contractChecks,
@@ -335,18 +335,18 @@ if (flow === "prepared-view" || flow === "suite") {
   );
   assertPreparedContract(
     contractChecks,
-    "prepared render",
+    "pretext visible surface",
     preparedView,
     "render",
-    "canonical_prepared_native_render",
-    "prepared_native_batch",
+    "canonical_prepared_compute",
+    "rn_text",
   );
 
   requirePresentMetric(timingChecks, "base median", baseMedian);
-  requirePresentMetric(timingChecks, "prepared render median", preparedMedian);
+  requirePresentMetric(timingChecks, "PreText surface median", preparedMedian);
   requirePresentMetric(
     timingChecks,
-    "prepared layout-only median",
+    "PreText layout-only median",
     preparedView?.computeLayoutOnlyMedianMs ??
       combined?.preparedLayoutOnlyMedianMs,
   );
@@ -354,14 +354,14 @@ if (flow === "prepared-view" || flow === "suite") {
 
   assertMax(
     timingChecks,
-    "prepared median ratio",
+    "PreText median ratio",
     preparedMedianRatio,
     thresholds.maxPreparedMedianRatio,
     formatRatio,
   );
   assertMax(
     timingChecks,
-    "prepared p95 ratio",
+    "PreText p95 ratio",
     preparedP95Ratio,
     thresholds.maxPreparedP95Ratio,
     formatRatio,

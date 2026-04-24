@@ -68,7 +68,7 @@ function getRendererKind(mode: BenchmarkMode): BenchmarkRendererKind {
     return "prepared_compute";
   }
 
-  return "prepared_native_batch";
+  return "rn_text";
 }
 
 function getParityRole(mode: BenchmarkMode): BenchmarkParityRole {
@@ -76,11 +76,11 @@ function getParityRole(mode: BenchmarkMode): BenchmarkParityRole {
     return "rn_text_compat_oracle";
   }
 
-  if (mode === "pretext-compute") {
+  if (mode === "pretext-compute" || mode === "pretext-render") {
     return "canonical_prepared_compute";
   }
 
-  return "canonical_prepared_native_render";
+  return "fallback_legacy";
 }
 
 function getLayoutEngine(
@@ -132,13 +132,6 @@ export function resolveBenchmarkDrift(args: {
     driftKinds.add("algorithm_rule_drift");
     driftKinds.add("line_break_strategy_drift");
     heightDriftBuckets.line_break_strategy = args.lineTextParityMismatches;
-  }
-
-  if (
-    (hasLineCountDrift || hasLineTextDrift) &&
-    args.diagnostics.parityRole === "canonical_prepared_native_render"
-  ) {
-    driftKinds.add("renderer_drift");
   }
 
   if (

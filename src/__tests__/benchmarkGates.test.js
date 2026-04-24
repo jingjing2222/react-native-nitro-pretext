@@ -103,12 +103,12 @@ function createPreparedViewReport(overrides = {}) {
     renderLayoutEngine: "android_measured_text_line_breaker",
     renderLineTextParityChecks: 200,
     renderLineTextParityMismatches: 0,
-    renderParityBucket: "canonical_prepared_native_render",
+    renderParityBucket: "canonical_prepared_compute",
     renderParityChecks: 200,
     renderParityMismatches: 0,
-    renderParityRole: "canonical_prepared_native_render",
-    renderRendererKind: "prepared_native_batch",
-    screen: "benchmark/prepared-view",
+    renderParityRole: "canonical_prepared_compute",
+    renderRendererKind: "rn_text",
+    screen: "benchmark/pretext-layout",
     status: "completed",
     tokenizeMs: 1,
     totalRuns: 35,
@@ -136,7 +136,7 @@ function runGate(preparedOverrides = {}) {
     logPath,
     reportPath,
     "android",
-    "prepared-view",
+    "pretext-layout",
   ]);
 
   return fs.readFileSync(reportPath, "utf8");
