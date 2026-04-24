@@ -125,6 +125,20 @@ Diagnostics may report `android_static_layout_compat` or
 `ios_manual_token_fallback` on degraded iOS fallback paths. Android API 24-28
 StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
+## Compatibility
+
+| Dependency                   | Supported range | Current validation                                      |
+| ---------------------------- | --------------- | ------------------------------------------------------- |
+| React Native                 | `0.81+`         | Example app and local CI use React Native `0.85.0`.     |
+| `react-native-nitro-modules` | `^0.35.5`       | Required runtime peer dependency.                       |
+| `nitrogen`                   | `^0.35.5`       | Required for generated Nitro bridge files in this repo. |
+| Android                      | API 24+         | API 29+ is the canonical Android performance target.    |
+| iOS                          | RN default      | Example app currently targets iOS 15.1.                 |
+
+The Nitro Modules package currently publishes broad React Native peer metadata,
+so Pretext documents and enforces its own package support floor as React Native
+`0.81+`.
+
 ## Performance Snapshot
 
 Latest local iOS example validation: April 24, 2026, iPhone 16 simulator,
@@ -153,6 +167,9 @@ npm install react-native-nitro-pretext react-native-nitro-modules
 
 `react-native-nitro-modules` is required because Pretext is exposed as a Nitro
 Module.
+
+Pretext supports React Native `0.81+`. The bundled example app is currently on
+React Native `0.85.0`.
 
 ## Example App
 

@@ -17,6 +17,18 @@ Example app coverage is kept in sync by `yarn verify:api-examples`. The
 learning routes live under `examples/use-case/*`; the matching plain RN
 workarounds live under `examples/non-use-case/*`.
 
+## Compatibility
+
+| Dependency                   | Supported range       | Notes                                               |
+| ---------------------------- | --------------------- | --------------------------------------------------- |
+| React Native                 | `0.81+`               | Package peer dependency and public support floor.   |
+| `react-native-nitro-modules` | `^0.35.5`             | Nitro runtime dependency used by the native module. |
+| `nitrogen`                   | `^0.35.5`             | Code generator used to refresh bridge artifacts.    |
+| Example app                  | React Native `0.85.0` | Current local validation and native build target.   |
+
+`react-native-nitro-modules@0.35.5` publishes broad React Native peer metadata,
+so the stricter React Native `0.81+` support floor is defined by Pretext.
+
 ## Platform Contract
 
 | Platform          | Layout path                       | Notes                                                               |

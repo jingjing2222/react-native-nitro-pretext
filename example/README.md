@@ -4,6 +4,9 @@ This workspace demonstrates the layout-only Pretext API inside a real React
 Native app. API examples are separate from benchmark screens so users can learn
 the public API without timing and parity noise.
 
+The package support floor is React Native `0.81+`. This example workspace uses
+React Native `0.85.0` with `react-native-nitro-modules@0.35.5`.
+
 ## Setup
 
 Run from the repository root:

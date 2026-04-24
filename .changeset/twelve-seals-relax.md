@@ -34,6 +34,8 @@ Native layout contract:
   paths and is not the canonical parity or performance target.
 - iOS uses Core Text `CTTypesetter + CTLine`.
 - Android `includeFontPadding` defaults to `true` to align with RN `<Text>`.
+- React Native `0.81+` is the supported package floor. The example app and
+  latest local validation use React Native `0.85.0`.
 - `react-native-nitro-modules` and `nitrogen` were updated to the latest
   `0.35.5` line.
 

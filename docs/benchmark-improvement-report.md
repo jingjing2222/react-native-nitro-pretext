@@ -23,6 +23,8 @@ Latest local iOS example validation:
 - Date: April 24, 2026
 - Device target: iPhone 16 simulator
 - Build mode: debug
+- React Native: `0.85.0`
+- Nitro Modules: `0.35.5`
 - Screen: `benchmark/measured-layout`
 
 | Path                            |        Time | Render passes | Layout shifts |
@@ -46,6 +48,8 @@ Latest local iOS benchmark suite:
 - Date: April 24, 2026
 - Device target: iPhone 16 simulator
 - Build mode: debug app with Metro
+- React Native: `0.85.0`
+- Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
 - Maestro gate profile: `local`
 - Gate result: pass
