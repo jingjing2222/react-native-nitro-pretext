@@ -1,0 +1,225 @@
+appId: pretext.example
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.prepare"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.prepare"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/prepare::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/prepare::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/prepare
+      requiredFields: hasPrepared,paragraphCount,publicFields,rawNativeIdExposed,released,releaseError,statsTotalMs
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.layout-metrics"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.layout-metrics"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/layout-metrics::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/layout-metrics::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/layout-metrics
+      requiredFields: height,lineCount,maxLineWidth,output,paragraphCount,precomputedCardHeight,width
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.layout-options"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.layout-options"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/layout-options::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/layout-options::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/layout-options
+      requiredFields: left,objectHeight,objectLineCount,shapeSliceCount,shorthandHeight,whiteSpace,width,wordBreak
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.layout-lines"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.layout-lines"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/layout-lines::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/layout-lines::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/layout-lines
+      requiredFields: firstLine,lineCount,output,width
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.layout-diagnostics"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.layout-diagnostics"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/layout-diagnostics::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/layout-diagnostics::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/layout-diagnostics
+      requiredFields: boundaryMapUtf16Length,driftKinds,fallbackReason,heightMetricSource,layoutEngine,lineDiagnosticCount,normalizedRequest,output,width
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.layout-rich"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.layout-rich"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/layout-rich::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/layout-rich::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/layout-rich
+      requiredFields: boxFrameCount,boxFrames,height,lineCount,output,width
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.use-pretext-layout"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.use-pretext-layout"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/use-pretext-layout::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/use-pretext-layout
+      requiredFields: enabled,error,height,isPreparing,layoutEngine,layoutOutput,lineCount,output,paragraphCount,source,statsTotalMs,width
+
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-use-case"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "examples.use-case.open.namespace-and-types"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.open.namespace-and-types"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/use-case/namespace-and-types::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/use-case/namespace-and-types
+      requiredFields: exportedTypes,functionMatches,namedHeight,namespaceHeight,routeCount,sameMetrics

@@ -38,17 +38,20 @@ export function ExampleNonUseCaseDiagnosticsScreen() {
   } | null>(null);
   const [lines, setLines] = useState<RnLine[]>([]);
   const [layoutCallbackCount, setLayoutCallbackCount] = useState(0);
+  const [renderPassCount, setRenderPassCount] = useState(1);
   const [textLayoutCallbackCount, setTextLayoutCallbackCount] = useState(0);
 
   function recordLayout(event: LayoutChangeEvent) {
     const { height, width } = event.nativeEvent.layout;
     setLayoutBox({ height, width });
     setLayoutCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   function recordTextLayout(event: TextLayoutEvent) {
     setLines([...event.nativeEvent.lines]);
     setTextLayoutCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   const missingFields = [
@@ -68,6 +71,7 @@ export function ExampleNonUseCaseDiagnosticsScreen() {
       missingFields,
       measuredHeight: layoutBox?.height ?? null,
       measuredWidth: layoutBox?.width ?? null,
+      renderPassCount,
       textLayoutCallbackCount,
     },
   )}`;
@@ -111,6 +115,7 @@ export function ExampleNonUseCaseDiagnosticsScreen() {
           />
           <Stat label="lineCount" value={lines.length} />
           <Stat label="onLayout" value={layoutCallbackCount} />
+          <Stat label="render passes" value={renderPassCount} />
           <Stat label="onTextLayout" value={textLayoutCallbackCount} />
         </View>
 

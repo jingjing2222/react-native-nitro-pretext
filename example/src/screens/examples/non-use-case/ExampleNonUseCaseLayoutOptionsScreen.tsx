@@ -31,6 +31,7 @@ export function ExampleNonUseCaseLayoutOptionsScreen() {
   const [left, setLeft] = useState<(typeof LEFTS)[number]>(LEFTS[0]);
   const [shapeEnabled, setShapeEnabled] = useState(true);
   const [callbackCount, setCallbackCount] = useState(0);
+  const [renderPassCount, setRenderPassCount] = useState(1);
   const [measurement, setMeasurement] = useState<{
     height: number;
     width: number;
@@ -43,6 +44,7 @@ export function ExampleNonUseCaseLayoutOptionsScreen() {
       width: next.width,
     });
     setCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   const unsupportedFields = useMemo(
@@ -56,6 +58,7 @@ export function ExampleNonUseCaseLayoutOptionsScreen() {
       hiddenNodeCount: 1,
       measuredHeight: measurement?.height ?? null,
       measuredWidth: measurement?.width ?? null,
+      renderPassCount,
       shapeOverlayEnabled: shapeEnabled,
       unsupportedFields,
       width,
@@ -155,6 +158,7 @@ export function ExampleNonUseCaseLayoutOptionsScreen() {
             value={formatPixel(measurement?.width)}
           />
           <Stat label="callbacks" value={callbackCount} />
+          <Stat label="render passes" value={renderPassCount} />
           <Stat label="unsupported rules" value={unsupportedFields.length} />
         </View>
 

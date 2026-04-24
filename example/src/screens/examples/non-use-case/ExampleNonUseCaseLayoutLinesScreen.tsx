@@ -31,17 +31,21 @@ export function ExampleNonUseCaseLayoutLinesScreen() {
   const [width, setWidth] = useState<(typeof WIDTHS)[number]>(WIDTHS[1]);
   const [lines, setLines] = useState<RnLine[]>([]);
   const [callbackCount, setCallbackCount] = useState(0);
+  const [renderPassCount, setRenderPassCount] = useState(1);
 
   function recordTextLayout(event: TextLayoutEvent) {
     setLines([...event.nativeEvent.lines]);
     setCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   const report = `NON_USE_CASE_REPORT::examples/non-use-case/layout-lines::${JSON.stringify(
     {
       callbackCount,
+      hiddenNodeCount: 0,
       lineCount: lines.length,
       missingSourceOffsets: true,
+      renderPassCount,
       textStartAvailable: false,
       textEndAvailable: false,
       width,
@@ -95,6 +99,7 @@ export function ExampleNonUseCaseLayoutLinesScreen() {
         <View style={localStyles.grid}>
           <Stat label="lineCount" value={lines.length} />
           <Stat label="callbacks" value={callbackCount} />
+          <Stat label="render passes" value={renderPassCount} />
           <Stat label="textStart" value="missing" />
           <Stat label="textEnd" value="missing" />
         </View>

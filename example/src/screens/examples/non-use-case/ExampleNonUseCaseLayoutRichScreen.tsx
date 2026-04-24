@@ -40,17 +40,20 @@ export function ExampleNonUseCaseLayoutRichScreen() {
   } | null>(null);
   const [lines, setLines] = useState<RnLine[]>([]);
   const [layoutCallbackCount, setLayoutCallbackCount] = useState(0);
+  const [renderPassCount, setRenderPassCount] = useState(1);
   const [textLayoutCallbackCount, setTextLayoutCallbackCount] = useState(0);
 
   function recordLayout(event: LayoutChangeEvent) {
     const { height, width } = event.nativeEvent.layout;
     setLayoutBox({ height, width });
     setLayoutCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   function recordTextLayout(event: TextLayoutEvent) {
     setLines([...event.nativeEvent.lines]);
     setTextLayoutCallbackCount((value) => value + 1);
+    setRenderPassCount((value) => value + 1);
   }
 
   const markerLineIndex = lines.findIndex((line) =>
@@ -72,6 +75,7 @@ export function ExampleNonUseCaseLayoutRichScreen() {
         "boxFrame.baseline",
         "atomicBreakBehavior",
       ],
+      renderPassCount,
       textLayoutCallbackCount,
     },
   )}`;
@@ -111,6 +115,7 @@ export function ExampleNonUseCaseLayoutRichScreen() {
           <Stat label="lineCount" value={lines.length} />
           <Stat label="box frame" value="missing" />
           <Stat label="onLayout" value={layoutCallbackCount} />
+          <Stat label="render passes" value={renderPassCount} />
           <Stat label="onTextLayout" value={textLayoutCallbackCount} />
         </View>
 

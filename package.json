@@ -70,6 +70,7 @@
     "release": "changeset publish",
     "typecheck": "tsc",
     "test": "jest",
+    "verify:api-examples": "node scripts/verify-api-example-map.js",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "fmt": "oxfmt",
