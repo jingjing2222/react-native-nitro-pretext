@@ -56,7 +56,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>
             `benchmark/base-text` owns the RN Text baseline.
-            `benchmark/pretext-layout` owns the PreText layout and visible RN
+            `benchmark/pretext-layout` owns the Pretext layout and visible RN
             surface measurements.
           </Text>
 
@@ -71,7 +71,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
         <NavigationCard
           buttonLabel="Open benchmark/base-text"
           buttonTestID="benchmark.index.open-base-text"
-          description="Plain React Native <Text> compatibility baseline. This page also records the line-count comparison input used by the PreText layout page."
+          description="Plain React Native <Text> compatibility baseline. This page also records the line-count comparison input used by the Pretext layout page."
           lastCompletedAt={baselineResults.completedAt}
           onPress={() => navigation.navigate("BenchmarkBaseText")}
           summary={baselineResults.summary}
@@ -81,7 +81,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
         <NavigationCard
           buttonLabel="Open benchmark/pretext-layout"
           buttonTestID="benchmark.index.open-pretext-layout"
-          description="PreText layout benchmark. Native metrics reserve the boxes before the ordinary RN text surface renders visibly."
+          description="Pretext layout benchmark. Native metrics reserve the boxes before the ordinary RN text surface renders visibly."
           footer={
             preparedViewResults.prepareStats === null
               ? "Prepare has not been recorded yet."
@@ -94,7 +94,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
                 )}`
           }
           lastCompletedAt={preparedViewResults.completedAt}
-          onPress={() => navigation.navigate("BenchmarkPreTextLayout")}
+          onPress={() => navigation.navigate("BenchmarkPretextLayout")}
           secondarySummary={preparedViewResults.computeSummary}
           summary={preparedViewResults.renderSummary}
           title="benchmark/pretext-layout"
@@ -113,14 +113,14 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="PreText surface median"
+              label="Pretext surface median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="PreText surface p95"
+              label="Pretext surface p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

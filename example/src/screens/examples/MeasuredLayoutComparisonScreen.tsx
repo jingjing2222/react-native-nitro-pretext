@@ -11,8 +11,8 @@ import { StyleSheet, Text, View } from "react-native";
 import {
   layout,
   prepare,
-  type PreTextPrepared,
-  type PreTextStyle,
+  type PretextPrepared,
+  type PretextStyle,
 } from "react-native-nitro-pretext";
 
 import {
@@ -63,7 +63,7 @@ type MasonryLayout = {
   cards: PositionedCard[];
 };
 
-const MEASURED_LAYOUT_STYLE: PreTextStyle = {
+const MEASURED_LAYOUT_STYLE: PretextStyle = {
   fontFamily: "System",
   fontSize: 15,
   lineHeight: 22,
@@ -126,7 +126,7 @@ const MEASURED_LAYOUT_CARDS: LayoutCard[] = [
     kicker: "Finance",
     title: "Dense approval copy",
     tone: "green",
-    text: "PreText metadata lets the UI calculate the board before mounting the visible text renderer. Plain Text has to mount a measurement copy first.",
+    text: "Pretext metadata lets the UI calculate the board before mounting the visible text renderer. Plain Text has to mount a measurement copy first.",
   },
   {
     id: "timeline",
@@ -248,14 +248,14 @@ export function MeasuredLayoutComparisonScreen() {
   const { selectedWidth, setSelectedWidth, widths } =
     useExampleWidthSelection();
   const [runIndex, setRunIndex] = useState(0);
-  const [preTextPrepared, setPreTextPrepared] =
-    useState<PreTextPrepared | null>(null);
+  const [pretextPrepared, setPretextPrepared] =
+    useState<PretextPrepared | null>(null);
   const [onLayoutMeasurements, setOnLayoutMeasurements] = useState<
     Record<string, MeasuredTextBox>
   >({});
   const [onLayoutPathMs, setOnLayoutPathMs] = useState<number | null>(null);
   const [onLayoutSamples, setOnLayoutSamples] = useState<number[]>([]);
-  const [preTextSamples, setPreTextSamples] = useState<number[]>([]);
+  const [pretextSamples, setPretextSamples] = useState<number[]>([]);
   const onLayoutStartedAtRef = useRef(now());
 
   const boardWidth = selectedWidth;
@@ -270,7 +270,7 @@ export function MeasuredLayoutComparisonScreen() {
       MEASURED_LAYOUT_CARDS.map((card) => card.text),
       MEASURED_LAYOUT_STYLE,
     );
-    setPreTextPrepared(nextPrepared);
+    setPretextPrepared(nextPrepared);
 
     return () => {
       nextPrepared.release();
@@ -350,13 +350,13 @@ export function MeasuredLayoutComparisonScreen() {
     setOnLayoutSamples((current) => pushSample(current, elapsedMs));
   }, [onLayoutPathMs, onLayoutReady]);
 
-  const preTextMasonry = useMemo(() => {
-    if (preTextPrepared === null) {
+  const pretextMasonry = useMemo(() => {
+    if (pretextPrepared === null) {
       return null;
     }
 
     const startedAt = now();
-    const metricsLayout = layout(preTextPrepared, {
+    const metricsLayout = layout(pretextPrepared, {
       output: "metrics",
       width: textWidth,
     });
@@ -375,47 +375,47 @@ export function MeasuredLayoutComparisonScreen() {
       metrics,
       runKey: layoutKey,
     };
-  }, [boardWidth, columnCount, layoutKey, preTextPrepared, textWidth]);
+  }, [boardWidth, columnCount, layoutKey, pretextPrepared, textWidth]);
 
   useEffect(() => {
-    if (preTextMasonry === null) {
+    if (pretextMasonry === null) {
       return;
     }
 
-    setPreTextSamples((current) =>
-      pushSample(current, preTextMasonry.elapsedMs),
+    setPretextSamples((current) =>
+      pushSample(current, pretextMasonry.elapsedMs),
     );
-  }, [preTextMasonry]);
+  }, [pretextMasonry]);
 
   const onLayoutMedianMs = median(onLayoutSamples);
-  const preTextMedianMs = median(preTextSamples);
+  const pretextMedianMs = median(pretextSamples);
   const currentDeltaMs =
-    onLayoutPathMs === null || preTextMasonry === null
+    onLayoutPathMs === null || pretextMasonry === null
       ? null
-      : onLayoutPathMs - preTextMasonry.elapsedMs;
+      : onLayoutPathMs - pretextMasonry.elapsedMs;
   const currentImprovement =
     currentDeltaMs === null || onLayoutPathMs === null || onLayoutPathMs <= 0
       ? null
       : (currentDeltaMs / onLayoutPathMs) * 100;
   const medianImprovement =
     onLayoutMedianMs === null ||
-    preTextMedianMs === null ||
+    pretextMedianMs === null ||
     onLayoutMedianMs <= 0
       ? null
-      : ((onLayoutMedianMs - preTextMedianMs) / onLayoutMedianMs) * 100;
+      : ((onLayoutMedianMs - pretextMedianMs) / onLayoutMedianMs) * 100;
   const firstMeasurement =
     MEASURED_LAYOUT_CARDS.map((card) => onLayoutMeasurements[card.id]).find(
       (measurement) => measurement?.layoutKey === layoutKey,
     ) ?? null;
-  const totalPreTextLines =
-    preTextMasonry?.metrics.reduce(
+  const totalPretextLines =
+    pretextMasonry?.metrics.reduce(
       (total, metric) => total + metric.lineCount,
       0,
     ) ?? null;
   const onLayoutRenderPassCount = onLayoutReady ? 2 : 1;
-  const preTextRenderPassCount = preTextMasonry === null ? 0 : 1;
+  const pretextRenderPassCount = pretextMasonry === null ? 0 : 1;
   const onLayoutShiftCount = onLayoutReady ? 1 : 0;
-  const preTextShiftCount = 0;
+  const pretextShiftCount = 0;
 
   function handleReplay() {
     setRunIndex((current) => current + 1);
@@ -432,20 +432,20 @@ export function MeasuredLayoutComparisonScreen() {
 
   return (
     <ExamplePageShell
-      description="This page models a layout that cannot place visible cards until text width and height are known. The left path uses hidden RN Text plus onLayout. The right path asks PreText for native text metrics before render, then uses ordinary RN views and Text for the visible surface."
-      lineCount={totalPreTextLines}
-      prepareMs={preTextPrepared?.stats.totalMs ?? null}
+      description="This page models a layout that cannot place visible cards until text width and height are known. The left path uses hidden RN Text plus onLayout. The right path asks Pretext for native text metrics before render, then uses ordinary RN views and Text for the visible surface."
+      lineCount={totalPretextLines}
+      prepareMs={pretextPrepared?.stats.totalMs ?? null}
       routeLabel="examples/measured-layout"
       selectedWidth={selectedWidth}
       setSelectedWidth={(width) => {
         setRunIndex((current) => current + 1);
         setSelectedWidth(width);
       }}
-      title="onLayout measurement versus PreText layout"
+      title="onLayout measurement versus Pretext layout"
       widths={widths}
     >
       <SliteCard
-        description="The board uses absolute masonry positions. One unknown text height blocks every card placed after it, so a MeasureLayout-style flow needs a hidden measurement pass. PreText returns height from native engines before the visible board mounts."
+        description="The board uses absolute masonry positions. One unknown text height blocks every card placed after it, so a MeasureLayout-style flow needs a hidden measurement pass. Pretext returns height from native engines before the visible board mounts."
         eyebrow="Complex Layout"
         title="Height is a first-class layout input"
       >
@@ -469,8 +469,8 @@ export function MeasuredLayoutComparisonScreen() {
             value={formatMilliseconds(onLayoutPathMs)}
           />
           <KeyStatRow
-            label="PreText layout path time"
-            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
+            label="Pretext layout path time"
+            value={formatMilliseconds(pretextMasonry?.elapsedMs ?? null)}
           />
           <KeyStatRow
             label="Current improvement"
@@ -487,7 +487,7 @@ export function MeasuredLayoutComparisonScreen() {
         <Text style={sharedStyles.eyebrow}>Visual timing</Text>
         <Text style={sharedStyles.subtitle}>
           The onLayout path needs a hidden text render pass before the visible
-          board can stabilize. The PreText path computes height first and then
+          board can stabilize. The Pretext path computes height first and then
           renders the same RN card surface once.
         </Text>
         <View style={sharedStyles.metricRow}>
@@ -500,7 +500,7 @@ export function MeasuredLayoutComparisonScreen() {
         </View>
         <TimingBars
           onLayoutMs={onLayoutPathMs}
-          preTextMs={preTextMasonry?.elapsedMs ?? null}
+          pretextMs={pretextMasonry?.elapsedMs ?? null}
         />
       </View>
 
@@ -556,49 +556,49 @@ export function MeasuredLayoutComparisonScreen() {
       </SurfaceSection>
 
       <SurfaceSection
-        description="This path calls PreText.layout() first. PreText does not render anything; the visible board below is still ordinary RN View and Text, placed with the returned native text metrics."
-        title="PreText layout path"
+        description="This path calls Pretext.layout() first. Pretext does not render anything; the visible board below is still ordinary RN View and Text, placed with the returned native text metrics."
+        title="Pretext layout path"
       >
         <SurfaceLabel
           subtitle="Card positions are available before the visible RN surface mounts."
-          title="PreText.layout + RN View/Text"
+          title="Pretext.layout + RN View/Text"
         />
         <View style={sharedStyles.summaryMetricList}>
           <SummaryMetric
             label="Render pass count"
-            value={String(preTextRenderPassCount)}
+            value={String(pretextRenderPassCount)}
           />
           <SummaryMetric
             label="First stable height"
-            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
+            value={formatMilliseconds(pretextMasonry?.elapsedMs ?? null)}
           />
           <SummaryMetric
             label="Layout shift count"
-            value={String(preTextShiftCount)}
+            value={String(pretextShiftCount)}
           />
           <SummaryMetric
             label="Layout path time"
-            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
+            value={formatMilliseconds(pretextMasonry?.elapsedMs ?? null)}
           />
           <SummaryMetric
             label="Median"
-            value={formatMilliseconds(preTextMedianMs)}
+            value={formatMilliseconds(pretextMedianMs)}
           />
           <SummaryMetric
             label="p95"
-            value={formatMilliseconds(percentile(preTextSamples, 0.95))}
+            value={formatMilliseconds(percentile(pretextSamples, 0.95))}
           />
         </View>
-        {preTextMasonry === null ? (
+        {pretextMasonry === null ? (
           <View style={localStyles.placeholder}>
             <Text style={sharedStyles.summaryDescription}>
-              Preparing PreText layout state...
+              Preparing Pretext layout state...
             </Text>
           </View>
         ) : (
-          <PreTextMasonryBoard
+          <PretextMasonryBoard
             boardWidth={boardWidth}
-            layout={preTextMasonry.layout}
+            layout={pretextMasonry.layout}
           />
         )}
       </SurfaceSection>
@@ -608,12 +608,12 @@ export function MeasuredLayoutComparisonScreen() {
 
 function TimingBars({
   onLayoutMs,
-  preTextMs,
+  pretextMs,
 }: {
   onLayoutMs: number | null;
-  preTextMs: number | null;
+  pretextMs: number | null;
 }) {
-  const maxMs = Math.max(onLayoutMs ?? 0, preTextMs ?? 0, 1);
+  const maxMs = Math.max(onLayoutMs ?? 0, pretextMs ?? 0, 1);
 
   return (
     <View style={localStyles.timingStack}>
@@ -624,10 +624,10 @@ function TimingBars({
         widthPercent={((onLayoutMs ?? 0) / maxMs) * 100}
       />
       <TimingBar
-        label="PreText"
-        tone="preText"
-        valueMs={preTextMs}
-        widthPercent={((preTextMs ?? 0) / maxMs) * 100}
+        label="Pretext"
+        tone="pretext"
+        valueMs={pretextMs}
+        widthPercent={((pretextMs ?? 0) / maxMs) * 100}
       />
     </View>
   );
@@ -640,7 +640,7 @@ function TimingBar({
   widthPercent,
 }: {
   label: string;
-  tone: "onLayout" | "preText";
+  tone: "onLayout" | "pretext";
   valueMs: number | null;
   widthPercent: number;
 }) {
@@ -657,7 +657,7 @@ function TimingBar({
             localStyles.timingFill,
             tone === "onLayout"
               ? localStyles.timingFillOnLayout
-              : localStyles.timingFillPreText,
+              : localStyles.timingFillPretext,
             { width: resolvedWidth },
           ]}
         />
@@ -736,7 +736,7 @@ function OnLayoutMasonryBoard({
   );
 }
 
-function PreTextMasonryBoard({
+function PretextMasonryBoard({
   boardWidth,
   layout,
 }: {
@@ -979,7 +979,7 @@ const localStyles = StyleSheet.create({
   timingFillOnLayout: {
     backgroundColor: "#d66c3d",
   },
-  timingFillPreText: {
+  timingFillPretext: {
     backgroundColor: "#0f8f68",
   },
   timingLabel: {

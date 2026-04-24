@@ -343,10 +343,10 @@ if (flow === "pretext-layout" || flow === "suite") {
   );
 
   requirePresentMetric(timingChecks, "base median", baseMedian);
-  requirePresentMetric(timingChecks, "PreText surface median", preparedMedian);
+  requirePresentMetric(timingChecks, "Pretext surface median", preparedMedian);
   requirePresentMetric(
     timingChecks,
-    "PreText layout-only median",
+    "Pretext layout-only median",
     preparedView?.computeLayoutOnlyMedianMs ??
       combined?.preparedLayoutOnlyMedianMs,
   );
@@ -354,14 +354,14 @@ if (flow === "pretext-layout" || flow === "suite") {
 
   assertMax(
     timingChecks,
-    "PreText median ratio",
+    "Pretext median ratio",
     preparedMedianRatio,
     thresholds.maxPreparedMedianRatio,
     formatRatio,
   );
   assertMax(
     timingChecks,
-    "PreText p95 ratio",
+    "Pretext p95 ratio",
     preparedP95Ratio,
     thresholds.maxPreparedP95Ratio,
     formatRatio,

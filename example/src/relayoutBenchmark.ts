@@ -1,10 +1,10 @@
 import {
   layout,
   prepare,
-  type PreTextLinesLayout,
-  type PreTextMetricsLayout,
-  type PreTextPrepared,
-  type PreTextStyle,
+  type PretextLinesLayout,
+  type PretextMetricsLayout,
+  type PretextPrepared,
+  type PretextStyle,
 } from "react-native-nitro-pretext";
 
 export const BENCHMARK_PARAGRAPH_COUNT = 48;
@@ -12,7 +12,7 @@ export const BENCHMARK_SAMPLE_SIZE = 8;
 export const BENCHMARK_WARMUP_RUNS = 5;
 export const BENCHMARK_MEASURED_RUNS = 30;
 
-export const BENCHMARK_STYLE: PreTextStyle = {
+export const BENCHMARK_STYLE: PretextStyle = {
   fontFamily: "System",
   fontSize: 18,
   lineHeight: 28,
@@ -23,10 +23,10 @@ export const BENCHMARK_STYLE: PreTextStyle = {
 };
 
 export type BenchmarkMode = "baseline" | "pretext-render" | "pretext-compute";
-export type PreTextPreparedCorpus = PreTextPrepared;
-export type PreTextPrepareStats = PreTextPrepared["stats"];
-export type PreTextParagraphMetrics =
-  PreTextMetricsLayout["paragraphs"][number];
+export type PretextPreparedCorpus = PretextPrepared;
+export type PretextPrepareStats = PretextPrepared["stats"];
+export type PretextParagraphMetrics =
+  PretextMetricsLayout["paragraphs"][number];
 export type LaidOutParagraph = {
   brokenText: string;
   height: number;
@@ -106,8 +106,8 @@ export function now(): number {
 
 export function prepareBenchmarkCorpus(texts: string[]): {
   prepareMs: number;
-  prepareStats: PreTextPrepareStats;
-  prepared: PreTextPrepared;
+  prepareStats: PretextPrepareStats;
+  prepared: PretextPrepared;
 } {
   const prepared = prepare(texts, BENCHMARK_STYLE);
 
@@ -119,7 +119,7 @@ export function prepareBenchmarkCorpus(texts: string[]): {
 }
 
 export function layoutBenchmarkCorpus(
-  prepared: PreTextPrepared,
+  prepared: PretextPrepared,
   maxWidth: number,
 ): {
   layoutOnlyMs: number;
@@ -139,11 +139,11 @@ export function layoutBenchmarkCorpus(
 }
 
 export function layoutBenchmarkCorpusMetadata(
-  prepared: PreTextPrepared,
+  prepared: PretextPrepared,
   maxWidth: number,
 ): {
   layoutOnlyMs: number;
-  paragraphs: PreTextParagraphMetrics[];
+  paragraphs: PretextParagraphMetrics[];
 } {
   const startedAt = now();
   const result = layout(prepared, {
@@ -157,7 +157,7 @@ export function layoutBenchmarkCorpusMetadata(
 }
 
 export function layoutBenchmarkCorpusSampleLineTexts(
-  prepared: PreTextPrepared,
+  prepared: PretextPrepared,
   maxWidth: number,
 ): string[][] {
   const result = layout(prepared, {
@@ -183,14 +183,14 @@ export function layoutBenchmarkCorpusSampleLineTexts(
 }
 
 export function disposePreparedBenchmarkCorpus(
-  prepared: PreTextPrepared,
+  prepared: PretextPrepared,
 ): void {
   prepared.release();
 }
 
 function getMetricsParagraphs(
   result: ReturnType<typeof layout>,
-): PreTextParagraphMetrics[] {
+): PretextParagraphMetrics[] {
   if (result.output !== "metrics") {
     throw new Error(`Expected metrics layout, received ${result.output}`);
   }
@@ -199,7 +199,7 @@ function getMetricsParagraphs(
 }
 
 function materializeLineParagraphs(
-  result: PreTextLinesLayout,
+  result: PretextLinesLayout,
 ): LaidOutParagraph[] {
   return result.paragraphs.map((paragraph, index) => {
     const text = BENCHMARK_CORPUS[index] ?? "";

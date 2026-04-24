@@ -26,7 +26,7 @@ export function ExampleIndexScreen({ navigation }: Props) {
             Example routes focus on layout before render.
           </Text>
           <Text style={styles.subtitle}>
-            This app now treats PreText as a layout engine, not a renderer. The
+            This app now treats Pretext as a layout engine, not a renderer. The
             main example below shows a MeasureLayout-style UI that must know
             text width and height before placing visible content.
           </Text>
@@ -34,7 +34,7 @@ export function ExampleIndexScreen({ navigation }: Props) {
 
         <CatalogCard
           buttonLabel="Open examples/measured-layout"
-          description="A complex masonry layout that normally needs hidden RN Text plus onLayout before visible render, compared against PreText layout metrics."
+          description="A complex masonry layout that normally needs hidden RN Text plus onLayout before visible render, compared against Pretext layout metrics."
           onPress={() => navigation.navigate("ExampleMeasuredLayout")}
           title="examples/measured-layout"
         />

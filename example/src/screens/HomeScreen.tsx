@@ -44,14 +44,14 @@ export function HomeScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>PreText Layout Lab</Text>
+          <Text style={styles.eyebrow}>Pretext Layout Lab</Text>
           <Text style={styles.title}>
             Measure text height before visible render.
           </Text>
           <Text style={styles.subtitle}>
             Benchmarks measure relayout cost. The example screen shows a complex
             RN layout that normally waits for hidden onLayout measurement, then
-            compares it with PreText layout metrics.
+            compares it with Pretext layout metrics.
           </Text>
 
           <View style={styles.metricRow}>
@@ -70,7 +70,7 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open benchmark/*"
           buttonTestID="home.open-benchmark"
-          description="Run BaseText and PreText batch layout as dedicated benchmark screens under screens/benchmark/*."
+          description="Run BaseText and Pretext batch layout as dedicated benchmark screens under screens/benchmark/*."
           onPress={() => navigation.navigate("BenchmarkIndex")}
           title="Benchmarks"
         />
@@ -78,7 +78,7 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open examples/*"
           buttonTestID="home.open-examples"
-          description="Open the MeasureLayout-style comparison that shows hidden onLayout measurement versus PreText layout before render."
+          description="Open the MeasureLayout-style comparison that shows hidden onLayout measurement versus Pretext layout before render."
           onPress={() => navigation.navigate("ExampleIndex")}
           title="Examples"
         />
@@ -87,7 +87,7 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
             Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then PreText layout, and come back here for the combined read.
+            then Pretext layout, and come back here for the combined read.
           </Text>
           <View style={styles.summaryMetricList}>
             <SummaryMetric
@@ -97,14 +97,14 @@ export function HomeScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="PreText surface median"
+              label="Pretext surface median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="PreText surface p95"
+              label="Pretext surface p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

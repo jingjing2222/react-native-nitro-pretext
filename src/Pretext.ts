@@ -23,12 +23,12 @@ import {
   releaseParagraphs,
 } from "./TextMeasure";
 
-export type PreTextSource =
+export type PretextSource =
   | string
   | readonly string[]
   | readonly (readonly InlineSegment[])[];
 
-export type PreTextStyle = Omit<
+export type PretextStyle = Omit<
   ParagraphStyle,
   "fontFamily" | "letterSpacing" | "lineHeight" | "locale"
 > &
@@ -39,26 +39,26 @@ export type PreTextStyle = Omit<
     >
   >;
 
-export type PreTextLayoutOutput = "metrics" | "lines" | "diagnostics" | "rich";
+export type PretextLayoutOutput = "metrics" | "lines" | "diagnostics" | "rich";
 
-export type PreTextLayoutOptions = {
+export type PretextLayoutOptions = {
   left?: number;
-  output?: PreTextLayoutOutput;
+  output?: PretextLayoutOutput;
   shapeSlices?: ParagraphShapeSlice[];
   whiteSpace?: string;
   width: number;
   wordBreak?: string;
 };
 
-export type PreTextLayoutInput = number | PreTextLayoutOptions;
+export type PretextLayoutInput = number | PretextLayoutOptions;
 
-export type PreTextPrepared = {
+export type PretextPrepared = {
   readonly paragraphCount: number;
   readonly stats: PrepareParagraphStats;
   release(): void;
 };
 
-export type PreTextMetricsLayout = {
+export type PretextMetricsLayout = {
   readonly output: "metrics";
   readonly height: number;
   readonly lineCount: number;
@@ -66,37 +66,37 @@ export type PreTextMetricsLayout = {
   readonly paragraphs: LaidOutParagraphMetrics[];
 };
 
-export type PreTextLinesLayout = {
+export type PretextLinesLayout = {
   readonly output: "lines";
   readonly paragraphs: LaidOutParagraphLines[];
 };
 
-export type PreTextDiagnosticsLayout = {
+export type PretextDiagnosticsLayout = {
   readonly output: "diagnostics";
   readonly paragraphs: LaidOutParagraphLinesWithDiagnostics[];
 };
 
-export type PreTextRichLayout = {
+export type PretextRichLayout = {
   readonly output: "rich";
   readonly paragraphs: LaidOutRichParagraphLines[];
 };
 
-export type PreTextLayout =
-  | PreTextMetricsLayout
-  | PreTextLinesLayout
-  | PreTextDiagnosticsLayout
-  | PreTextRichLayout;
+export type PretextLayout =
+  | PretextMetricsLayout
+  | PretextLinesLayout
+  | PretextDiagnosticsLayout
+  | PretextRichLayout;
 
-export type UsePreTextLayoutOptions = PreTextLayoutOptions & {
+export type UsePretextLayoutOptions = PretextLayoutOptions & {
   enabled?: boolean;
-  style: PreTextStyle;
-  text: PreTextSource;
+  style: PretextStyle;
+  text: PretextSource;
 };
 
-export type UsePreTextLayoutResult = {
+export type UsePretextLayoutResult = {
   error: unknown | null;
   isPreparing: boolean;
-  layout: PreTextLayout | null;
+  layout: PretextLayout | null;
   paragraphCount: number;
   stats: PrepareParagraphStats | null;
 };
@@ -106,12 +106,12 @@ type PreparedRecord = {
   released: boolean;
 };
 
-const preparedRecords = new WeakMap<PreTextPrepared, PreparedRecord>();
+const preparedRecords = new WeakMap<PretextPrepared, PreparedRecord>();
 
 export function prepare(
-  text: PreTextSource,
-  style: PreTextStyle,
-): PreTextPrepared {
+  text: PretextSource,
+  style: PretextStyle,
+): PretextPrepared {
   const resolvedStyle = normalizeStyle(style);
   const result = isInlineSource(text)
     ? prepareInlineParagraphsWithStats(
@@ -123,7 +123,7 @@ export function prepare(
     nativeState: result.prepared,
     released: false,
   };
-  const prepared: PreTextPrepared = {
+  const prepared: PretextPrepared = {
     paragraphCount: result.prepared.paragraphCount,
     stats: result.stats,
     release() {
@@ -141,33 +141,33 @@ export function prepare(
 }
 
 export function layout(
-  prepared: PreTextPrepared,
+  prepared: PretextPrepared,
   width: number,
-): PreTextMetricsLayout;
+): PretextMetricsLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutOptions & { output?: "metrics" },
-): PreTextMetricsLayout;
+  prepared: PretextPrepared,
+  options: PretextLayoutOptions & { output?: "metrics" },
+): PretextMetricsLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutOptions & { output: "lines" },
-): PreTextLinesLayout;
+  prepared: PretextPrepared,
+  options: PretextLayoutOptions & { output: "lines" },
+): PretextLinesLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutOptions & { output: "diagnostics" },
-): PreTextDiagnosticsLayout;
+  prepared: PretextPrepared,
+  options: PretextLayoutOptions & { output: "diagnostics" },
+): PretextDiagnosticsLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutOptions & { output: "rich" },
-): PreTextRichLayout;
+  prepared: PretextPrepared,
+  options: PretextLayoutOptions & { output: "rich" },
+): PretextRichLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutOptions,
-): PreTextLayout;
+  prepared: PretextPrepared,
+  options: PretextLayoutOptions,
+): PretextLayout;
 export function layout(
-  prepared: PreTextPrepared,
-  options: PreTextLayoutInput,
-): PreTextLayout {
+  prepared: PretextPrepared,
+  options: PretextLayoutInput,
+): PretextLayout {
   const record = resolvePreparedRecord(prepared);
   const resolvedOptions = normalizeLayoutOptions(options);
   const request = createLayoutRequest(resolvedOptions);
@@ -211,7 +211,7 @@ export function layout(
   };
 }
 
-export function usePreTextLayout({
+export function usePretextLayout({
   enabled = true,
   left,
   output,
@@ -221,7 +221,7 @@ export function usePreTextLayout({
   whiteSpace,
   width,
   wordBreak,
-}: UsePreTextLayoutOptions): UsePreTextLayoutResult {
+}: UsePretextLayoutOptions): UsePretextLayoutResult {
   const {
     fontFamily,
     fontSize,
@@ -260,7 +260,7 @@ export function usePreTextLayout({
   const [state, setState] = useState<{
     error: unknown | null;
     isPreparing: boolean;
-    prepared: PreTextPrepared | null;
+    prepared: PretextPrepared | null;
   }>({
     error: null,
     isPreparing: false,
@@ -277,7 +277,7 @@ export function usePreTextLayout({
       return;
     }
 
-    let prepared: PreTextPrepared | null = null;
+    let prepared: PretextPrepared | null = null;
     setState({
       error: null,
       isPreparing: true,
@@ -306,7 +306,7 @@ export function usePreTextLayout({
 
   const resolvedLayout = useMemo<{
     error: unknown | null;
-    layout: PreTextLayout | null;
+    layout: PretextLayout | null;
   }>(() => {
     if (!enabled || state.prepared === null) {
       return {
@@ -353,13 +353,13 @@ export function usePreTextLayout({
   };
 }
 
-export const PreText = {
+export const Pretext = {
   layout,
   prepare,
-  usePreTextLayout,
+  usePretextLayout,
 } as const;
 
-function normalizeStyle(style: PreTextStyle): ParagraphStyle {
+function normalizeStyle(style: PretextStyle): ParagraphStyle {
   return {
     fontFamily: style.fontFamily ?? "System",
     fontSize: style.fontSize,
@@ -374,7 +374,7 @@ function normalizeStyle(style: PreTextStyle): ParagraphStyle {
 }
 
 function isInlineSource(
-  source: PreTextSource,
+  source: PretextSource,
 ): source is readonly (readonly InlineSegment[])[] {
   return Array.isArray(source) && source.length > 0 && Array.isArray(source[0]);
 }
@@ -390,7 +390,7 @@ function toMutableInlineParagraphs(
 }
 
 function createLayoutRequest(
-  options: PreTextLayoutOptions,
+  options: PretextLayoutOptions,
 ): ParagraphLayoutRequest {
   return createParagraphLayoutRequest(options.width, {
     left: options.left,
@@ -401,14 +401,14 @@ function createLayoutRequest(
 }
 
 function normalizeLayoutOptions(
-  options: PreTextLayoutInput,
-): PreTextLayoutOptions {
+  options: PretextLayoutInput,
+): PretextLayoutOptions {
   return typeof options === "number" ? { width: options } : options;
 }
 
 function summarizeMetrics(
   paragraphs: LaidOutParagraphMetrics[],
-): Pick<PreTextMetricsLayout, "height" | "lineCount" | "maxLineWidth"> {
+): Pick<PretextMetricsLayout, "height" | "lineCount" | "maxLineWidth"> {
   return paragraphs.reduce(
     (summary, paragraph) => ({
       height: summary.height + paragraph.height,
@@ -423,10 +423,10 @@ function summarizeMetrics(
   );
 }
 
-function resolvePreparedRecord(prepared: PreTextPrepared): PreparedRecord {
+function resolvePreparedRecord(prepared: PretextPrepared): PreparedRecord {
   const record = preparedRecords.get(prepared);
   if (record === undefined || record.released) {
-    throw new Error("PreText prepared layout has already been released.");
+    throw new Error("Pretext prepared layout has already been released.");
   }
 
   return record;

@@ -184,10 +184,10 @@ const nativeParagraphEngineMock = jest.mocked(NitroModules.createHybridObject)
 describe("react-native-nitro-pretext public API", () => {
   it("exports only the layout-only public surface", () => {
     expect(Object.keys(PublicApi).sort()).toEqual([
-      "PreText",
+      "Pretext",
       "layout",
       "prepare",
-      "usePreTextLayout",
+      "usePretextLayout",
     ]);
     expect(PublicApi).not.toHaveProperty("PreparedParagraphView");
     expect(PublicApi).not.toHaveProperty("PreparedParagraphText");
@@ -378,17 +378,17 @@ describe("react-native-nitro-pretext public API", () => {
   });
 
   it("supports lines, diagnostics, and rich layout outputs", () => {
-    const prepared = PublicApi.PreText.prepare("alpha", {
+    const prepared = PublicApi.Pretext.prepare("alpha", {
       fontFamily: "System",
       fontSize: 16,
       lineHeight: 24,
     });
 
     expect(
-      PublicApi.PreText.layout(prepared, { output: "lines", width: 260 }),
+      PublicApi.Pretext.layout(prepared, { output: "lines", width: 260 }),
     ).toMatchObject({ output: "lines", paragraphs: [{ lineCount: 2 }] });
     expect(
-      PublicApi.PreText.layout(prepared, {
+      PublicApi.Pretext.layout(prepared, {
         output: "diagnostics",
         width: 260,
       }),
@@ -397,7 +397,7 @@ describe("react-native-nitro-pretext public API", () => {
       paragraphs: [{ diagnostics: { layoutEngine: "ios_core_text" } }],
     });
     expect(
-      PublicApi.PreText.layout(prepared, { output: "rich", width: 260 }),
+      PublicApi.Pretext.layout(prepared, { output: "rich", width: 260 }),
     ).toMatchObject({
       output: "rich",
       paragraphs: [{ boxFrames: [{ boxId: "avatar" }] }],
@@ -418,7 +418,7 @@ describe("react-native-nitro-pretext public API", () => {
       nativeParagraphEngineMock.releaseParagraphs.mock.calls,
     ).toContainEqual([7]);
     expect(() => PublicApi.layout(prepared, { width: 280 })).toThrow(
-      "PreText prepared layout has already been released.",
+      "Pretext prepared layout has already been released.",
     );
   });
 });

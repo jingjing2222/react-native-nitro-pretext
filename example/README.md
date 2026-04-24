@@ -1,8 +1,8 @@
-# PreText Example App
+# Pretext Example App
 
-This workspace demonstrates the layout-only PreText API inside a real React
+This workspace demonstrates the layout-only Pretext API inside a real React
 Native app. The main example compares hidden RN `<Text onLayout>` measurement
-with `PreText.layout()` height calculation before render.
+with `Pretext.layout()` height calculation before render.
 
 ## Setup
 
@@ -32,9 +32,9 @@ changes usually update through Metro.
 ## Screens
 
 - `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
-  `PreText.layout()` before render.
+  `Pretext.layout()` before render.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
-- `benchmark/pretext`: PreText layout benchmark screens.
+- `benchmark/pretext`: Pretext layout benchmark screens.
 - `benchmark/results`: benchmark summary and parity diagnostics.
 
 ## Native Builds

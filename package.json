@@ -1,7 +1,7 @@
 {
   "name": "react-native-nitro-pretext",
   "version": "0.0.1",
-  "description": "Layout-only PreText engine for React Native text geometry before render",
+  "description": "Layout-only Pretext engine for React Native text geometry before render",
   "keywords": [
     "android",
     "ios",

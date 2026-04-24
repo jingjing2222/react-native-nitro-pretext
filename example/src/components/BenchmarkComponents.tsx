@@ -16,7 +16,7 @@ import {
 } from "../benchmark/constants";
 import type {
   BenchmarkSummary,
-  PreTextLayoutSurfaceCardProps,
+  PretextLayoutSurfaceCardProps,
   SurfaceCardProps,
 } from "../benchmark/types";
 
@@ -340,14 +340,14 @@ export function SurfaceCard({
   );
 }
 
-export function PreTextLayoutSurfaceCard({
+export function PretextLayoutSurfaceCard({
   activeMode,
   lastCompletedAt,
   onParagraphLayout,
   paragraphMetrics,
   paragraphWidth,
   prepared,
-}: PreTextLayoutSurfaceCardProps) {
+}: PretextLayoutSurfaceCardProps) {
   return (
     <View style={styles.stageCard}>
       <View style={styles.stageHeader}>
@@ -364,7 +364,7 @@ export function PreTextLayoutSurfaceCard({
         </Text>
       </View>
 
-      <PreTextLayoutPreviewBatch
+      <PretextLayoutPreviewBatch
         onParagraphLayout={onParagraphLayout}
         paragraphMetrics={paragraphMetrics}
         paragraphWidth={paragraphWidth}
@@ -415,16 +415,16 @@ const ParagraphList = memo(function ParagraphList({
   );
 });
 
-const PreTextLayoutPreviewBatch = memo(function PreTextLayoutPreviewBatch({
+const PretextLayoutPreviewBatch = memo(function PretextLayoutPreviewBatch({
   onParagraphLayout,
   paragraphMetrics,
   paragraphWidth,
   prepared,
 }: {
   onParagraphLayout: (index: number) => void;
-  paragraphMetrics: PreTextLayoutSurfaceCardProps["paragraphMetrics"];
+  paragraphMetrics: PretextLayoutSurfaceCardProps["paragraphMetrics"];
   paragraphWidth: number;
-  prepared: PreTextLayoutSurfaceCardProps["prepared"];
+  prepared: PretextLayoutSurfaceCardProps["prepared"];
 }) {
   if (prepared === null) {
     return <View style={styles.paragraphStack} />;

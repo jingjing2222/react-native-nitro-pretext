@@ -4,16 +4,16 @@ import { BENCHMARK_STYLE, type BenchmarkMode } from "../relayoutBenchmark";
 
 export const MODE_LABELS: Record<BenchmarkMode, string> = {
   baseline: "BaseText",
-  "pretext-render": "PreText Layout + RN Surface",
-  "pretext-compute": "PreText Layout Only",
+  "pretext-render": "Pretext Layout + RN Surface",
+  "pretext-compute": "Pretext Layout Only",
 };
 
 export const MODE_DESCRIPTIONS: Record<BenchmarkMode, string> = {
   baseline: "문단당 단일 <Text>{rawText}</Text>",
   "pretext-render":
-    "PreText layout metrics reserve the boxes before ordinary RN Text renders visibly",
+    "Pretext layout metrics reserve the boxes before ordinary RN Text renders visibly",
   "pretext-compute":
-    "visible render surface is skipped so the hot path only measures native PreText layout",
+    "visible render surface is skipped so the hot path only measures native Pretext layout",
 };
 
 export const PARAGRAPH_HORIZONTAL_PADDING = 14;

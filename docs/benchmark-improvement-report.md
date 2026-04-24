@@ -1,6 +1,6 @@
 # Benchmark And Validation Report
 
-This document records the current validation status for the layout-only PreText
+This document records the current validation status for the layout-only Pretext
 API. Raw Maestro and local debug outputs are not linked here because they are
 machine-local artifacts and are not part of the package.
 
@@ -27,7 +27,7 @@ Latest local iOS example validation:
 | Path                            |        Time | Render passes | Layout shifts |
 | ------------------------------- | ----------: | ------------: | ------------: |
 | Hidden RN `<Text>` + `onLayout` | `129.16 ms` |             2 |             1 |
-| `PreText.layout()`              |   `1.55 ms` |             1 |             0 |
+| `Pretext.layout()`              |   `1.55 ms` |             1 |             0 |
 | Improvement                     |     `98.8%` |           n/a |           n/a |
 
 This screen is a product-shaped demonstration, not a release-device benchmark.
@@ -43,7 +43,7 @@ Latest local iOS benchmark suite:
 - Build mode: debug app with Metro
 - Flow: `benchmark` suite
 
-| Metric                 | RN baseline | PreText layout + RN surface |       Delta |
+| Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
 | ---------------------- | ----------: | --------------------------: | ----------: |
 | Interaction median     | `229.98 ms` |                 `232.66 ms` |  `+2.68 ms` |
 | Interaction p95        | `398.94 ms` |                 `378.43 ms` | `-20.51 ms` |
@@ -56,7 +56,7 @@ Canonical paths in this run:
 | Path           | Engine           | Role                         |
 | -------------- | ---------------- | ---------------------------- |
 | RN baseline    | `rn_text_compat` | `rn_text_compat_oracle`      |
-| PreText layout | `ios_core_text`  | `canonical_prepared_compute` |
+| Pretext layout | `ios_core_text`  | `canonical_prepared_compute` |
 
 Observed parity drift:
 
@@ -80,8 +80,8 @@ every debug run.
 | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `prepare(text, style)`                                   | Cold step. Native measurement dominates and should be amortized across layouts. |
 | `layout(prepared, width)` or `layout(prepared, options)` | Hot step. Use `output: "metrics"` when height is all the UI needs.              |
-| `usePreTextLayout()`                                     | Same native work as `prepare()` plus `layout()`, with automatic release.        |
-| `PreText.*`                                              | Namespace wrapper over the same functions. No additional cost.                  |
+| `usePretextLayout()`                                     | Same native work as `prepare()` plus `layout()`, with automatic release.        |
+| `Pretext.*`                                              | Namespace wrapper over the same functions. No additional cost.                  |
 
 `output: "lines"`, `output: "diagnostics"`, and `output: "rich"` return more
 data than `metrics`; use them only when that data is needed.

@@ -27,17 +27,17 @@ With plain RN `<Text>`, the common path is:
 3. calculate the real layout
 4. render the visible UI
 
-PreText moves step 1 and 2 into native text engines so height is available
+Pretext moves step 1 and 2 into native text engines so height is available
 before the visible surface mounts.
 
 ## Core API
 
 ```ts
 import {
-  PreText,
+  Pretext,
   prepare,
   layout,
-  usePreTextLayout,
+  usePretextLayout,
 } from "react-native-nitro-pretext";
 ```
 
@@ -58,7 +58,7 @@ prepared.release();
 React lifecycle:
 
 ```tsx
-const result = usePreTextLayout({
+const result = usePretextLayout({
   text: "Text that affects layout",
   width: 280,
   style: {
@@ -71,8 +71,8 @@ const result = usePreTextLayout({
 Namespace style is also supported:
 
 ```ts
-const prepared = PreText.prepare(text, style);
-const metrics = PreText.layout(prepared, width);
+const prepared = Pretext.prepare(text, style);
+const metrics = Pretext.layout(prepared, width);
 const height = metrics.height;
 ```
 
@@ -99,7 +99,7 @@ box metrics, then read with `output: "rich"`. See the
 - No `fontSize * lineCount` height heuristic.
 - No browser canvas pixel-parity target.
 
-Your visible UI stays normal React Native `View` and `Text`. PreText only
+Your visible UI stays normal React Native `View` and `Text`. Pretext only
 returns the layout data you need before render.
 
 ## Native Engines
@@ -116,9 +116,9 @@ direction, and the platform line breaking strategy.
 | RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
 
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
-If you turn it off in PreText but leave RN `<Text>` at its default, height can
+If you turn it off in Pretext but leave RN `<Text>` at its default, height can
 drift.
-When `lineHeight` is omitted, PreText uses platform font metrics instead of a
+When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
 
 ## Performance Snapshot
@@ -129,7 +129,7 @@ debug build.
 | Path                             |        Time | Notes                                             |
 | -------------------------------- | ----------: | ------------------------------------------------- |
 | Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.              |
-| `PreText.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.         |
+| `Pretext.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.         |
 | Example improvement              |     `98.8%` | Demonstration screen, not release-device CI.      |
 | Maestro hot layout median        |   `0.22 ms` | iOS debug simulator suite, Core Text layout only. |
 
@@ -145,7 +145,7 @@ are API 29+ unless stated otherwise.
 npm install react-native-nitro-pretext react-native-nitro-modules
 ```
 
-`react-native-nitro-modules` is required because PreText is exposed as a Nitro
+`react-native-nitro-modules` is required because Pretext is exposed as a Nitro
 Module.
 
 ## Example App
@@ -153,7 +153,7 @@ Module.
 The example app focuses on the layout-only problem:
 
 - `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
-  `PreText.layout()` before render
+  `Pretext.layout()` before render
 - `benchmark/*`: compatibility and benchmark screens used during validation
 
 Run it locally:

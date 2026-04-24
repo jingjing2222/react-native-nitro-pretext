@@ -102,7 +102,7 @@ function buildComparisonNotes() {
 
     if (delta < 0) {
       notes.push(
-        `  verdict              PreText surface is faster end-to-end by ${formatMs(
+        `  verdict              Pretext surface is faster end-to-end by ${formatMs(
           Math.abs(delta),
         )}`,
       );
@@ -116,23 +116,23 @@ function buildComparisonNotes() {
       }
     } else if (delta > 0) {
       notes.push(
-        `  verdict              PreText surface is slower end-to-end by ${formatMs(
+        `  verdict              Pretext surface is slower end-to-end by ${formatMs(
           delta,
         )}`,
       );
       notes.push(
-        "  amortization         no payback while PreText surface stays slower",
+        "  amortization         no payback while Pretext surface stays slower",
       );
     } else {
       notes.push(
-        "  verdict              PreText surface matches BaseText on median interaction",
+        "  verdict              Pretext surface matches BaseText on median interaction",
       );
     }
   }
 
   if (preparedLayoutOnly !== null) {
     notes.push(
-      `  hot path             PreText layout-only relayout costs ${formatMs(
+      `  hot path             Pretext layout-only relayout costs ${formatMs(
         preparedLayoutOnly,
       )}`,
     );
@@ -194,7 +194,7 @@ if (baseText) {
 }
 
 if (preparedView) {
-  reportLines.push("PreText Layout");
+  reportLines.push("Pretext Layout");
   reportLines.push(
     labelValue("completed", preparedView.completedAt ?? "n/a"),
     labelValue("prepare once", formatMs(preparedView.prepareMs)),
@@ -276,16 +276,16 @@ if (combined) {
   reportLines.push("Comparison");
   reportLines.push(
     labelValue("base median", formatMs(combined.baseMedianMs)),
-    labelValue("PreText median", formatMs(combined.preparedMedianMs)),
+    labelValue("Pretext median", formatMs(combined.preparedMedianMs)),
     labelValue(
       "median delta",
-      `${formatSignedMs(combined.medianDeltaMs)} (${combined.medianDeltaMs > 0 ? "PreText slower" : combined.medianDeltaMs < 0 ? "PreText faster" : "tied"})`,
+      `${formatSignedMs(combined.medianDeltaMs)} (${combined.medianDeltaMs > 0 ? "Pretext slower" : combined.medianDeltaMs < 0 ? "Pretext faster" : "tied"})`,
     ),
     labelValue("median ratio", formatRatio(performanceRatio)),
-    labelValue("PreText p95", formatMs(combined.preparedP95Ms)),
+    labelValue("Pretext p95", formatMs(combined.preparedP95Ms)),
     labelValue(
       "p95 delta",
-      `${formatSignedMs(combined.p95DeltaMs)} (${combined.p95DeltaMs > 0 ? "PreText slower" : combined.p95DeltaMs < 0 ? "PreText faster" : "tied"})`,
+      `${formatSignedMs(combined.p95DeltaMs)} (${combined.p95DeltaMs > 0 ? "Pretext slower" : combined.p95DeltaMs < 0 ? "Pretext faster" : "tied"})`,
     ),
     labelValue("p95 ratio", formatRatio(p95Ratio)),
     labelValue(
@@ -294,11 +294,11 @@ if (combined) {
     ),
     labelValue("base engine", combined.baseLayoutEngine ?? "n/a"),
     labelValue(
-      "PreText surface engine",
+      "Pretext surface engine",
       combined.preparedRenderLayoutEngine ?? "n/a",
     ),
     labelValue(
-      "PreText compute engine",
+      "Pretext compute engine",
       combined.preparedComputeLayoutEngine ?? "n/a",
     ),
     labelValue(

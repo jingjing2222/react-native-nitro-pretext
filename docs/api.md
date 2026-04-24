@@ -1,13 +1,13 @@
 # API Reference
 
-PreText is layout-only. The public runtime API is:
+Pretext is layout-only. The public runtime API is:
 
 ```ts
 import {
-  PreText,
+  Pretext,
   prepare,
   layout,
-  usePreTextLayout,
+  usePretextLayout,
 } from "react-native-nitro-pretext";
 ```
 
@@ -25,12 +25,12 @@ There are no public renderer components and no public raw native ids.
 Height is not derived from `fontSize`. It depends on font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
-When `lineHeight` is omitted, PreText asks the native engine for platform font
+When `lineHeight` is omitted, Pretext asks the native engine for platform font
 metrics instead of deriving height from `fontSize`.
 
-Since PreText does not own the final pixels, your visible RN `<Text>` style must
-match the style used for PreText layout. The biggest Android footgun is
-`includeFontPadding`: RN `<Text>` defaults it to `true`, and PreText also
+Since Pretext does not own the final pixels, your visible RN `<Text>` style must
+match the style used for Pretext layout. The biggest Android footgun is
+`includeFontPadding`: RN `<Text>` defaults it to `true`, and Pretext also
 defaults it to `true`. Changing one side without the other can change height.
 
 ## `prepare(text, style)`
@@ -48,10 +48,10 @@ Parameters:
 
 | Name    | Type            | Required | Description                                           |
 | ------- | --------------- | -------- | ----------------------------------------------------- |
-| `text`  | `PreTextSource` | yes      | A string, string array, or inline segment paragraphs. |
-| `style` | `PreTextStyle`  | yes      | Native text style used for shaping and line breaking. |
+| `text`  | `PretextSource` | yes      | A string, string array, or inline segment paragraphs. |
+| `style` | `PretextStyle`  | yes      | Native text style used for shaping and line breaking. |
 
-Returns `PreTextPrepared`:
+Returns `PretextPrepared`:
 
 | Field            | Type                    | Description                                         |
 | ---------------- | ----------------------- | --------------------------------------------------- |
@@ -71,7 +71,7 @@ try {
 ```
 
 Calling `layout()` after `prepared.release()` throws
-`"PreText prepared layout has already been released."`.
+`"Pretext prepared layout has already been released."`.
 
 ## `layout(prepared, widthOrOptions)`
 
@@ -91,8 +91,8 @@ Parameters:
 
 | Name             | Type                             | Required | Description                                                       |
 | ---------------- | -------------------------------- | -------- | ----------------------------------------------------------------- |
-| `prepared`       | `PreTextPrepared`                | yes      | Object returned by `prepare()`.                                   |
-| `widthOrOptions` | `number \| PreTextLayoutOptions` | yes      | Width shorthand for metrics, or width plus optional layout rules. |
+| `prepared`       | `PretextPrepared`                | yes      | Object returned by `prepare()`.                                   |
+| `widthOrOptions` | `number \| PretextLayoutOptions` | yes      | Width shorthand for metrics, or width plus optional layout rules. |
 
 Use `layout(prepared, width)` for the common height-before-render path. Use the
 object form when you need line data, diagnostics, rich inline boxes, or custom
@@ -105,7 +105,7 @@ const rich = layout(preparedInlineParagraphs, {
 });
 ```
 
-`PreTextLayoutOptions`:
+`PretextLayoutOptions`:
 
 | Prop          | Type                                              | Default     | Description                                                  |
 | ------------- | ------------------------------------------------- | ----------- | ------------------------------------------------------------ |
@@ -123,7 +123,7 @@ Return value depends on `output`.
 Default output. Use this for height-before-render placement.
 
 ```ts
-type PreTextMetricsLayout = {
+type PretextMetricsLayout = {
   output: "metrics";
   height: number;
   lineCount: number;
@@ -150,7 +150,7 @@ Returns line ranges and geometry for custom placement or hit testing that you
 own outside this package.
 
 ```ts
-type PreTextLinesLayout = {
+type PretextLinesLayout = {
   output: "lines";
   paragraphs: LaidOutParagraphLines[];
 };
@@ -174,7 +174,7 @@ type PreTextLinesLayout = {
 Returns line geometry plus engine, rule, drift, and boundary diagnostics.
 
 ```ts
-type PreTextDiagnosticsLayout = {
+type PretextDiagnosticsLayout = {
   output: "diagnostics";
   paragraphs: LaidOutParagraphLinesWithDiagnostics[];
 };
@@ -185,7 +185,7 @@ Important diagnostics fields:
 | Field                     | Description                                                                                              |
 | ------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `normalizedRequest`       | Request actually used by native layout.                                                                  |
-| `ruleLayer`               | PreText rule layer over native engines.                                                                  |
+| `ruleLayer`               | Pretext rule layer over native engines.                                                                  |
 | `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                             |
 | `layoutEngine`            | `android_measured_text_line_breaker`, `android_legacy_fallback`, or `ios_core_text`.                     |
 | `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                 |
@@ -202,7 +202,7 @@ Important diagnostics fields:
 Returns line geometry plus inline box frames.
 
 ```ts
-type PreTextRichLayout = {
+type PretextRichLayout = {
   output: "rich";
   paragraphs: LaidOutRichParagraphLines[];
 };
@@ -226,13 +226,13 @@ type PreTextRichLayout = {
 | `accessibilityHint`  | `string` | Optional metadata echoed from the inline segment. |
 | `accessibilityRole`  | `string` | Optional metadata echoed from the inline segment. |
 
-## `usePreTextLayout(options)`
+## `usePretextLayout(options)`
 
 React hook that prepares native state, runs layout, and releases native state
 on unmount or dependency change.
 
 ```tsx
-const result = usePreTextLayout({
+const result = usePretextLayout({
   text,
   width,
   style,
@@ -244,11 +244,11 @@ Options:
 
 | Prop          | Type                    | Required | Default     | Description                                   |
 | ------------- | ----------------------- | -------- | ----------- | --------------------------------------------- |
-| `text`        | `PreTextSource`         | yes      | n/a         | Source string, strings, or inline paragraphs. |
-| `style`       | `PreTextStyle`          | yes      | n/a         | Native layout style.                          |
+| `text`        | `PretextSource`         | yes      | n/a         | Source string, strings, or inline paragraphs. |
+| `style`       | `PretextStyle`          | yes      | n/a         | Native layout style.                          |
 | `width`       | `number`                | yes      | n/a         | Available text width.                         |
 | `enabled`     | `boolean`               | no       | `true`      | When `false`, no native state is prepared.    |
-| `output`      | `PreTextLayoutOutput`   | no       | `"metrics"` | Layout output mode.                           |
+| `output`      | `PretextLayoutOutput`   | no       | `"metrics"` | Layout output mode.                           |
 | `left`        | `number`                | no       | `0`         | Base x offset.                                |
 | `shapeSlices` | `ParagraphShapeSlice[]` | no       | `[]`        | Per-band constraints.                         |
 | `whiteSpace`  | `string`                | no       | `"normal"`  | Whitespace rule.                              |
@@ -258,7 +258,7 @@ Return value:
 
 | Field            | Type                            | Description                                        |
 | ---------------- | ------------------------------- | -------------------------------------------------- |
-| `layout`         | `PreTextLayout \| null`         | Layout output, or `null` while disabled/preparing. |
+| `layout`         | `PretextLayout \| null`         | Layout output, or `null` while disabled/preparing. |
 | `stats`          | `PrepareParagraphStats \| null` | Prepare timing, or `null` before prepare finishes. |
 | `paragraphCount` | `number`                        | Prepared paragraph count.                          |
 | `isPreparing`    | `boolean`                       | `true` while the hook is preparing current inputs. |
@@ -272,15 +272,15 @@ object/array inputs stable with `useMemo` when they are created inside a
 component. Plain style objects are normalized by value, so an inline style
 literal with the same scalar values does not force a new prepare.
 
-## `PreText`
+## `Pretext`
 
 Namespace object with the same functions:
 
 ```ts
-PreText.prepare(text, style);
-PreText.layout(prepared, width);
-PreText.layout(prepared, options);
-PreText.usePreTextLayout(options);
+Pretext.prepare(text, style);
+Pretext.layout(prepared, width);
+Pretext.layout(prepared, options);
+Pretext.usePretextLayout(options);
 ```
 
 Use either named functions or the namespace object. They call the same
@@ -290,10 +290,10 @@ implementation.
 
 The type helpers in this section are exported from the package root.
 
-### `PreTextSource`
+### `PretextSource`
 
 ```ts
-type PreTextSource =
+type PretextSource =
   | string
   | readonly string[]
   | readonly (readonly InlineSegment[])[];
@@ -302,15 +302,15 @@ type PreTextSource =
 String sources prepare plain paragraphs. Inline segment sources prepare styled
 runs and optional atomic boxes.
 
-### `PreTextLayoutInput`
+### `PretextLayoutInput`
 
 ```ts
-type PreTextLayoutInput = number | PreTextLayoutOptions;
+type PretextLayoutInput = number | PretextLayoutOptions;
 ```
 
 The number shorthand is equivalent to `{ width, output: "metrics" }`.
 
-### `PreTextStyle`
+### `PretextStyle`
 
 | Field                | Type                       | Required | Default             | Description                                                         |
 | -------------------- | -------------------------- | -------- | ------------------- | ------------------------------------------------------------------- |
@@ -383,7 +383,7 @@ Box segment fields:
 - `output: "lines"` returns more geometry and should be used only when needed.
 - `output: "diagnostics"` is for tests, gates, and debugging drift.
 - `output: "rich"` is for inline boxes and returns `InlineBoxFrame[]`.
-- `usePreTextLayout()` has the same native cost as `prepare()` plus `layout()`,
+- `usePretextLayout()` has the same native cost as `prepare()` plus `layout()`,
   but handles release automatically.
 
 ## Compatibility Notes

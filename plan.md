@@ -1,10 +1,10 @@
-# PreText Layout-Only Migration Plan
+# Pretext Layout-Only Migration Plan
 
 ## Current Direction
 
 - This package is a layout engine, not a renderer.
-- Public runtime API is limited to `PreText`, `prepare`, `layout`, and
-  `usePreTextLayout`.
+- Public runtime API is limited to `Pretext`, `prepare`, `layout`, and
+  `usePretextLayout`.
 - Visible rendering remains normal React Native UI.
 - The library does not render through native text views, hidden measurement
   views, or public renderer components.
@@ -34,12 +34,12 @@ Each session is completed independently:
 
 ### Session 1: Layout-Only Public API
 
-- [x] Added `PreText`, `prepare`, `layout`, and `usePreTextLayout`.
+- [x] Added `Pretext`, `prepare`, `layout`, and `usePretextLayout`.
 - [x] Kept native prepared ids hidden behind an opaque JS object.
 - [x] Exposed manual release only as `prepared.release()`.
 - [x] Left existing APIs in place for later removal.
 - [x] Verified with `yarn typecheck` and `yarn test`.
-- [x] Committed as `31d934e feat: add layout-only PreText public API`.
+- [x] Committed as `31d934e feat: add layout-only Pretext public API`.
 
 ### Session 2: JS Renderer Removal
 
@@ -68,21 +68,21 @@ Each session is completed independently:
 
 ### Session 5: Layout-Only Example
 
-- [x] Rebuilt the main example around hidden RN `<Text onLayout>` measurement versus `PreText.layout()` before render.
-- [x] Kept the PreText path layout-only; visible output is ordinary RN `View` and `Text`.
-- [x] Added on-screen render pass, first stable height, layout shift, onLayout time, and PreText layout time metrics.
+- [x] Rebuilt the main example around hidden RN `<Text onLayout>` measurement versus `Pretext.layout()` before render.
+- [x] Kept the Pretext path layout-only; visible output is ordinary RN `View` and `Text`.
+- [x] Added on-screen render pass, first stable height, layout shift, onLayout time, and Pretext layout time metrics.
 - [x] Removed old example route links and focused the example index on measured layout.
 - [x] Verified with `yarn typecheck`, `yarn test`, iOS build/install, and `agent-device` iOS screen inspection.
-- [x] Committed as `6b91813 docs: show layout-only PreText example`.
+- [x] Committed as `6b91813 docs: show layout-only Pretext example`.
 
 ### Session 6: README / Docs
 
 - [x] Rewrote README as a simple public-facing layout-only introduction.
-- [x] Rewrote `docs/api.md` around `PreText`, `prepare`, `layout`, and `usePreTextLayout`.
+- [x] Rewrote `docs/api.md` around `Pretext`, `prepare`, `layout`, and `usePretextLayout`.
 - [x] Updated the benchmark report without local artifact links.
 - [x] Made Android API 29+ performance/accuracy scope explicit.
 - [x] Verified with `yarn fmt:check`, `yarn typecheck`, and `git diff --check`.
-- [x] Committed as `3735606 docs: simplify PreText API documentation`.
+- [x] Committed as `3735606 docs: simplify Pretext API documentation`.
 
 ### Session 7: Final CI / PR Cleanup
 
@@ -105,7 +105,7 @@ Each session is completed independently:
 - [x] Updated PR #4 description to describe the layout-only API.
 - [x] Confirmed public docs and package changes do not expose old renderer APIs,
       native drawing views, or local artifact links.
-- [x] Commit final cleanup as `chore: finalize PreText layout-only migration`.
+- [x] Commit final cleanup as `chore: finalize Pretext layout-only migration`.
 
 ## Remaining Limits
 

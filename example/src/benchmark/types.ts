@@ -1,21 +1,21 @@
 import type {
   BenchmarkMode,
-  PreTextParagraphMetrics as ImportedPreTextParagraphMetrics,
-  PreTextPreparedCorpus as ImportedPreTextPreparedCorpus,
-  PreTextPrepareStats,
+  PretextParagraphMetrics as ImportedPretextParagraphMetrics,
+  PretextPreparedCorpus as ImportedPretextPreparedCorpus,
+  PretextPrepareStats,
 } from "../relayoutBenchmark";
 
 export type AppStackParamList = {
   Home: undefined;
   BenchmarkIndex: undefined;
   BenchmarkBaseText: undefined;
-  BenchmarkPreTextLayout: undefined;
+  BenchmarkPretextLayout: undefined;
   ExampleIndex: undefined;
   ExampleMeasuredLayout: undefined;
 };
 
-export type PreTextPreparedCorpus = ImportedPreTextPreparedCorpus;
-export type PreTextParagraphMetrics = ImportedPreTextParagraphMetrics;
+export type PretextPreparedCorpus = ImportedPretextPreparedCorpus;
+export type PretextParagraphMetrics = ImportedPretextParagraphMetrics;
 
 export type BenchmarkPlatform = "android" | "ios" | "unknown";
 
@@ -140,7 +140,7 @@ export type PreparedViewResultState = {
   completedAt: string | null;
   computeSummary: BenchmarkSummary | null;
   prepareMs: number | null;
-  prepareStats: PreTextPrepareStats | null;
+  prepareStats: PretextPrepareStats | null;
   renderSummary: BenchmarkSummary | null;
 };
 
@@ -160,7 +160,7 @@ export type BenchmarkHarnessArgs = {
   modes: BenchmarkMode[];
   onCompleted: (completion: BenchmarkHarnessCompletion) => void;
   prepareMs: number | null;
-  preparedParagraphs: PreTextPreparedCorpus | null;
+  preparedParagraphs: PretextPreparedCorpus | null;
 };
 
 export type BenchmarkHarnessState = {
@@ -195,13 +195,13 @@ export type SurfaceCardProps = {
   texts: string[];
 };
 
-export type PreTextLayoutSurfaceCardProps = {
+export type PretextLayoutSurfaceCardProps = {
   activeMode: BenchmarkMode;
   lastCompletedAt: string | null;
   onParagraphLayout: (index: number) => void;
-  paragraphMetrics: PreTextParagraphMetrics[];
+  paragraphMetrics: PretextParagraphMetrics[];
   paragraphWidth: number;
-  prepared: PreTextPreparedCorpus | null;
+  prepared: PretextPreparedCorpus | null;
 };
 
 export const EMPTY_BASELINE_RESULTS: BaseTextResultState = {

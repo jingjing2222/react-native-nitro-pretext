@@ -7,7 +7,7 @@ import { BenchmarkResultsProvider } from "./context/BenchmarkResultsContext";
 import { HomeScreen } from "./screens/HomeScreen";
 import { BaseTextBenchmarkScreen } from "./screens/benchmark/BaseTextBenchmarkScreen";
 import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
-import { PreTextLayoutBenchmarkScreen } from "./screens/benchmark/PreTextLayoutBenchmarkScreen";
+import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutBenchmarkScreen";
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { MeasuredLayoutComparisonScreen } from "./screens/examples/MeasuredLayoutComparisonScreen";
 
@@ -31,7 +31,7 @@ const linking = {
       Home: "",
       BenchmarkIndex: "benchmark",
       BenchmarkBaseText: "benchmark/base-text",
-      BenchmarkPreTextLayout: "benchmark/pretext-layout",
+      BenchmarkPretextLayout: "benchmark/pretext-layout",
       ExampleIndex: "examples",
       ExampleMeasuredLayout: "examples/measured-layout",
     },
@@ -62,7 +62,7 @@ export default function App() {
             <Stack.Screen
               component={HomeScreen}
               name="Home"
-              options={{ title: "PreText Layout Lab" }}
+              options={{ title: "Pretext Layout Lab" }}
             />
             <Stack.Screen
               component={BenchmarkIndexScreen}
@@ -75,8 +75,8 @@ export default function App() {
               options={{ title: "benchmark/base-text" }}
             />
             <Stack.Screen
-              component={PreTextLayoutBenchmarkScreen}
-              name="BenchmarkPreTextLayout"
+              component={PretextLayoutBenchmarkScreen}
+              name="BenchmarkPretextLayout"
               options={{ title: "benchmark/pretext-layout" }}
             />
             <Stack.Screen

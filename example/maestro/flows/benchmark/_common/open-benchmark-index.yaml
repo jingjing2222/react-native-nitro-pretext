@@ -6,7 +6,7 @@ appId: pretext.example
 ---
 - launchApp:
     clearState: true
-- assertVisible: "PreText Layout Lab"
+- assertVisible: "Pretext Layout Lab"
 - tapOn: "Open benchmark/\\*"
 - assertVisible: "Benchmark routes stay isolated from API examples\\."
 - assertVisible:

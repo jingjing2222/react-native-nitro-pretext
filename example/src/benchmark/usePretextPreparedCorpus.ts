@@ -5,26 +5,26 @@ import {
   disposePreparedBenchmarkCorpus,
   prepareBenchmarkCorpus,
 } from "../relayoutBenchmark";
-import type { PreTextPrepareStats } from "../relayoutBenchmark";
-import type { PreTextPreparedCorpus } from "./types";
+import type { PretextPrepareStats } from "../relayoutBenchmark";
+import type { PretextPreparedCorpus } from "./types";
 
-export function usePreTextPreparedCorpus(): {
+export function usePretextPreparedCorpus(): {
   isPreparing: boolean;
   prepareMs: number | null;
-  prepareStats: PreTextPrepareStats | null;
-  preparedParagraphs: PreTextPreparedCorpus | null;
+  prepareStats: PretextPrepareStats | null;
+  preparedParagraphs: PretextPreparedCorpus | null;
 } {
   const [preparedParagraphs, setPreparedParagraphs] =
-    useState<PreTextPreparedCorpus | null>(null);
+    useState<PretextPreparedCorpus | null>(null);
   const [prepareMs, setPrepareMs] = useState<number | null>(null);
-  const [prepareStats, setPrepareStats] = useState<PreTextPrepareStats | null>(
+  const [prepareStats, setPrepareStats] = useState<PretextPrepareStats | null>(
     null,
   );
   const [isPreparing, setIsPreparing] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    let preparedForCleanup: PreTextPreparedCorpus | null = null;
+    let preparedForCleanup: PretextPreparedCorpus | null = null;
     const frameId = requestAnimationFrame(() => {
       const nextPrepared = prepareBenchmarkCorpus(BENCHMARK_CORPUS);
       if (cancelled) {

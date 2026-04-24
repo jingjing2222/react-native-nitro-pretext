@@ -1,5 +1,5 @@
 # 성공 흐름
-# benchmark landing -> PreText layout ready -> PreText layout benchmark complete -> report emitted
+# benchmark landing -> Pretext layout ready -> Pretext layout benchmark complete -> report emitted
 # 사용하는 seed / selector anchor
 # benchmark/pretext-layout CTA text, hero copy, automation status/report lines
 appId: pretext.example
@@ -10,14 +10,14 @@ appId: pretext.example
       text: "Open benchmark/pretext-layout"
     timeout: 20000
 - tapOn: "Open benchmark/pretext-layout"
-- assertVisible: "Run PreText layout before the visible RN text surface\\."
+- assertVisible: "Run Pretext layout before the visible RN text surface\\."
 - assertVisible:
     text: "AUTOMATION_STATUS::benchmark/pretext-layout::(ready|completed)::.*"
 - extendedWaitUntil:
     visible:
-      text: "Run PreText Layout Benchmark"
+      text: "Run Pretext Layout Benchmark"
     timeout: 120000
-- tapOn: "Run PreText Layout Benchmark"
+- tapOn: "Run Pretext Layout Benchmark"
 - extendedWaitUntil:
     visible:
       text: "AUTOMATION_STATUS::benchmark/pretext-layout::completed::.*"
