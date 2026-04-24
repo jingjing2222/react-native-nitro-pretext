@@ -64,7 +64,7 @@ Manual lifecycle rule:
 ```ts
 const prepared = prepare(text, style);
 try {
-  return layout(prepared, { width: 320 });
+  return layout(prepared, 320);
 } finally {
   prepared.release();
 }
@@ -73,25 +73,30 @@ try {
 Calling `layout()` after `prepared.release()` throws
 `"PreText prepared layout has already been released."`.
 
-## `layout(prepared, options)`
+## `layout(prepared, widthOrOptions)`
 
 Layouts a prepared object for a width and optional request rules.
 
 ```ts
-const metrics = layout(prepared, {
-  width: 320,
-  output: "metrics",
-});
-
+const metrics = layout(prepared, 320);
 const height = metrics.height;
+
+const lines = layout(prepared, {
+  width: 320,
+  output: "lines",
+});
 ```
 
 Parameters:
 
-| Name       | Type                   | Required | Description                                  |
-| ---------- | ---------------------- | -------- | -------------------------------------------- |
-| `prepared` | `PreTextPrepared`      | yes      | Object returned by `prepare()`.              |
-| `options`  | `PreTextLayoutOptions` | yes      | Width, output mode, and optional rule layer. |
+| Name             | Type                             | Required | Description                                                       |
+| ---------------- | -------------------------------- | -------- | ----------------------------------------------------------------- |
+| `prepared`       | `PreTextPrepared`                | yes      | Object returned by `prepare()`.                                   |
+| `widthOrOptions` | `number \| PreTextLayoutOptions` | yes      | Width shorthand for metrics, or width plus optional layout rules. |
+
+Use `layout(prepared, width)` for the common height-before-render path. Use the
+object form when you need line data, diagnostics, rich inline boxes, or custom
+rules.
 
 `PreTextLayoutOptions`:
 
@@ -263,6 +268,7 @@ Namespace object with the same functions:
 
 ```ts
 PreText.prepare(text, style);
+PreText.layout(prepared, width);
 PreText.layout(prepared, options);
 PreText.usePreTextLayout(options);
 ```

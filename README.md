@@ -49,7 +49,7 @@ const prepared = prepare("Text that affects layout", {
   includeFontPadding: true,
 });
 
-const metrics = layout(prepared, { width: 280 });
+const metrics = layout(prepared, 280);
 const height = metrics.height;
 
 prepared.release();
@@ -72,7 +72,7 @@ Namespace style is also supported:
 
 ```ts
 const prepared = PreText.prepare(text, style);
-const metrics = PreText.layout(prepared, { width });
+const metrics = PreText.layout(prepared, width);
 const height = metrics.height;
 ```
 

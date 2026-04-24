@@ -289,7 +289,10 @@ describe("react-native-nitro-pretext public API", () => {
       lineHeight: 24,
     });
 
-    expect(PublicApi.layout(prepared, { width: 280, left: 20 })).toEqual({
+    const metrics = PublicApi.layout(prepared, { width: 280, left: 20 });
+
+    expect(metrics.height).toBe(48);
+    expect(metrics).toEqual({
       output: "metrics",
       height: 48,
       lineCount: 2,
@@ -311,6 +314,33 @@ describe("react-native-nitro-pretext public API", () => {
       {
         width: 280,
         left: 20,
+        whiteSpace: "normal",
+        wordBreak: "normal",
+        shapeSlices: [],
+      },
+    ]);
+  });
+
+  it("supports Pretext-style width shorthand for metrics layout", () => {
+    const prepared = PublicApi.prepare("alpha", {
+      fontSize: 16,
+    });
+
+    expect(PublicApi.layout(prepared, 280)).toMatchObject({
+      output: "metrics",
+      height: 48,
+      lineCount: 2,
+      maxLineWidth: 180,
+    });
+    expect(
+      nativeParagraphEngineMock.layoutParagraphsMetadataWithRequest.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([
+      7,
+      {
+        width: 280,
+        left: 0,
         whiteSpace: "normal",
         wordBreak: "normal",
         shapeSlices: [],

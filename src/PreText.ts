@@ -50,6 +50,8 @@ export type PreTextLayoutOptions = {
   wordBreak?: string;
 };
 
+export type PreTextLayoutInput = number | PreTextLayoutOptions;
+
 export type PreTextPrepared = {
   readonly paragraphCount: number;
   readonly stats: PrepareParagraphStats;
@@ -140,6 +142,14 @@ export function prepare(
 
 export function layout(
   prepared: PreTextPrepared,
+  width: number,
+): PreTextMetricsLayout;
+export function layout(
+  prepared: PreTextPrepared,
+  options: PreTextLayoutOptions & { output?: "metrics" },
+): PreTextMetricsLayout;
+export function layout(
+  prepared: PreTextPrepared,
   options: PreTextLayoutOptions & { output: "lines" },
 ): PreTextLinesLayout;
 export function layout(
@@ -156,12 +166,13 @@ export function layout(
 ): PreTextLayout;
 export function layout(
   prepared: PreTextPrepared,
-  options: PreTextLayoutOptions,
+  options: PreTextLayoutInput,
 ): PreTextLayout {
   const record = resolvePreparedRecord(prepared);
-  const request = createLayoutRequest(options);
+  const resolvedOptions = normalizeLayoutOptions(options);
+  const request = createLayoutRequest(resolvedOptions);
 
-  if (options.output === "lines") {
+  if (resolvedOptions.output === "lines") {
     return {
       output: "lines",
       paragraphs: layoutParagraphLinesWithRequest(
@@ -171,7 +182,7 @@ export function layout(
     };
   }
 
-  if (options.output === "diagnostics") {
+  if (resolvedOptions.output === "diagnostics") {
     return {
       output: "diagnostics",
       paragraphs: layoutParagraphLinesWithDiagnostics(
@@ -181,7 +192,7 @@ export function layout(
     };
   }
 
-  if (options.output === "rich") {
+  if (resolvedOptions.output === "rich") {
     return {
       output: "rich",
       paragraphs: layoutRichParagraphLines(record.nativeState.id, request),
@@ -387,6 +398,12 @@ function createLayoutRequest(
     whiteSpace: options.whiteSpace,
     wordBreak: options.wordBreak,
   });
+}
+
+function normalizeLayoutOptions(
+  options: PreTextLayoutInput,
+): PreTextLayoutOptions {
+  return typeof options === "number" ? { width: options } : options;
 }
 
 function summarizeMetrics(

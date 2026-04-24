@@ -1,6 +1,7 @@
 export { layout, prepare, PreText, usePreTextLayout } from "./PreText";
 export type {
   PreTextDiagnosticsLayout,
+  PreTextLayoutInput,
   PreTextLayout,
   PreTextLayoutOptions,
   PreTextLayoutOutput,
