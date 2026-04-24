@@ -370,7 +370,7 @@ type PretextRichLayout = {
 | `top`                | `number` | Box y position.                                   |
 | `width`              | `number` | Caller-supplied box width.                        |
 | `height`             | `number` | Caller-supplied box height.                       |
-| `baseline`           | `number` | Caller-supplied baseline offset.                  |
+| `baseline`           | `number` | Absolute line baseline used to position the box.  |
 | `accessibilityLabel` | `string` | Optional metadata echoed from the inline segment. |
 | `accessibilityHint`  | `string` | Optional metadata echoed from the inline segment. |
 | `accessibilityRole`  | `string` | Optional metadata echoed from the inline segment. |

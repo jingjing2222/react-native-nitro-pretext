@@ -1,4 +1,5 @@
 import { Platform } from "react-native";
+import type { ParagraphLayoutDiagnostics } from "react-native-nitro-pretext";
 
 import type { BenchmarkMode } from "../relayoutBenchmark";
 import type {
@@ -132,6 +133,69 @@ export function createBenchmarkDiagnostics(
     parityRole,
     rendererKind: getRendererKind(mode),
   };
+}
+
+export function createBenchmarkDiagnosticsFromNative(
+  mode: BenchmarkMode,
+  nativeDiagnostics: ParagraphLayoutDiagnostics | null,
+  platform: BenchmarkPlatform = getBenchmarkPlatform(),
+  androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
+): BenchmarkDiagnostics {
+  const fallback = createBenchmarkDiagnostics(mode, platform, androidApiLevel);
+  if (mode === "baseline" || nativeDiagnostics === null) {
+    return fallback;
+  }
+
+  return {
+    ...fallback,
+    driftKinds: normalizeDriftKinds(nativeDiagnostics.driftKinds),
+    heightMetricDrivers: normalizeHeightMetricDrivers(
+      nativeDiagnostics.heightMetricDrivers,
+    ),
+    heightMetricSource:
+      nativeDiagnostics.heightMetricSource as BenchmarkDiagnostics["heightMetricSource"],
+    layoutEngine:
+      nativeDiagnostics.layoutEngine as BenchmarkDiagnostics["layoutEngine"],
+  };
+}
+
+function normalizeDriftKinds(driftKinds: string[]): BenchmarkDriftKind[] {
+  return driftKinds.flatMap((driftKind) =>
+    isBenchmarkDriftKind(driftKind) ? [driftKind] : [],
+  );
+}
+
+function normalizeHeightMetricDrivers(
+  drivers: string[],
+): BenchmarkHeightMetricDriver[] {
+  const normalized = drivers.flatMap((driver) =>
+    isBenchmarkHeightMetricDriver(driver) ? [driver] : [],
+  );
+
+  return normalized.length > 0 ? normalized : [...HEIGHT_METRIC_DRIVERS];
+}
+
+function isBenchmarkDriftKind(
+  driftKind: string,
+): driftKind is BenchmarkDriftKind {
+  return [
+    "algorithm_rule_drift",
+    "compat_drift",
+    "engine_drift",
+    "emoji_metric_drift",
+    "fallback_font_drift",
+    "height_metric_drift",
+    "locale_metric_drift",
+    "line_break_strategy_drift",
+    "padding_drift",
+    "renderer_drift",
+  ].includes(driftKind);
+}
+
+function isBenchmarkHeightMetricDriver(
+  driver: string,
+): driver is BenchmarkHeightMetricDriver {
+  return HEIGHT_METRIC_DRIVERS.includes(driver as BenchmarkHeightMetricDriver);
 }
 
 export function resolveBenchmarkDrift(args: {

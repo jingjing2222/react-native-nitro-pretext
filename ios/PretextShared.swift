@@ -206,6 +206,8 @@ internal final class NativePreparedCorpus {
     ) -> [[NativeLineLayout]] {
         layoutCacheLock.lock()
         if let cached = layoutCache[request] {
+            layoutCacheOrder.removeAll(where: { $0 == request })
+            layoutCacheOrder.append(request)
             layoutCacheLock.unlock()
             return cached
         }
@@ -916,7 +918,8 @@ internal final class PretextShared {
         if isRtlLine(
             paragraph: paragraph,
             line: line,
-            textDirection: corpus.baseStyle.textDirection
+            textDirection: corpus.baseStyle.textDirection,
+            textLocale: corpus.baseStyle.locale
         ) {
             let endX = measureParagraphAdvance(
                 paragraph: paragraph,
@@ -978,7 +981,8 @@ internal final class PretextShared {
     private func isRtlLine(
         paragraph: NativePreparedParagraph,
         line: NativeLineLayout,
-        textDirection: ParagraphTextDirection
+        textDirection: ParagraphTextDirection,
+        textLocale: String
     ) -> Bool {
         let length = max(0, line.textEndUTF16 - line.textStartUTF16)
         guard length > 0 else {
@@ -988,12 +992,13 @@ internal final class PretextShared {
         let text = paragraph.text.substring(
             with: NSRange(location: line.textStartUTF16, length: length)
         )
-        return isRtlText(text, textDirection: textDirection)
+        return isRtlText(text, textDirection: textDirection, textLocale: textLocale)
     }
 
     private func isRtlText(
         _ text: String,
-        textDirection: ParagraphTextDirection
+        textDirection: ParagraphTextDirection,
+        textLocale: String
     ) -> Bool {
         switch textDirection {
         case .ltr:
@@ -1012,7 +1017,7 @@ internal final class PretextShared {
                     return false
                 }
             }
-            return false
+            return isRtlLocale(textLocale)
         }
     }
 
@@ -1030,6 +1035,7 @@ internal final class PretextShared {
         )
         let driftKinds = collectDriftKinds(
             paragraph: paragraph,
+            corpus: corpus,
             request: request,
             lineLayouts: lineLayouts,
             boundaryMap: boundaryMap
@@ -1323,6 +1329,7 @@ internal final class PretextShared {
 
     private func collectDriftKinds(
         paragraph: NativePreparedParagraph,
+        corpus: NativePreparedCorpus,
         request: NativeLayoutRequest,
         lineLayouts: [NativeLineLayout],
         boundaryMap: ParagraphBoundaryMap
@@ -1347,7 +1354,7 @@ internal final class PretextShared {
             appendDrift(driftAlgorithmRule)
             appendDrift(driftLineBreakStrategy)
         }
-        if paragraph.runs.contains(where: { !$0.style.includeFontPadding }) {
+        if !corpus.baseStyle.includeFontPadding {
             appendDrift(driftPadding)
         }
         if paragraph.runs.contains(where: { !$0.style.locale.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
@@ -1412,6 +1419,7 @@ internal final class PretextShared {
                     paragraph,
                     lineHeight: prepared.lineHeight,
                     textDirection: prepared.baseStyle.textDirection,
+                    textLocale: prepared.baseStyle.locale,
                     request: request
                 )
             }
@@ -1434,9 +1442,14 @@ internal final class PretextShared {
         lineWidth: Double,
         lineText: String,
         textDirection: ParagraphTextDirection,
+        textLocale: String,
         line: CTLine
     ) -> Double {
-        let flushFactor: CGFloat = isRtlText(lineText, textDirection: textDirection) ? 1 : 0
+        let flushFactor: CGFloat = isRtlText(
+            lineText,
+            textDirection: textDirection,
+            textLocale: textLocale
+        ) ? 1 : 0
         let penOffset = Double(CTLineGetPenOffsetForFlush(line, flushFactor, constraint.width))
         if penOffset.isFinite {
             return constraint.left + penOffset
@@ -1446,7 +1459,8 @@ internal final class PretextShared {
             constraint: constraint,
             lineWidth: lineWidth,
             lineText: lineText,
-            textDirection: textDirection
+            textDirection: textDirection,
+            textLocale: textLocale
         )
     }
 
@@ -1454,9 +1468,10 @@ internal final class PretextShared {
         constraint: NativeLineConstraint,
         lineWidth: Double,
         lineText: String,
-        textDirection: ParagraphTextDirection
+        textDirection: ParagraphTextDirection,
+        textLocale: String
     ) -> Double {
-        guard isRtlText(lineText, textDirection: textDirection) else {
+        guard isRtlText(lineText, textDirection: textDirection, textLocale: textLocale) else {
             return constraint.left
         }
 
@@ -1467,6 +1482,7 @@ internal final class PretextShared {
         _ prepared: NativePreparedParagraph,
         lineHeight: Double,
         textDirection: ParagraphTextDirection,
+        textLocale: String,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout else {
@@ -1475,6 +1491,7 @@ internal final class PretextShared {
                     prepared.breakUnits,
                     lineHeight: lineHeight,
                     textDirection: textDirection,
+                    textLocale: textLocale,
                     request: request
                 )
             }
@@ -1484,6 +1501,7 @@ internal final class PretextShared {
                 tokens,
                 lineHeight: lineHeight,
                 textDirection: textDirection,
+                textLocale: textLocale,
                 request: request
             )
         }
@@ -1504,7 +1522,8 @@ internal final class PretextShared {
                         constraint: constraint,
                         lineWidth: 0,
                         lineText: "",
-                        textDirection: textDirection
+                        textDirection: textDirection,
+                        textLocale: textLocale
                     ),
                     top: top,
                     height: lineHeight,
@@ -1586,6 +1605,7 @@ internal final class PretextShared {
                         lineWidth: typographicWidth,
                         lineText: lineText,
                         textDirection: textDirection,
+                        textLocale: textLocale,
                         line: line
                     ),
                     top: top,
@@ -1619,7 +1639,8 @@ internal final class PretextShared {
                         constraint: constraint,
                         lineWidth: 0,
                         lineText: "",
-                        textDirection: textDirection
+                        textDirection: textDirection,
+                        textLocale: textLocale
                     ),
                     top: 0,
                     height: lineHeight,
@@ -1638,6 +1659,7 @@ internal final class PretextShared {
         _ tokens: [NativePreparedToken],
         lineHeight: Double,
         textDirection: ParagraphTextDirection,
+        textLocale: String,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         guard !tokens.isEmpty else {
@@ -1651,7 +1673,8 @@ internal final class PretextShared {
                         constraint: constraint,
                         lineWidth: 0,
                         lineText: "",
-                        textDirection: textDirection
+                        textDirection: textDirection,
+                        textLocale: textLocale
                     ),
                     top: 0,
                     height: lineHeight,
@@ -1684,7 +1707,8 @@ internal final class PretextShared {
                             constraint: constraint,
                             lineWidth: 0,
                             lineText: "",
-                            textDirection: textDirection
+                            textDirection: textDirection,
+                            textLocale: textLocale
                         ),
                         top: top,
                         height: metrics.lineHeight,
@@ -1704,7 +1728,8 @@ internal final class PretextShared {
                             constraint: constraint,
                             lineWidth: lineWidth,
                             lineText: lineTextFromTokens(tokens, start: start, end: end),
-                            textDirection: textDirection
+                            textDirection: textDirection,
+                            textLocale: textLocale
                         ),
                         top: top,
                         height: metrics.lineHeight,
@@ -1728,7 +1753,8 @@ internal final class PretextShared {
                             constraint: trailingConstraint,
                             lineWidth: 0,
                             lineText: "",
-                            textDirection: textDirection
+                            textDirection: textDirection,
+                            textLocale: textLocale
                         ),
                         top: top,
                         height: trailingHeight,
@@ -1751,6 +1777,7 @@ internal final class PretextShared {
         _ tokens: [NativePreparedToken],
         lineHeight: Double,
         textDirection: ParagraphTextDirection,
+        textLocale: String,
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         var lines: [NativeLineLayout] = []
@@ -1768,7 +1795,8 @@ internal final class PretextShared {
                         constraint: constraint,
                         lineWidth: 0,
                         lineText: "",
-                        textDirection: textDirection
+                        textDirection: textDirection,
+                        textLocale: textLocale
                     ),
                     top: top,
                     height: height,
@@ -1846,7 +1874,8 @@ internal final class PretextShared {
                             constraint: constraint,
                             lineWidth: fallback.width,
                             lineText: fallback.text,
-                            textDirection: textDirection
+                            textDirection: textDirection,
+                            textLocale: textLocale
                         ),
                         top: top,
                         height: fallbackLineHeight,
@@ -1868,7 +1897,8 @@ internal final class PretextShared {
                             constraint: constraint,
                             lineWidth: lineWidth,
                             lineText: lineTextFromTokens(tokens, start: cursor, end: trimmedEnd),
-                            textDirection: textDirection
+                            textDirection: textDirection,
+                            textLocale: textLocale
                         ),
                         top: top,
                         height: metrics.lineHeight,
@@ -1903,7 +1933,8 @@ internal final class PretextShared {
                         constraint: constraint,
                         lineWidth: 0,
                         lineText: "",
-                        textDirection: textDirection
+                        textDirection: textDirection,
+                        textLocale: textLocale
                     ),
                     top: 0,
                     height: lineHeight,

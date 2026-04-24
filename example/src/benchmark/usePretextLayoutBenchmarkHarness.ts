@@ -15,6 +15,7 @@ import {
   BENCHMARK_MEASURED_RUNS,
   BENCHMARK_WARMUP_RUNS,
   createWidthSequence,
+  layoutBenchmarkCorpusDiagnostics,
   layoutBenchmarkCorpusMetadata,
   layoutBenchmarkCorpusSampleLineTexts,
   now,
@@ -25,7 +26,10 @@ import {
   buildSummary,
   compareLineParity,
 } from "./harnessUtils";
-import { createBenchmarkDiagnostics } from "./diagnostics";
+import {
+  createBenchmarkDiagnostics,
+  createBenchmarkDiagnosticsFromNative,
+} from "./diagnostics";
 import {
   createSummaryRecord,
   type BenchmarkHarnessArgs,
@@ -289,11 +293,25 @@ export function usePretextLayoutBenchmarkHarness({
           });
         }
 
+        const summaryLayoutWidth = Math.max(
+          1,
+          (widthSequence[0] ?? 220) - PARAGRAPH_HORIZONTAL_PADDING * 2,
+        );
+        const summaryDiagnostics =
+          preparedParagraphs === null
+            ? createBenchmarkDiagnostics(mode)
+            : createBenchmarkDiagnosticsFromNative(
+                mode,
+                layoutBenchmarkCorpusDiagnostics(
+                  preparedParagraphs,
+                  summaryLayoutWidth,
+                ),
+              );
         const summary = buildSummary(
           modeMetrics,
           prepareMs,
           baselineMedianMs,
-          createBenchmarkDiagnostics(mode),
+          summaryDiagnostics,
         );
         nextSummaries[mode] = summary;
         setSummaries(createSummaryRecord(nextSummaries));

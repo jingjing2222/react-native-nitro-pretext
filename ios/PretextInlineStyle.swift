@@ -81,17 +81,32 @@ internal func resolveFont(style: NativeTextStyle) -> UIFont {
         return UIFont.systemFont(ofSize: size, weight: resolvedWeight)
     }
 
+    switch normalizedFamily.lowercased() {
+    case "monospace":
+        let monospaced = UIFont.monospacedSystemFont(ofSize: size, weight: resolvedWeight)
+        return applyItalicIfNeeded(monospaced, wantsItalic: wantsItalic, size: size)
+    case "serif":
+        let serif = UIFont(name: "TimesNewRomanPSMT", size: size)
+            ?? UIFont(name: "Times New Roman", size: size)
+            ?? UIFont.systemFont(ofSize: size, weight: resolvedWeight)
+        return applyFontTraits(
+            serif,
+            size: size,
+            weight: resolvedWeight,
+            wantsItalic: wantsItalic
+        )
+    default:
+        break
+    }
+
     let baseFont = UIFont(name: normalizedFamily, size: size)
         ?? UIFont.systemFont(ofSize: size, weight: resolvedWeight)
-    var descriptor = baseFont.fontDescriptor.addingAttributes([
-        UIFontDescriptor.AttributeName.traits: [
-            UIFontDescriptor.TraitKey.weight: resolvedWeight
-        ]
-    ])
-    if wantsItalic {
-        descriptor = descriptor.withSymbolicTraits(descriptor.symbolicTraits.union(.traitItalic)) ?? descriptor
-    }
-    return UIFont(descriptor: descriptor, size: size)
+    return applyFontTraits(
+        baseFont,
+        size: size,
+        weight: resolvedWeight,
+        wantsItalic: wantsItalic
+    )
 }
 
 internal func buildAttributedText(
@@ -160,9 +175,71 @@ private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
     case .rtl:
         paragraphStyle.baseWritingDirection = .rightToLeft
     case .auto:
-        paragraphStyle.baseWritingDirection = .natural
+        paragraphStyle.baseWritingDirection = isRtlLocale(style.locale) ? .rightToLeft : .natural
     }
     return paragraphStyle
+}
+
+internal func isRtlLocale(_ localeIdentifier: String) -> Bool {
+    let fallbackIdentifier = Locale.current.identifier
+    let resolvedIdentifier = localeIdentifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        ? fallbackIdentifier
+        : localeIdentifier
+    let languageCode = resolvedIdentifier
+        .replacingOccurrences(of: "_", with: "-")
+        .split(separator: "-")
+        .first?
+        .lowercased()
+
+    guard let languageCode else {
+        return false
+    }
+
+    return [
+        "ar",
+        "dv",
+        "fa",
+        "he",
+        "iw",
+        "ks",
+        "ku",
+        "ps",
+        "sd",
+        "ug",
+        "ur",
+        "yi",
+    ].contains(languageCode)
+}
+
+private func applyItalicIfNeeded(
+    _ font: UIFont,
+    wantsItalic: Bool,
+    size: Double
+) -> UIFont {
+    guard wantsItalic else {
+        return font
+    }
+
+    let descriptor = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(.traitItalic))
+        ?? font.fontDescriptor
+    return UIFont(descriptor: descriptor, size: size)
+}
+
+private func applyFontTraits(
+    _ font: UIFont,
+    size: Double,
+    weight: UIFont.Weight,
+    wantsItalic: Bool
+) -> UIFont {
+    var descriptor = font.fontDescriptor.addingAttributes([
+        UIFontDescriptor.AttributeName.traits: [
+            UIFontDescriptor.TraitKey.weight: weight
+        ]
+    ])
+    if wantsItalic {
+        descriptor = descriptor.withSymbolicTraits(descriptor.symbolicTraits.union(.traitItalic)) ?? descriptor
+    }
+    return UIFont(descriptor: descriptor, size: size)
 }
 
 internal func resolvedLineHeightValue(

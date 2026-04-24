@@ -13,6 +13,7 @@ import android.text.style.MetricAffectingSpan
 import android.text.style.ReplacementSpan
 import android.text.TextUtils
 import android.view.View
+import java.text.Bidi
 import java.util.Locale
 
 internal const val FONT_STYLE_NORMAL = "normal"
@@ -174,13 +175,53 @@ internal fun buildMeasuredText(
     val runEnd = run?.end ?: text.length
     val end = minOf(text.length, nextBoxStart, runEnd)
     val paint = createTextPaint(style)
-    val isRtl = resolveTextDirectionHeuristic(style)
-      .isRtl(text, cursor, end - cursor)
-    builder.appendStyleRun(paint, end - cursor, isRtl)
+    appendBidiStyleRuns(builder, text, cursor, end, paint, style)
     cursor = end
   }
 
   return builder.build()
+}
+
+private fun appendBidiStyleRuns(
+  builder: android.graphics.text.MeasuredText.Builder,
+  text: String,
+  start: Int,
+  end: Int,
+  paint: TextPaint,
+  style: NativeTextStyle,
+) {
+  if (end <= start) {
+    return
+  }
+
+  val segment = text.substring(start, end)
+  val bidi = Bidi(segment, resolveBidiBaseDirection(style))
+  if (!bidi.isMixed) {
+    builder.appendStyleRun(paint, end - start, !bidi.baseIsLeftToRight())
+    return
+  }
+
+  for (runIndex in 0 until bidi.runCount) {
+    val runStart = bidi.getRunStart(runIndex)
+    val runLimit = bidi.getRunLimit(runIndex)
+    if (runLimit <= runStart) {
+      continue
+    }
+    builder.appendStyleRun(paint, runLimit - runStart, bidi.getRunLevel(runIndex).toInt() % 2 == 1)
+  }
+}
+
+private fun resolveBidiBaseDirection(style: NativeTextStyle): Int {
+  return when (style.textDirection) {
+    ParagraphTextDirection.LTR -> Bidi.DIRECTION_LEFT_TO_RIGHT
+    ParagraphTextDirection.RTL -> Bidi.DIRECTION_RIGHT_TO_LEFT
+    ParagraphTextDirection.AUTO ->
+      if (TextUtils.getLayoutDirectionFromLocale(resolveTextLocale(style.locale)) == View.LAYOUT_DIRECTION_RTL) {
+        Bidi.DIRECTION_DEFAULT_RIGHT_TO_LEFT
+      } else {
+        Bidi.DIRECTION_DEFAULT_LEFT_TO_RIGHT
+      }
+  }
 }
 
 internal fun resolveTextDirectionHeuristic(
@@ -289,8 +330,8 @@ private class InlineBoxSpan(
       val descent = box.height - box.baseline
       metrics.ascent = kotlin.math.floor(ascent).toInt()
       metrics.descent = kotlin.math.ceil(descent).toInt()
-      metrics.top = minOf(metrics.top, metrics.ascent)
-      metrics.bottom = maxOf(metrics.bottom, metrics.descent)
+      metrics.top = metrics.ascent
+      metrics.bottom = metrics.descent
     }
     return kotlin.math.ceil(box.width).toInt()
   }

@@ -6,8 +6,17 @@ export type {
   LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphMetrics,
   LaidOutRichParagraphLines,
+  ParagraphAtomicSpan,
+  ParagraphBoundaryMap,
+  ParagraphBreakOpportunity,
+  ParagraphBreakTable,
+  ParagraphComplexShapeCounters,
+  ParagraphLayoutDiagnostics,
+  ParagraphLineDiagnostics,
   ParagraphLineRange,
   ParagraphShapeSlice,
+  ParagraphStyle,
+  ParagraphTextDirection,
   PrepareParagraphStats,
 } from "./Pretext.nitro";
 export type {

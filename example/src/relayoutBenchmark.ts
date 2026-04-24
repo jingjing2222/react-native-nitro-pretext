@@ -1,6 +1,7 @@
 import {
   layout,
   prepare,
+  type ParagraphLayoutDiagnostics,
   type PretextLinesLayout,
   type PretextMetricsLayout,
   type PretextPrepared,
@@ -180,6 +181,18 @@ export function layoutBenchmarkCorpusSampleLineTexts(
         return text.slice(textStart, textEnd);
       });
     });
+}
+
+export function layoutBenchmarkCorpusDiagnostics(
+  prepared: PretextPrepared,
+  maxWidth: number,
+): ParagraphLayoutDiagnostics | null {
+  const result = layout(prepared, {
+    output: "diagnostics",
+    width: maxWidth,
+  });
+
+  return result.paragraphs[0]?.diagnostics ?? null;
 }
 
 export function disposePreparedBenchmarkCorpus(

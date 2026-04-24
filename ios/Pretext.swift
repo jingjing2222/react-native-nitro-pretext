@@ -86,26 +86,34 @@ class Pretext: HybridPretextSpec {
                 }
 
                 return InlineSegment(
-                    kind: segmentObject["kind"] as? String,
+                    kind: nonEmptyString(segmentObject["kind"]),
                     text: segmentObject["text"] as? String ?? "",
                     breakBehavior: segmentObject["breakBehavior"] as? String ?? "",
-                    boxId: segmentObject["boxId"] as? String,
+                    boxId: nonEmptyString(segmentObject["boxId"]),
                     width: numberValue(segmentObject["width"]),
                     height: numberValue(segmentObject["height"]),
                     baseline: numberValue(segmentObject["baseline"]),
-                    accessibilityLabel: segmentObject["accessibilityLabel"] as? String,
-                    accessibilityHint: segmentObject["accessibilityHint"] as? String,
-                    accessibilityRole: segmentObject["accessibilityRole"] as? String,
-                    fontFamily: segmentObject["fontFamily"] as? String,
+                    accessibilityLabel: nonEmptyString(segmentObject["accessibilityLabel"]),
+                    accessibilityHint: nonEmptyString(segmentObject["accessibilityHint"]),
+                    accessibilityRole: nonEmptyString(segmentObject["accessibilityRole"]),
+                    fontFamily: nonEmptyString(segmentObject["fontFamily"]),
                     fontSize: numberValue(segmentObject["fontSize"]),
                     lineHeight: numberValue(segmentObject["lineHeight"]),
                     letterSpacing: numberValue(segmentObject["letterSpacing"]),
-                    locale: segmentObject["locale"] as? String,
-                    fontWeight: segmentObject["fontWeight"] as? String,
-                    fontStyle: segmentObject["fontStyle"] as? String
+                    locale: nonEmptyString(segmentObject["locale"]),
+                    fontWeight: nonEmptyString(segmentObject["fontWeight"]),
+                    fontStyle: nonEmptyString(segmentObject["fontStyle"])
                 )
             }
         }
+    }
+
+    private func nonEmptyString(_ value: Any?) -> String? {
+        guard let string = value as? String, !string.isEmpty else {
+            return nil
+        }
+
+        return string
     }
 
     private func numberValue(_ value: Any?) -> Double? {
