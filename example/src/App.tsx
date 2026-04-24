@@ -10,8 +10,6 @@ import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
 import { BenchmarkMeasuredLayoutCaseStudyScreen } from "./screens/benchmark/BenchmarkMeasuredLayoutCaseStudyScreen";
 import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutBenchmarkScreen";
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
-import { createExampleRoutePlaceholder } from "./screens/examples/ExampleRoutePlaceholderScreen";
-import { apiExampleManifest } from "./screens/examples/apiExampleManifest";
 import { ExampleNonUseCaseDiagnosticsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen";
 import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
 import { ExampleNonUseCaseLayoutLinesScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen";
@@ -19,36 +17,18 @@ import { ExampleNonUseCaseLayoutMetricsScreen } from "./screens/examples/non-use
 import { ExampleNonUseCaseLayoutOptionsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutOptionsScreen";
 import { ExampleNonUseCaseLayoutRichScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutRichScreen";
 import { ExampleNonUseCasePrepareScreen } from "./screens/examples/non-use-case/ExampleNonUseCasePrepareScreen";
+import { ExampleNonUseCaseHookScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseHookScreen";
 import { ExampleUseCaseDiagnosticsScreen } from "./screens/examples/use-case/ExampleUseCaseDiagnosticsScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
 import { ExampleUseCaseLayoutLinesScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutLinesScreen";
 import { ExampleUseCaseLayoutMetricsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen";
 import { ExampleUseCaseLayoutOptionsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutOptionsScreen";
 import { ExampleUseCaseLayoutRichScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutRichScreen";
+import { ExampleUseCaseHookScreen } from "./screens/examples/use-case/ExampleUseCaseHookScreen";
+import { ExampleUseCaseNamespaceAndTypesScreen } from "./screens/examples/use-case/ExampleUseCaseNamespaceAndTypesScreen";
 import { ExampleUseCasePrepareScreen } from "./screens/examples/use-case/ExampleUseCasePrepareScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
-
-function getExampleEntry(routeName: keyof AppStackParamList) {
-  const entry = apiExampleManifest.find(
-    (candidate) => candidate.routeName === routeName,
-  );
-  if (!entry) {
-    throw new Error(`Missing example manifest entry for ${routeName}`);
-  }
-
-  return entry;
-}
-
-const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseHook"),
-);
-const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
-);
-const ExampleNonUseCaseHookScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseHook"),
-);
 
 const navigationTheme = {
   ...DefaultTheme,
