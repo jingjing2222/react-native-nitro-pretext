@@ -85,6 +85,7 @@ export function ExampleUseCaseLayoutLinesScreen() {
   }, [preparedState.prepared, width]);
 
   const lines = linesLayout?.paragraphs[0]?.lines ?? [];
+  const paragraphHeight = linesLayout?.paragraphs[0]?.height ?? 0;
   const report = `API_EXAMPLE_REPORT::examples/use-case/layout-lines::${JSON.stringify(
     {
       firstLine: lines[0] ?? null,
@@ -154,8 +155,38 @@ export function ExampleUseCaseLayoutLinesScreen() {
           />
         </View>
 
-        <View style={[localStyles.preview, { width }]}>
-          <Text style={localStyles.previewText}>{LINES_TEXT}</Text>
+        <View
+          style={[
+            localStyles.preview,
+            { minHeight: Math.max(96, paragraphHeight + 24), width },
+          ]}
+        >
+          {lines.map((line, index) => (
+            <View
+              key={`${line.textStart}-${line.textEnd}-${index}`}
+              pointerEvents="none"
+              style={[
+                localStyles.lineBand,
+                {
+                  height: Math.max(4, line.height),
+                  left: 12 + line.left,
+                  top: 12 + line.top,
+                  width: line.width,
+                },
+              ]}
+            />
+          ))}
+          <Text
+            style={[
+              localStyles.previewText,
+              {
+                marginLeft: 12,
+                width: width - 12,
+              },
+            ]}
+          >
+            {LINES_TEXT}
+          </Text>
         </View>
 
         <View style={localStyles.panel}>
@@ -292,6 +323,13 @@ const localStyles = StyleSheet.create({
     borderTopWidth: 1,
     gap: 4,
     paddingTop: 10,
+  },
+  lineBand: {
+    backgroundColor: "rgba(44, 117, 93, 0.14)",
+    borderColor: "rgba(44, 117, 93, 0.34)",
+    borderRadius: 4,
+    borderWidth: 1,
+    position: "absolute",
   },
   lineTitle: {
     color: "#1f2725",

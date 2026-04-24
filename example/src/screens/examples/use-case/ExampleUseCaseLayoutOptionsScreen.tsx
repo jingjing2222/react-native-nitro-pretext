@@ -5,6 +5,7 @@ import {
   layout,
   prepare,
   type ParagraphShapeSlice,
+  type PretextLinesLayout,
   type PretextMetricsLayout,
   type PretextPrepared,
   type PretextStyle,
@@ -84,11 +85,13 @@ export function ExampleUseCaseLayoutOptionsScreen() {
 
   const layouts = useMemo<{
     objectMetrics: PretextMetricsLayout | null;
+    optionLines: PretextLinesLayout | null;
     shorthandMetrics: PretextMetricsLayout | null;
   }>(() => {
     if (preparedState.prepared === null) {
       return {
         objectMetrics: null,
+        optionLines: null,
         shorthandMetrics: null,
       };
     }
@@ -103,21 +106,35 @@ export function ExampleUseCaseLayoutOptionsScreen() {
           width,
           wordBreak,
         }),
+        optionLines: layout(preparedState.prepared, {
+          left,
+          output: "lines",
+          shapeSlices,
+          whiteSpace,
+          width,
+          wordBreak,
+        }),
         shorthandMetrics: layout(preparedState.prepared, width),
       };
     } catch {
       return {
         objectMetrics: null,
+        optionLines: null,
         shorthandMetrics: null,
       };
     }
   }, [left, preparedState.prepared, shapeSlices, whiteSpace, width, wordBreak]);
 
+  const optionLines = layouts.optionLines?.paragraphs[0]?.lines ?? [];
+  const firstOptionLine = optionLines[0] ?? null;
+  const optionParagraphHeight = layouts.optionLines?.paragraphs[0]?.height ?? 0;
   const report = `API_EXAMPLE_REPORT::examples/use-case/layout-options::${JSON.stringify(
     {
+      firstOptionLineLeft: firstOptionLine?.left ?? null,
       left,
       objectHeight: layouts.objectMetrics?.height ?? null,
       objectLineCount: layouts.objectMetrics?.lineCount ?? null,
+      optionLineCount: optionLines.length,
       shapeSliceCount: shapeSlices.length,
       shorthandHeight: layouts.shorthandMetrics?.height ?? null,
       whiteSpace,
@@ -155,6 +172,12 @@ const metrics = layout(prepared, {
   shapeSlices,
   whiteSpace,
   wordBreak,
+});
+const lines = layout(prepared, {
+  width,
+  left,
+  shapeSlices,
+  output: "lines",
 });`}
           </Text>
         </View>
@@ -241,11 +264,36 @@ const metrics = layout(prepared, {
             label="object lines"
             value={layouts.objectMetrics?.lineCount ?? "-"}
           />
+          <Stat label="option line bands" value={optionLines.length} />
+          <Stat
+            label="first line left"
+            value={formatPixel(firstOptionLine?.left)}
+          />
           <Stat label="shape slices" value={shapeSlices.length} />
         </View>
 
-        <View style={[localStyles.preview, { width }]}>
+        <View
+          style={[
+            localStyles.preview,
+            { minHeight: Math.max(150, optionParagraphHeight + 24), width },
+          ]}
+        >
           {shapeEnabled ? <View style={localStyles.obstacle} /> : null}
+          {optionLines.map((line, index) => (
+            <View
+              key={`${line.textStart}-${line.textEnd}-${index}`}
+              pointerEvents="none"
+              style={[
+                localStyles.lineBand,
+                {
+                  height: Math.max(4, line.height),
+                  left: 12 + line.left,
+                  top: 12 + line.top,
+                  width: line.width,
+                },
+              ]}
+            />
+          ))}
           <Text
             style={[
               localStyles.previewText,
@@ -403,6 +451,13 @@ const localStyles = StyleSheet.create({
   header: {
     gap: 8,
     marginBottom: 4,
+  },
+  lineBand: {
+    backgroundColor: "rgba(44, 117, 93, 0.14)",
+    borderColor: "rgba(44, 117, 93, 0.34)",
+    borderRadius: 4,
+    borderWidth: 1,
+    position: "absolute",
   },
   obstacle: {
     backgroundColor: "#d9eadf",

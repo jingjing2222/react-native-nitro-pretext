@@ -8,10 +8,23 @@ import {
   usePretextLayout,
   type InlineBoxFrame,
   type InlineSegment,
+  type LaidOutParagraphLines,
+  type LaidOutParagraphLinesWithDiagnostics,
+  type LaidOutParagraphMetrics,
+  type LaidOutRichParagraphLines,
   type ParagraphLineRange,
+  type ParagraphShapeSlice,
+  type PrepareParagraphStats,
+  type PretextDiagnosticsLayout,
+  type PretextLayout,
+  type PretextLayoutInput,
   type PretextLayoutOptions,
+  type PretextLayoutOutput,
+  type PretextLinesLayout,
   type PretextMetricsLayout,
   type PretextPrepared,
+  type PretextRichLayout,
+  type PretextSource,
   type PretextStyle,
 } from "react-native-nitro-pretext";
 
@@ -32,23 +45,49 @@ const NAMESPACE_STYLE: PretextStyle = {
 const NAMESPACE_WIDTH = 300;
 
 type ExportedTypeProbe = {
-  boxFrame: InlineBoxFrame;
-  line: ParagraphLineRange;
-  metrics: PretextMetricsLayout;
-  options: PretextLayoutOptions;
-  prepared: PretextPrepared;
-  segment: InlineSegment;
-  style: PretextStyle;
+  InlineBoxFrame: InlineBoxFrame;
+  InlineSegment: InlineSegment;
+  LaidOutParagraphLines: LaidOutParagraphLines;
+  LaidOutParagraphLinesWithDiagnostics: LaidOutParagraphLinesWithDiagnostics;
+  LaidOutParagraphMetrics: LaidOutParagraphMetrics;
+  LaidOutRichParagraphLines: LaidOutRichParagraphLines;
+  ParagraphLineRange: ParagraphLineRange;
+  ParagraphShapeSlice: ParagraphShapeSlice;
+  PrepareParagraphStats: PrepareParagraphStats;
+  PretextDiagnosticsLayout: PretextDiagnosticsLayout;
+  PretextLayout: PretextLayout;
+  PretextLayoutInput: PretextLayoutInput;
+  PretextLayoutOptions: PretextLayoutOptions;
+  PretextLayoutOutput: PretextLayoutOutput;
+  PretextLinesLayout: PretextLinesLayout;
+  PretextMetricsLayout: PretextMetricsLayout;
+  PretextPrepared: PretextPrepared;
+  PretextRichLayout: PretextRichLayout;
+  PretextSource: PretextSource;
+  PretextStyle: PretextStyle;
 };
 
 const EXPORTED_TYPE_NAMES: Array<keyof ExportedTypeProbe> = [
-  "prepared",
-  "style",
-  "options",
-  "metrics",
-  "segment",
-  "boxFrame",
-  "line",
+  "PretextSource",
+  "PretextStyle",
+  "PretextPrepared",
+  "PretextLayoutInput",
+  "PretextLayoutOptions",
+  "PretextLayoutOutput",
+  "PretextLayout",
+  "PretextMetricsLayout",
+  "PretextLinesLayout",
+  "PretextDiagnosticsLayout",
+  "PretextRichLayout",
+  "PrepareParagraphStats",
+  "InlineSegment",
+  "InlineBoxFrame",
+  "ParagraphLineRange",
+  "ParagraphShapeSlice",
+  "LaidOutParagraphMetrics",
+  "LaidOutParagraphLines",
+  "LaidOutParagraphLinesWithDiagnostics",
+  "LaidOutRichParagraphLines",
 ];
 
 type ComparisonState = {

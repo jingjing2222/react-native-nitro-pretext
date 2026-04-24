@@ -22,7 +22,7 @@ workarounds live under `examples/non-use-case/*`.
 | Platform          | Layout path                       | Notes                                                               |
 | ----------------- | --------------------------------- | ------------------------------------------------------------------- |
 | Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
-| Android API 24-28 | named legacy fallback             | Supported, but not canonical parity. Do not benchmark as canonical. |
+| Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not canonical parity. Do not benchmark as canonical. |
 | iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
 | RN `<Text>`       | final visible renderer            | Not the correctness source. Match render styles to reduce drift.    |
 
@@ -217,20 +217,20 @@ type PretextDiagnosticsLayout = {
 
 Important diagnostics fields:
 
-| Field                     | Description                                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `normalizedRequest`       | Request actually used by native layout.                                                                  |
-| `ruleLayer`               | Pretext rule layer over native engines.                                                                  |
-| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                             |
-| `layoutEngine`            | `android_measured_text_line_breaker`, `android_legacy_fallback`, or `ios_core_text`.                     |
-| `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                 |
-| `fallbackReason`          | Present when a degraded fallback path was used.                                                          |
-| `driftKinds`              | `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, and related classes.          |
-| `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`. |
-| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                  |
-| `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                             |
-| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                            |
-| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                            |
+| Field                     | Description                                                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `normalizedRequest`       | Request actually used by native layout.                                                                                                           |
+| `ruleLayer`               | Pretext rule layer over native engines.                                                                                                           |
+| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                                                                      |
+| `layoutEngine`            | `android_measured_text_line_breaker`, `android_static_layout_compat`, `android_legacy_fallback`, `ios_core_text`, or `ios_manual_token_fallback`. |
+| `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                          |
+| `fallbackReason`          | Present when a degraded fallback path was used.                                                                                                   |
+| `driftKinds`              | `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, and related classes.                                                   |
+| `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                          |
+| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                           |
+| `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                                                                      |
+| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                                                                     |
+| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                                                                     |
 
 ### `output: "rich"`
 

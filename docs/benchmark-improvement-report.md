@@ -10,7 +10,7 @@ machine-local artifacts and are not part of the package.
 | ----------------- | ------------------------------------- | ------------------------------------------------------------ |
 | iOS               | layout example and benchmark verified | Latest local validation: April 24, 2026.                     |
 | Android API 29+   | no release-device numbers published   | Canonical engine is `MeasuredText + LineBreaker`.            |
-| Android API 24-28 | fallback only                         | Supported, but not a canonical performance or parity target. |
+| Android API 24-28 | StaticLayout compat/fallback only     | Supported, but not a canonical performance or parity target. |
 
 Do not extrapolate Android performance from iOS numbers. Android adoption
 confidence needs a release-device run on the target device class.
@@ -117,7 +117,9 @@ BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios
 
 Android canonical benchmark claims require API 29+ because the canonical
 Android engine is `MeasuredText + LineBreaker`. API 24-28 runs exercise the
-legacy fallback path only.
+`android_static_layout_compat` or `android_legacy_fallback` path only. iOS
+canonical runs report `ios_core_text`; degraded fallback diagnostics may report
+`ios_manual_token_fallback`.
 
 The gate checks timing, line-count parity, sampled line-text parity, layout
 engine, renderer kind, parity role, Android `includeFontPadding`, and height

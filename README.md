@@ -111,7 +111,7 @@ direction, and the platform line breaking strategy.
 | Platform          | Layout path                       | Status                                                              |
 | ----------------- | --------------------------------- | ------------------------------------------------------------------- |
 | Android API 29+   | `MeasuredText + LineBreaker`      | Canonical Android path for performance and accuracy claims.         |
-| Android API 24-28 | named legacy fallback             | Supported, but not the canonical parity path.                       |
+| Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not the canonical parity path.                       |
 | iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
 | RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
 
@@ -120,6 +120,9 @@ If you turn it off in Pretext but leave RN `<Text>` at its default, height can
 drift.
 When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
+Diagnostics may report `android_static_layout_compat` or
+`android_legacy_fallback` on Android fallback paths, and
+`ios_manual_token_fallback` on degraded iOS fallback paths.
 
 ## Performance Snapshot
 
@@ -167,6 +170,8 @@ Run it locally:
 ```sh
 yarn example:ios
 yarn example:android
+yarn examples:ios
+yarn examples:android
 ```
 
 If local Watchman is broken, the example Metro config already falls back to the

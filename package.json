@@ -24,6 +24,8 @@
   "files": [
     "src",
     "dist",
+    "docs",
+    "CONTRIBUTING.md",
     "android",
     "ios",
     "cpp",
@@ -60,6 +62,8 @@
   "scripts": {
     "example:ios": "yarn workspace react-native-nitro-pretext-example ios",
     "example:android": "yarn workspace react-native-nitro-pretext-example android",
+    "examples:ios": "yarn workspace react-native-nitro-pretext-example examples:ios",
+    "examples:android": "yarn workspace react-native-nitro-pretext-example examples:android",
     "benchmark:ios": "yarn workspace react-native-nitro-pretext-example benchmark:ios",
     "benchmark:android": "yarn workspace react-native-nitro-pretext-example benchmark:android",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",

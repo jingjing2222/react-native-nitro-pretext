@@ -24,6 +24,8 @@ Run the app in another terminal:
 ```sh
 yarn example:ios
 yarn example:android
+yarn examples:ios
+yarn examples:android
 ```
 
 Native code changes require rebuilding the example app. TypeScript-only library
@@ -93,8 +95,8 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 ```
 
 Android canonical benchmark claims require API 29+ because the canonical
-Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use the legacy
-fallback path only.
+Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
+`StaticLayout` compat or legacy fallback paths only.
 
 ## Example Verification
 
@@ -109,7 +111,8 @@ config, registered stack screens, example index cards, and automation report
 fields. Device-level example coverage is in:
 
 ```sh
-maestro test example/maestro/flows/examples/suite.yaml
+yarn examples:ios
+yarn examples:android
 ```
 
 ## Useful Commands

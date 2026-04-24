@@ -16,6 +16,13 @@ appId: pretext.example
 - scrollUntilVisible:
     direction: DOWN
     element:
+      id: "examples.use-case.prepare.release"
+    timeout: 20000
+- tapOn:
+    id: "examples.use-case.prepare.release"
+- scrollUntilVisible:
+    direction: DOWN
+    element:
       text: "API_EXAMPLE_REPORT::examples/use-case/prepare::.*"
     timeout: 20000
     visibilityPercentage: 1

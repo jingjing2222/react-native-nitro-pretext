@@ -101,9 +101,11 @@ const requiredApiFields = {
     "width",
   ],
   "layout-options": [
+    "firstOptionLineLeft",
     "left",
     "objectHeight",
     "objectLineCount",
+    "optionLineCount",
     "shapeSliceCount",
     "shorthandHeight",
     "whiteSpace",
@@ -191,6 +193,8 @@ const useCaseIndex = read(
 const nonUseCaseIndex = read(
   "example/src/screens/examples/non-use-case/ExampleNonUseCaseIndexScreen.tsx",
 );
+const useCaseFlow = read("example/maestro/flows/examples/use-case.yaml");
+const nonUseCaseFlow = read("example/maestro/flows/examples/non-use-case.yaml");
 
 const docAnchors = new Set(
   docs
@@ -277,6 +281,20 @@ for (const entry of entries) {
     `${entry.routeName} is missing from Stack.Screen`,
   );
 
+  const flow = entry.kind === "use-case" ? useCaseFlow : nonUseCaseFlow;
+  const openId = `id: "examples.${entry.kind}.open.${entry.pairId}"`;
+  const reportMarker = `${entry.reportPrefix}::${entry.path}::.*`;
+
+  check(flow.includes(openId), `${entry.path} is missing from Maestro flow`);
+  check(
+    flow.includes(`routePath: ${entry.path}`),
+    `${entry.path} Maestro report routePath is missing`,
+  );
+  check(
+    flow.includes(`text: "${reportMarker}"`),
+    `${entry.path} Maestro report marker is missing`,
+  );
+
   paths.add(entry.path);
   routeNames.add(entry.routeName);
 
@@ -285,15 +303,15 @@ for (const entry of entries) {
 
   if (exists(screenFile)) {
     const screen = read(screenFile);
-    const reportMarker = `${entry.reportPrefix}::${entry.path}::`;
+    const screenReportMarker = `${entry.reportPrefix}::${entry.path}::`;
     const requiredFields =
       entry.kind === "use-case"
         ? requiredApiFields[entry.pairId]
         : requiredNonUseCaseFields[entry.pairId];
 
     check(
-      screen.includes(reportMarker),
-      `${screenFile} is missing ${reportMarker}`,
+      screen.includes(screenReportMarker),
+      `${screenFile} is missing ${screenReportMarker}`,
     );
     check(
       Array.isArray(requiredFields),

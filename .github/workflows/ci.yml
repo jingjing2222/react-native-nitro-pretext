@@ -58,6 +58,9 @@ jobs:
       - name: Run unit tests
         run: yarn test --maxWorkers=2 --coverage
 
+      - name: Verify API example map
+        run: yarn verify:api-examples
+
   codegen:
     runs-on: ubuntu-latest
 
