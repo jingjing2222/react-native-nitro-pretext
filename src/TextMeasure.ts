@@ -1,5 +1,6 @@
 import type {
   InlineSegment,
+  LaidOutRichParagraphLines,
   ParagraphLineCursorState,
   ParagraphLineCursorStep,
   ParagraphLayoutRequest,
@@ -97,6 +98,12 @@ export const ParagraphEngine: Pretext = {
     _preparedId: number,
     _request: ParagraphLayoutRequest,
   ): LaidOutParagraphLinesWithDiagnostics[] {
+    throw new Error(UNSUPPORTED_PLATFORM_ERROR);
+  },
+  layoutRichParagraphLines(
+    _preparedId: number,
+    _request: ParagraphLayoutRequest,
+  ): LaidOutRichParagraphLines[] {
     throw new Error(UNSUPPORTED_PLATFORM_ERROR);
   },
   createParagraphLineCursor(
@@ -236,6 +243,19 @@ export function layoutParagraphLinesWithDiagnostics(
   );
 }
 
+export function layoutRichParagraphLines(
+  preparedId: number,
+  widthOrRequest: number | ParagraphLayoutRequest,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): LaidOutRichParagraphLines[] {
+  const request =
+    typeof widthOrRequest === "number"
+      ? createParagraphLayoutRequest(widthOrRequest, overrides)
+      : widthOrRequest;
+
+  return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
+}
+
 export function createParagraphLineCursor(
   preparedId: number,
   paragraphIndex: number,
@@ -289,6 +309,7 @@ export default ParagraphEngine;
 
 export type {
   InlineSegment,
+  LaidOutRichParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
   ParagraphLayoutRequest,

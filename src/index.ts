@@ -4,6 +4,7 @@ export {
   layoutParagraphLines,
   layoutParagraphLinesWithDiagnostics,
   layoutParagraphLinesWithRequest,
+  layoutRichParagraphLines,
   default,
   layoutParagraphs,
   layoutParagraphsWithRequest,
@@ -38,8 +39,10 @@ export {
 } from "./PreparedParagraphText";
 export type {
   InlineSegment,
+  InlineBoxFrame,
   LaidOutParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
+  LaidOutRichParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,
   ParagraphAtomicSpan,

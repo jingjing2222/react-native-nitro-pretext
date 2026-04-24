@@ -74,7 +74,7 @@ internal object PreparedParagraphCanvasRenderer {
       drewRun = true
     }
 
-    if (!drewRun) {
+    if (!drewRun && drawing.inlineBoxes.none { it.end > line.textStart && it.start < line.textEnd }) {
       fallbackPaint.color = textColor
       canvas.drawTextRun(
         drawing.text,
@@ -118,7 +118,16 @@ internal object PreparedParagraphCanvasRenderer {
   ): Double {
     var width = 0.0
     var cursor = start
+    val sortedBoxes = drawing.inlineBoxes.sortedBy { it.start }
     drawing.runs.forEach { run ->
+      while (cursor < end) {
+        val box = sortedBoxes.firstOrNull { it.start == cursor }
+        if (box == null) {
+          break
+        }
+        width += box.width
+        cursor = minOf(end, box.end)
+      }
       val segmentStart = maxOf(cursor, run.start)
       val segmentEnd = minOf(end, run.end)
       val gapEnd = minOf(end, segmentStart)
@@ -130,6 +139,14 @@ internal object PreparedParagraphCanvasRenderer {
         width += createTextPaint(run.style).measureText(drawing.text, segmentStart, segmentEnd).toDouble()
         cursor = segmentEnd
       }
+    }
+    while (cursor < end) {
+      val box = sortedBoxes.firstOrNull { it.start == cursor }
+      if (box == null) {
+        break
+      }
+      width += box.width
+      cursor = minOf(end, box.end)
     }
     if (cursor < end) {
       width += fallbackPaint.measureText(drawing.text, cursor, end).toDouble()

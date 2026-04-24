@@ -96,6 +96,13 @@ class Pretext : HybridPretextSpec() {
     return PretextShared.layoutParagraphLinesWithDiagnostics(preparedId, request)
   }
 
+  override fun layoutRichParagraphLines(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutRichParagraphLines> {
+    return PretextShared.layoutRichParagraphLines(preparedId, request)
+  }
+
   override fun createParagraphLineCursor(
     preparedId: Double,
     paragraphIndex: Double,
@@ -134,8 +141,13 @@ class Pretext : HybridPretextSpec() {
         val segmentJson = paragraphJson.getJSONObject(segmentIndex)
         paragraph.add(
           InlineSegment(
+            kind = segmentJson.optString("kind").takeIf { it.isNotEmpty() },
             text = segmentJson.optString("text"),
             breakBehavior = segmentJson.optString("breakBehavior"),
+            boxId = segmentJson.optString("boxId").takeIf { it.isNotEmpty() },
+            width = segmentJson.optDoubleOrNull("width"),
+            height = segmentJson.optDoubleOrNull("height"),
+            baseline = segmentJson.optDoubleOrNull("baseline"),
             fontFamily = segmentJson.optString("fontFamily").takeIf { it.isNotEmpty() },
             fontSize = segmentJson.optDoubleOrNull("fontSize"),
             lineHeight = segmentJson.optDoubleOrNull("lineHeight"),

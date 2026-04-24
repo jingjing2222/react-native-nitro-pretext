@@ -53,10 +53,22 @@ export const INLINE_EXAMPLE: InlineSegment[] = [
   },
   {
     text: "@pretext_handle",
-    breakBehavior: "never",
+    breakBehavior: "normal",
     fontWeight: "700",
     fontSize: 20,
     lineHeight: 30,
+  },
+  {
+    text: " ",
+    breakBehavior: "normal",
+  },
+  {
+    kind: "box",
+    boxId: "inline-status",
+    width: 34,
+    height: 34,
+    baseline: 25,
+    breakBehavior: "never",
   },
   {
     text: " while the rest of the paragraph keeps native shaping and line breaking across narrower widths.",

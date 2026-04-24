@@ -1,8 +1,10 @@
 import type {
   InlineSegment,
+  InlineBoxFrame,
   LaidOutParagraph,
   LaidOutParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
+  LaidOutRichParagraphLines,
   LaidOutParagraphMetrics,
   ParagraphAtomicSpan,
   ParagraphBreakOpportunity,
@@ -36,9 +38,11 @@ export interface Pretext extends Omit<
 
 export type {
   InlineSegment,
+  InlineBoxFrame,
   LaidOutParagraph,
   LaidOutParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
+  LaidOutRichParagraphLines,
   LaidOutParagraphMetrics,
   ParagraphAtomicSpan,
   ParagraphBreakOpportunity,

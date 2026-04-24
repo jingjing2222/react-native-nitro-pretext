@@ -25,8 +25,13 @@ export interface PrepareParagraphStats {
 }
 
 export interface InlineSegment {
-  text: string;
+  kind?: string;
+  text?: string;
   breakBehavior: string;
+  boxId?: string;
+  width?: number;
+  height?: number;
+  baseline?: number;
   fontFamily?: string;
   fontSize?: number;
   lineHeight?: number;
@@ -97,6 +102,19 @@ export interface LaidOutParagraphLines {
   lines: ParagraphLineRange[];
 }
 
+export interface InlineBoxFrame {
+  boxId: string;
+  paragraphIndex: number;
+  lineIndex: number;
+  textStart: number;
+  textEnd: number;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  baseline: number;
+}
+
 export interface ParagraphBreakOpportunity {
   offset: number;
   kind: string;
@@ -143,6 +161,15 @@ export interface LaidOutParagraphLinesWithDiagnostics {
   height: number;
   maxLineWidth: number;
   lines: ParagraphLineRange[];
+  diagnostics: ParagraphLayoutDiagnostics;
+}
+
+export interface LaidOutRichParagraphLines {
+  lineCount: number;
+  height: number;
+  maxLineWidth: number;
+  lines: ParagraphLineRange[];
+  boxFrames: InlineBoxFrame[];
   diagnostics: ParagraphLayoutDiagnostics;
 }
 
@@ -212,6 +239,10 @@ export interface Pretext extends HybridObject<{
     preparedId: number,
     request: ParagraphLayoutRequest,
   ): LaidOutParagraphLinesWithDiagnostics[];
+  layoutRichParagraphLines(
+    preparedId: number,
+    request: ParagraphLayoutRequest,
+  ): LaidOutRichParagraphLines[];
   createParagraphLineCursor(
     preparedId: number,
     paragraphIndex: number,

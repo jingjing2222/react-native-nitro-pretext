@@ -1,6 +1,7 @@
 import { NitroModules } from "react-native-nitro-modules";
 import type {
   InlineSegment,
+  LaidOutRichParagraphLines,
   ParagraphLineCursorState,
   ParagraphLineCursorStep,
   ParagraphLayoutRequest,
@@ -92,6 +93,9 @@ export const ParagraphEngine: Pretext = {
       preparedId,
       request,
     );
+  },
+  layoutRichParagraphLines(preparedId, request) {
+    return NativeParagraphEngine.layoutRichParagraphLines(preparedId, request);
   },
   createParagraphLineCursor(preparedId, paragraphIndex, request) {
     return NativeParagraphEngine.createParagraphLineCursor(
@@ -217,6 +221,19 @@ export function layoutParagraphLinesWithDiagnostics(
   );
 }
 
+export function layoutRichParagraphLines(
+  preparedId: number,
+  widthOrRequest: number | ParagraphLayoutRequest,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): LaidOutRichParagraphLines[] {
+  const request =
+    typeof widthOrRequest === "number"
+      ? createParagraphLayoutRequest(widthOrRequest, overrides)
+      : widthOrRequest;
+
+  return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
+}
+
 export function createParagraphLayoutRequest(
   width: number,
   overrides: Partial<ParagraphLayoutRequest> = {},
@@ -277,6 +294,7 @@ export function layoutPreparedBenchmarkCorpus(
 
 export type {
   InlineSegment,
+  LaidOutRichParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
   LaidOutParagraph,

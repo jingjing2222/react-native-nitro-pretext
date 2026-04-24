@@ -1,8 +1,13 @@
 import Foundation
 
 struct InlineSegment {
+    let kind: String?
     let text: String
     let breakBehavior: String
+    let boxId: String?
+    let width: Double?
+    let height: Double?
+    let baseline: Double?
     let fontFamily: String?
     let fontSize: Double?
     let lineHeight: Double?

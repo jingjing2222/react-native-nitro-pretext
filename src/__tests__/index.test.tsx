@@ -187,6 +187,79 @@ function mockCreateParagraphEngine() {
         },
       ],
     ),
+    layoutRichParagraphLines: jest.fn(
+      (_preparedId: number, request: { left: number }) => [
+        {
+          lineCount: 1,
+          height: 40,
+          maxLineWidth: 120,
+          lines: [
+            {
+              textStart: 0,
+              textEnd: 6,
+              top: 0,
+              left: request.left,
+              width: 120,
+              height: 40,
+              ascent: -28,
+              descent: 12,
+            },
+          ],
+          boxFrames: [
+            {
+              boxId: "avatar",
+              paragraphIndex: 0,
+              lineIndex: 0,
+              textStart: 5,
+              textEnd: 6,
+              left: request.left + 44,
+              top: 4,
+              width: 24,
+              height: 24,
+              baseline: 28,
+            },
+          ],
+          diagnostics: {
+            normalizedRequest: request,
+            ruleLayer: "pretext_native_rules",
+            canvasPixelParityTarget: false,
+            layoutEngine: "ios_core_text",
+            heightMetricSource: "platform_text_engine_metrics",
+            driftKinds: ["algorithm_rule_drift", "line_break_strategy_drift"],
+            heightMetricDrivers: [
+              "font_metrics",
+              "explicit_line_height",
+              "fallback_font",
+              "emoji_fallback",
+              "locale",
+              "include_font_padding",
+              "line_break_strategy",
+            ],
+            breakTable: {
+              hardBreaks: [],
+              nativeSoftBreaks: [],
+              graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
+              atomicSpans: [
+                {
+                  textStart: 5,
+                  textEnd: 6,
+                  source: "inline_box",
+                },
+              ],
+            },
+            lineDiagnostics: [
+              {
+                textStart: 0,
+                textEnd: 6,
+                layoutEngine: "ios_core_text",
+                heightMetricSource: "platform_text_engine_metrics",
+                driftKinds: [],
+              },
+            ],
+          },
+        },
+      ],
+    ),
     layoutParagraphsWithRequest: jest.fn(() => [
       {
         brokenText: "alpha\nbeta",
@@ -261,6 +334,7 @@ import {
   layoutParagraphsMetadata,
   layoutParagraphsMetadataWithRequest,
   layoutPreparedBenchmarkCorpus,
+  layoutRichParagraphLines,
   measure,
   measureBatch,
   nextParagraphLine,
@@ -433,6 +507,14 @@ describe("react-native-nitro-pretext", () => {
               breakBehavior: "normal",
               fontStyle: "italic",
             },
+            {
+              kind: "box",
+              boxId: "avatar",
+              width: 24,
+              height: 24,
+              baseline: 18,
+              breakBehavior: "never",
+            },
           ],
         ],
         {
@@ -465,6 +547,14 @@ describe("react-native-nitro-pretext", () => {
             text: " moves with the next word",
             breakBehavior: "normal",
             fontStyle: "italic",
+          },
+          {
+            kind: "box",
+            boxId: "avatar",
+            width: 24,
+            height: 24,
+            baseline: 18,
+            breakBehavior: "never",
           },
         ],
       ]),
@@ -681,6 +771,46 @@ describe("react-native-nitro-pretext", () => {
         },
       ],
     });
+  });
+
+  it("forwards rich layout calls with inline box frames", () => {
+    const result = layoutRichParagraphLines(13, 280, {
+      left: 12,
+    });
+
+    expect(
+      nativeParagraphEngineMock.layoutRichParagraphLines.mock.calls.at(-1),
+    ).toEqual([
+      13,
+      {
+        width: 280,
+        left: 12,
+        whiteSpace: "normal",
+        wordBreak: "normal",
+        shapeSlices: [],
+      },
+    ]);
+    expect(result[0]?.boxFrames).toEqual([
+      {
+        boxId: "avatar",
+        paragraphIndex: 0,
+        lineIndex: 0,
+        textStart: 5,
+        textEnd: 6,
+        left: 56,
+        top: 4,
+        width: 24,
+        height: 24,
+        baseline: 28,
+      },
+    ]);
+    expect(result[0]?.diagnostics.breakTable.atomicSpans).toEqual([
+      {
+        textStart: 5,
+        textEnd: 6,
+        source: "inline_box",
+      },
+    ]);
   });
 
   it("builds request objects and forwards request-based relayout calls", () => {

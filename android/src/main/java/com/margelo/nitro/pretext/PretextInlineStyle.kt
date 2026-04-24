@@ -2,6 +2,7 @@ package com.margelo.nitro.pretext
 
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.graphics.Canvas
 import android.os.Build
 import android.text.SpannableString
 import android.text.Spanned
@@ -9,10 +10,12 @@ import android.text.TextDirectionHeuristic
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.style.MetricAffectingSpan
+import android.text.style.ReplacementSpan
 import java.util.Locale
 
 internal const val FONT_STYLE_NORMAL = "normal"
 internal const val FONT_STYLE_ITALIC = "italic"
+internal const val OBJECT_REPLACEMENT_CHARACTER = "\uFFFC"
 
 internal data class NativeTextStyle(
   val fontFamily: String,
@@ -92,8 +95,12 @@ internal fun measureToken(token: String, style: NativeTextStyle): NativeTokenMet
   )
 }
 
-internal fun buildStyledText(text: String, runs: List<NativeTextRun>): CharSequence {
-  if (runs.isEmpty() || text.isEmpty()) {
+internal fun buildStyledText(
+  text: String,
+  runs: List<NativeTextRun>,
+  inlineBoxes: List<NativeInlineBox> = emptyList(),
+): CharSequence {
+  if ((runs.isEmpty() && inlineBoxes.isEmpty()) || text.isEmpty()) {
     return text
   }
 
@@ -109,10 +116,26 @@ internal fun buildStyledText(text: String, runs: List<NativeTextRun>): CharSeque
       Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
     )
   }
+  inlineBoxes.forEach { box ->
+    if (box.end <= box.start) {
+      return@forEach
+    }
+    spannable.setSpan(
+      InlineBoxSpan(box),
+      box.start,
+      box.end,
+      Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+    )
+  }
   return spannable
 }
 
-internal fun buildMeasuredText(text: String, runs: List<NativeTextRun>): Any {
+internal fun buildMeasuredText(
+  text: String,
+  runs: List<NativeTextRun>,
+  inlineBoxes: List<NativeInlineBox>,
+  defaultStyle: NativeTextStyle,
+): Any {
   val builder = android.graphics.text.MeasuredText.Builder(text.toCharArray())
     .setComputeLayout(true)
 
@@ -123,14 +146,36 @@ internal fun buildMeasuredText(text: String, runs: List<NativeTextRun>): Any {
     builder.setComputeHyphenation(false)
   }
 
-  for (run in runs) {
-    if (run.end <= run.start) {
+  val sortedRuns = runs.sortedBy { it.start }
+  val sortedBoxes = inlineBoxes.sortedBy { it.start }
+  var cursor = 0
+  var boxIndex = 0
+
+  while (cursor < text.length) {
+    while (boxIndex < sortedBoxes.size && sortedBoxes[boxIndex].end <= cursor) {
+      boxIndex += 1
+    }
+    val box = sortedBoxes.getOrNull(boxIndex)
+    if (box != null && box.start == cursor) {
+      builder.appendReplacementRun(
+        createTextPaint(defaultStyle),
+        box.end - box.start,
+        box.width.toFloat(),
+      )
+      cursor = box.end
       continue
     }
-    val paint = createTextPaint(run.style)
-    val isRtl = resolveTextDirectionHeuristic(run.style.textDirection)
-      .isRtl(text, run.start, run.end - run.start)
-    builder.appendStyleRun(paint, run.end - run.start, isRtl)
+
+    val run = sortedRuns.firstOrNull { it.start <= cursor && it.end > cursor }
+    val style = run?.style ?: defaultStyle
+    val nextBoxStart = box?.start ?: text.length
+    val runEnd = run?.end ?: text.length
+    val end = minOf(text.length, nextBoxStart, runEnd)
+    val paint = createTextPaint(style)
+    val isRtl = resolveTextDirectionHeuristic(style.textDirection)
+      .isRtl(text, cursor, end - cursor)
+    builder.appendStyleRun(paint, end - cursor, isRtl)
+    cursor = end
   }
 
   return builder.build()
@@ -212,5 +257,41 @@ private class InlineMetricSpan(
       0.0f
     }
     textPaint.textLocale = resolveTextLocale(style.locale)
+  }
+}
+
+private class InlineBoxSpan(
+  private val box: NativeInlineBox,
+) : ReplacementSpan() {
+  override fun getSize(
+    paint: Paint,
+    text: CharSequence?,
+    start: Int,
+    end: Int,
+    fm: Paint.FontMetricsInt?,
+  ): Int {
+    fm?.let { metrics ->
+      val ascent = -box.baseline
+      val descent = box.height - box.baseline
+      metrics.ascent = kotlin.math.floor(ascent).toInt()
+      metrics.descent = kotlin.math.ceil(descent).toInt()
+      metrics.top = minOf(metrics.top, metrics.ascent)
+      metrics.bottom = maxOf(metrics.bottom, metrics.descent)
+    }
+    return kotlin.math.ceil(box.width).toInt()
+  }
+
+  override fun draw(
+    canvas: Canvas,
+    text: CharSequence?,
+    start: Int,
+    end: Int,
+    x: Float,
+    top: Int,
+    y: Int,
+    bottom: Int,
+    paint: Paint,
+  ) {
+    // Inline boxes participate in native layout only. React Native overlays can render them from frames.
   }
 }

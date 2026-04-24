@@ -4,6 +4,7 @@ import UIKit
 
 internal let fontStyleNormal = "normal"
 internal let fontStyleItalic = "italic"
+internal let objectReplacementCharacter = "\u{FFFC}"
 
 internal struct NativeTextStyle: Equatable {
     let fontFamily: String
@@ -95,7 +96,8 @@ internal func resolveFont(style: NativeTextStyle) -> UIFont {
 
 internal func buildAttributedText(
     text: String,
-    runs: [NativeTextRun]
+    runs: [NativeTextRun],
+    inlineBoxes: [NativeInlineBox] = []
 ) -> NSAttributedString {
     let attributedText = NSMutableAttributedString(string: text)
     for run in runs where run.endUTF16 > run.startUTF16 {
@@ -103,6 +105,9 @@ internal func buildAttributedText(
             textAttributes(for: run.style),
             range: NSRange(location: run.startUTF16, length: run.endUTF16 - run.startUTF16)
         )
+    }
+    for box in inlineBoxes where box.endUTF16 > box.startUTF16 {
+        addInlineBoxRunDelegate(box, to: attributedText)
     }
     return attributedText
 }
@@ -174,4 +179,59 @@ private func resolveFontWeight(_ fontWeight: String) -> UIFont.Weight {
     default:
         return .regular
     }
+}
+
+private final class InlineBoxRunDelegateMetrics {
+    let ascent: CGFloat
+    let descent: CGFloat
+    let width: CGFloat
+
+    init(box: NativeInlineBox) {
+        ascent = CGFloat(box.baseline)
+        descent = CGFloat(max(0, box.height - box.baseline))
+        width = CGFloat(box.width)
+    }
+}
+
+private var inlineBoxRunDelegateCallbacks = CTRunDelegateCallbacks(
+    version: kCTRunDelegateVersion1,
+    dealloc: { pointer in
+        Unmanaged<InlineBoxRunDelegateMetrics>.fromOpaque(pointer).release()
+    },
+    getAscent: { pointer in
+        return Unmanaged<InlineBoxRunDelegateMetrics>
+            .fromOpaque(pointer)
+            .takeUnretainedValue()
+            .ascent
+    },
+    getDescent: { pointer in
+        return Unmanaged<InlineBoxRunDelegateMetrics>
+            .fromOpaque(pointer)
+            .takeUnretainedValue()
+            .descent
+    },
+    getWidth: { pointer in
+        return Unmanaged<InlineBoxRunDelegateMetrics>
+            .fromOpaque(pointer)
+            .takeUnretainedValue()
+            .width
+    }
+)
+
+private func addInlineBoxRunDelegate(
+    _ box: NativeInlineBox,
+    to attributedText: NSMutableAttributedString
+) {
+    var callbacks = inlineBoxRunDelegateCallbacks
+    let metrics = InlineBoxRunDelegateMetrics(box: box)
+    let pointer = Unmanaged.passRetained(metrics).toOpaque()
+    guard let delegate = CTRunDelegateCreate(&callbacks, pointer) else {
+        Unmanaged<InlineBoxRunDelegateMetrics>.fromOpaque(pointer).release()
+        return
+    }
+    attributedText.addAttribute(
+        NSAttributedString.Key(rawValue: kCTRunDelegateAttributeName as String),
+        value: delegate,
+        range: NSRange(location: box.startUTF16, length: box.endUTF16 - box.startUTF16)
+    )
 }

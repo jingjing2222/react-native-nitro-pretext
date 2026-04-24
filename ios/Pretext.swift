@@ -95,6 +95,16 @@ class Pretext: HybridPretextSpec {
         )
     }
 
+    public func layoutRichParagraphLines(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutRichParagraphLines] {
+        try PretextShared.shared.layoutRichParagraphLines(
+            preparedId: preparedId,
+            request: request
+        )
+    }
+
     public func createParagraphLineCursor(
         preparedId: Double,
         paragraphIndex: Double,
@@ -149,8 +159,13 @@ class Pretext: HybridPretextSpec {
                 }
 
                 return InlineSegment(
+                    kind: segmentObject["kind"] as? String,
                     text: segmentObject["text"] as? String ?? "",
                     breakBehavior: segmentObject["breakBehavior"] as? String ?? "",
+                    boxId: segmentObject["boxId"] as? String,
+                    width: numberValue(segmentObject["width"]),
+                    height: numberValue(segmentObject["height"]),
+                    baseline: numberValue(segmentObject["baseline"]),
                     fontFamily: segmentObject["fontFamily"] as? String,
                     fontSize: numberValue(segmentObject["fontSize"]),
                     lineHeight: numberValue(segmentObject["lineHeight"]),

@@ -81,6 +81,7 @@ internal object PretextShared {
             emptyList()
           },
         atomicSpans = emptyList(),
+        inlineBoxes = emptyList(),
         textUnits = textUnits,
         forceTokenLayout = false,
         hasStyledRuns = false,
@@ -116,13 +117,13 @@ internal object PretextShared {
     val measurementCache = LinkedHashMap<String, NativeTokenMetrics>()
     val preparedParagraphs =
       analyzedParagraphs.map { paragraph ->
-        val styledText = buildStyledText(paragraph.text, paragraph.runs)
+        val styledText = buildStyledText(paragraph.text, paragraph.runs, paragraph.inlineBoxes)
         NativePreparedParagraph(
           text = paragraph.text,
           styledText = styledText,
           measuredText =
             if (!paragraph.forceTokenLayout && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-              buildMeasuredText(paragraph.text, paragraph.runs)
+              buildMeasuredText(paragraph.text, paragraph.runs, paragraph.inlineBoxes, baseStyle)
             } else {
               null
             },
@@ -136,6 +137,7 @@ internal object PretextShared {
             },
           runs = paragraph.runs,
           atomicSpans = paragraph.atomicSpans,
+          inlineBoxes = paragraph.inlineBoxes,
           forceTokenLayout = paragraph.forceTokenLayout,
           hasStyledRuns = paragraph.hasStyledRuns,
         )
@@ -190,11 +192,40 @@ internal object PretextShared {
     val breakUnits = ArrayList<NativeTokenDescriptor>()
     val runs = ArrayList<NativeTextRun>()
     val atomicSpans = ArrayList<NativeAtomicSpan>()
+    val inlineBoxes = ArrayList<NativeInlineBox>()
     var forceTokenLayout = false
     var hasStyledRuns = false
 
     paragraph.forEach { segment ->
       val start = textBuilder.length
+      val breakBehavior = segment.breakBehavior.lowercase()
+      if (segment.kind?.lowercase() == INLINE_SEGMENT_KIND_BOX || segment.boxId != null) {
+        val box = buildInlineBox(segment, start)
+        textBuilder.append(OBJECT_REPLACEMENT_CHARACTER)
+        inlineBoxes += box
+        atomicSpans +=
+          NativeAtomicSpan(
+            start = box.start,
+            end = box.end,
+            source = "inline_box",
+          )
+        tokens += NativeTokenDescriptor(
+          text = OBJECT_REPLACEMENT_CHARACTER,
+          start = box.start,
+          end = box.end,
+          style = baseStyle,
+          inlineBox = box,
+        )
+        breakUnits += NativeTokenDescriptor(
+          text = OBJECT_REPLACEMENT_CHARACTER,
+          start = box.start,
+          end = box.end,
+          style = baseStyle,
+          inlineBox = box,
+        )
+        return@forEach
+      }
+
       val resolvedStyle = resolveTextStyle(segment, baseStyle)
       textBuilder.append(segment.text)
       val end = textBuilder.length
@@ -205,7 +236,7 @@ internal object PretextShared {
             end = end,
             style = resolvedStyle,
           )
-        if (segment.breakBehavior.lowercase() == BREAK_BEHAVIOR_NEVER) {
+        if (breakBehavior == BREAK_BEHAVIOR_NEVER) {
           atomicSpans +=
             NativeAtomicSpan(
               start = start,
@@ -216,7 +247,7 @@ internal object PretextShared {
       }
       hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
       forceTokenLayout =
-        forceTokenLayout || segment.breakBehavior.lowercase() == BREAK_BEHAVIOR_NEVER
+        forceTokenLayout || breakBehavior == BREAK_BEHAVIOR_NEVER
       appendInlineSegmentTokens(
         segment = segment,
         resolvedStyle = resolvedStyle,
@@ -232,9 +263,25 @@ internal object PretextShared {
       breakUnits = breakUnits,
       runs = mergeAdjacentRuns(runs),
       atomicSpans = atomicSpans,
+      inlineBoxes = inlineBoxes,
       textUnits = textBuilder.length,
       forceTokenLayout = forceTokenLayout,
       hasStyledRuns = hasStyledRuns,
+    )
+  }
+
+  private fun buildInlineBox(segment: InlineSegment, start: Int): NativeInlineBox {
+    val width = max(0.0, segment.width ?: 0.0)
+    val height = max(0.0, segment.height ?: 0.0)
+    val baseline = (segment.baseline ?: height).coerceIn(0.0, height)
+    return NativeInlineBox(
+      boxId = segment.boxId ?: "inline-box-$start",
+      start = start,
+      end = start + OBJECT_REPLACEMENT_CHARACTER.length,
+      width = width,
+      height = height,
+      baseline = baseline,
+      breakBehavior = segment.breakBehavior.lowercase(),
     )
   }
 
@@ -285,6 +332,16 @@ internal object PretextShared {
     request: ParagraphLayoutRequest,
   ): Array<LaidOutParagraphLinesWithDiagnostics> {
     return layoutParagraphLinesWithDiagnosticsInternal(
+      preparedId,
+      normalizeLayoutRequest(request),
+    ).toTypedArray()
+  }
+
+  fun layoutRichParagraphLines(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutRichParagraphLines> {
+    return layoutRichParagraphLinesInternal(
       preparedId,
       normalizeLayoutRequest(request),
     ).toTypedArray()
@@ -450,6 +507,34 @@ internal object PretextShared {
     }
   }
 
+  private fun layoutRichParagraphLinesInternal(
+    preparedId: Double,
+    request: NativeLayoutRequest,
+  ): List<LaidOutRichParagraphLines> {
+    val prepared = requirePreparedCorpus(preparedId)
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, paragraph ->
+      val lineLayouts = paragraphLineLayouts[index]
+      LaidOutRichParagraphLines(
+        lineCount = lineLayouts.size.toDouble(),
+        height = sumHeights(lineLayouts),
+        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        lines = buildPublicParagraphLineRanges(lineLayouts).toTypedArray(),
+        boxFrames = buildInlineBoxFrames(
+          paragraphIndex = index,
+          paragraph = paragraph,
+          lineLayouts = lineLayouts,
+        ).toTypedArray(),
+        diagnostics = buildParagraphLayoutDiagnostics(
+          paragraph = paragraph,
+          corpus = prepared,
+          request = request,
+          lineLayouts = lineLayouts,
+        ),
+      )
+    }
+  }
+
   private fun requirePreparedCorpus(preparedId: Double): NativePreparedCorpus {
     val handle = preparedId.toLong()
     return preparedCorpora[handle]
@@ -504,6 +589,91 @@ internal object PretextShared {
     }
   }
 
+  private fun buildInlineBoxFrames(
+    paragraphIndex: Int,
+    paragraph: NativePreparedParagraph,
+    lineLayouts: List<NativeLineLayout>,
+  ): List<InlineBoxFrame> {
+    if (paragraph.inlineBoxes.isEmpty()) {
+      return emptyList()
+    }
+
+    val frames = ArrayList<InlineBoxFrame>()
+    paragraph.inlineBoxes.forEach { box ->
+      val lineIndex = lineLayouts.indexOfFirst { line ->
+        box.start >= line.textStart && box.end <= line.textEnd
+      }
+      if (lineIndex < 0) {
+        return@forEach
+      }
+
+      val line = lineLayouts[lineIndex]
+      val actualHeight = max(0.0, line.descent - line.ascent)
+      val centerOffset = max(0.0, (line.height - actualHeight) / 2.0)
+      val baseline = line.top + centerOffset - line.ascent
+      val left = line.left + measureParagraphAdvance(paragraph, line.textStart, box.start)
+      frames += InlineBoxFrame(
+        boxId = box.boxId,
+        paragraphIndex = paragraphIndex.toDouble(),
+        lineIndex = lineIndex.toDouble(),
+        textStart = box.start.toDouble(),
+        textEnd = box.end.toDouble(),
+        left = left,
+        top = baseline - box.baseline,
+        width = box.width,
+        height = box.height,
+        baseline = baseline,
+      )
+    }
+    return frames
+  }
+
+  private fun measureParagraphAdvance(
+    paragraph: NativePreparedParagraph,
+    start: Int,
+    end: Int,
+  ): Double {
+    if (end <= start) {
+      return 0.0
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      val measuredParagraph = paragraph.measuredText as? MeasuredText
+      if (measuredParagraph != null) {
+        return measuredParagraph.getWidth(start, end).toDouble()
+      }
+    }
+
+    val sortedBoxes = paragraph.inlineBoxes.sortedBy { it.start }
+    val sortedRuns = paragraph.runs.sortedBy { it.start }
+    var cursor = start
+    var width = 0.0
+
+    while (cursor < end) {
+      val box = sortedBoxes.firstOrNull { it.start == cursor }
+      if (box != null) {
+        width += box.width
+        cursor = min(end, box.end)
+        continue
+      }
+
+      val nextBoxStart = sortedBoxes
+        .firstOrNull { it.start > cursor }
+        ?.start
+        ?: end
+      val run = sortedRuns.firstOrNull { it.start <= cursor && it.end > cursor }
+      val segmentEnd = minOf(end, nextBoxStart, run?.end ?: end)
+      if (segmentEnd <= cursor) {
+        break
+      }
+      val paint = run?.style?.let { createTextPaint(it) } ?: TextPaint(Paint.ANTI_ALIAS_FLAG)
+      width += paint.measureText(paragraph.text, cursor, segmentEnd).toDouble()
+      cursor = segmentEnd
+    }
+
+    return width
+  }
+
   private fun buildNativeParagraphDrawing(
     paragraph: NativePreparedParagraph,
     lineLayouts: List<NativeLineLayout>,
@@ -514,6 +684,7 @@ internal object PretextShared {
       hasStyledRuns = paragraph.hasStyledRuns,
       measuredText = paragraph.measuredText,
       runs = paragraph.runs,
+      inlineBoxes = paragraph.inlineBoxes,
       layoutEngine = lineLayouts.firstOrNull()?.layoutEngine ?: LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK,
       fallbackReason = lineLayouts.firstNotNullOfOrNull { it.fallbackReason },
       heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
@@ -776,6 +947,18 @@ internal object PretextShared {
     token: NativeTokenDescriptor,
     cache: MutableMap<String, NativeTokenMetrics>,
   ): NativePreparedToken {
+    token.inlineBox?.let { box ->
+      return NativePreparedToken(
+        text = token.text,
+        start = token.start,
+        end = token.end,
+        width = box.width,
+        lineHeight = box.height,
+        ascent = -box.baseline,
+        descent = box.height - box.baseline,
+      )
+    }
+
     if (token.text == NEWLINE_TOKEN) {
       return NativePreparedToken(
         text = token.text,
@@ -1030,6 +1213,7 @@ internal object PretextShared {
         lineBreaker = lineBreaker,
         textPaint = corpus.textPaint,
         runs = prepared.runs,
+        inlineBoxes = prepared.inlineBoxes,
         width = request.width,
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
@@ -1042,6 +1226,7 @@ internal object PretextShared {
         text = prepared.styledText,
         textPaint = corpus.textPaint,
         runs = prepared.runs,
+        inlineBoxes = prepared.inlineBoxes,
         width = request.width,
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
@@ -1313,12 +1498,18 @@ internal object PretextShared {
     defaultLineHeight: Double,
     start: Int,
     end: Int,
+    inlineBoxes: List<NativeInlineBox> = emptyList(),
   ): Double {
     var maxHeight = defaultLineHeight
     runs.forEach { run ->
       if (run.end > start && run.start < end) {
         val requested = if (run.style.lineHeight > 0.0) run.style.lineHeight else defaultLineHeight
         maxHeight = max(maxHeight, requested)
+      }
+    }
+    inlineBoxes.forEach { box ->
+      if (box.end > start && box.start < end) {
+        maxHeight = max(maxHeight, box.height)
       }
     }
     return maxHeight
@@ -1417,6 +1608,7 @@ private object Api29LineLayout {
     lineBreaker: Any,
     textPaint: TextPaint,
     runs: List<NativeTextRun>,
+    inlineBoxes: List<NativeInlineBox>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
@@ -1458,14 +1650,26 @@ private object Api29LineLayout {
         start = start,
         end = end,
       )
-      val ascent = result.getLineAscent(lineIndex).toDouble() -
+      var ascent = result.getLineAscent(lineIndex).toDouble() -
         if (includeTopPadding) linePadding.top else 0.0
-      val descent = result.getLineDescent(lineIndex).toDouble() +
+      var descent = result.getLineDescent(lineIndex).toDouble() +
         if (includeBottomPadding) linePadding.bottom else 0.0
+      inlineBoxes.forEach { box ->
+        if (box.end > start && box.start < end) {
+          ascent = min(ascent, -box.baseline)
+          descent = max(descent, box.height - box.baseline)
+        }
+      }
       val actualHeight = max(0.0, descent - ascent)
       val lineHeight =
         max(
-          PretextShared.maxRequestedLineHeight(runs, defaultLineHeight, start, end),
+          PretextShared.maxRequestedLineHeight(
+            runs,
+            defaultLineHeight,
+            start,
+            end,
+            inlineBoxes,
+          ),
           actualHeight,
         )
       lines += NativeLineLayout(
@@ -1493,6 +1697,7 @@ private object StaticLayoutLineLayout {
     text: CharSequence,
     textPaint: TextPaint,
     runs: List<NativeTextRun>,
+    inlineBoxes: List<NativeInlineBox>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
@@ -1546,12 +1751,24 @@ private object StaticLayoutLineLayout {
       val lineTop = layout.getLineTop(lineIndex).toDouble()
       val lineBottom = layout.getLineBottom(lineIndex).toDouble()
       val baseline = layout.getLineBaseline(lineIndex).toDouble()
-      val ascent = lineTop - baseline
-      val descent = lineBottom - baseline
+      var ascent = lineTop - baseline
+      var descent = lineBottom - baseline
+      inlineBoxes.forEach { box ->
+        if (box.end > start && box.start < end) {
+          ascent = min(ascent, -box.baseline)
+          descent = max(descent, box.height - box.baseline)
+        }
+      }
       val actualHeight = max(0.0, descent - ascent)
       val lineHeight =
         max(
-          PretextShared.maxRequestedLineHeight(runs, defaultLineHeight, start, end),
+          PretextShared.maxRequestedLineHeight(
+            runs,
+            defaultLineHeight,
+            start,
+            end,
+            inlineBoxes,
+          ),
           actualHeight,
         )
       lines += NativeLineLayout(
@@ -1579,6 +1796,7 @@ internal data class NativePreparedParagraphSeed(
   val breakUnits: List<NativeTokenDescriptor>,
   val runs: List<NativeTextRun>,
   val atomicSpans: List<NativeAtomicSpan>,
+  val inlineBoxes: List<NativeInlineBox>,
   val textUnits: Int,
   val forceTokenLayout: Boolean,
   val hasStyledRuns: Boolean,
@@ -1589,6 +1807,7 @@ internal data class NativeTokenDescriptor(
   val start: Int,
   val end: Int,
   val style: NativeTextStyle,
+  val inlineBox: NativeInlineBox? = null,
 )
 
 internal data class NativePreparedToken(
@@ -1609,6 +1828,7 @@ internal data class NativePreparedParagraph(
   val breakUnits: List<NativePreparedToken>,
   val runs: List<NativeTextRun>,
   val atomicSpans: List<NativeAtomicSpan>,
+  val inlineBoxes: List<NativeInlineBox>,
   val forceTokenLayout: Boolean,
   val hasStyledRuns: Boolean,
 )
@@ -1617,6 +1837,16 @@ internal data class NativeAtomicSpan(
   val start: Int,
   val end: Int,
   val source: String,
+)
+
+internal data class NativeInlineBox(
+  val boxId: String,
+  val start: Int,
+  val end: Int,
+  val width: Double,
+  val height: Double,
+  val baseline: Double,
+  val breakBehavior: String,
 )
 
 internal class NativePreparedCorpus(
@@ -1700,6 +1930,7 @@ internal data class NativeParagraphDrawing(
   val hasStyledRuns: Boolean,
   val measuredText: Any?,
   val runs: List<NativeTextRun>,
+  val inlineBoxes: List<NativeInlineBox>,
   val layoutEngine: String,
   val fallbackReason: String?,
   val heightMetricSource: String,
@@ -1742,6 +1973,7 @@ internal const val WHITE_SPACE_PRE = "pre"
 internal const val WORD_BREAK_NORMAL = "normal"
 internal const val WORD_BREAK_BREAK_ALL = "break-all"
 internal const val BREAK_BEHAVIOR_NEVER = "never"
+internal const val INLINE_SEGMENT_KIND_BOX = "box"
 internal const val LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER =
   "android_measured_text_line_breaker"
 internal const val LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT = "android_static_layout_compat"

@@ -63,7 +63,7 @@ export function ExampleIndexScreen({ navigation }: Props) {
 
         <CatalogCard
           buttonLabel="Open examples/inline-segments"
-          description="Inline paragraph preparation with mixed style runs and a non-breakable handle span."
+          description="Inline paragraph preparation with mixed style runs and a caller-supplied atomic box."
           onPress={() => navigation.navigate("ExampleInlineSegments")}
           title="examples/inline-segments"
         />

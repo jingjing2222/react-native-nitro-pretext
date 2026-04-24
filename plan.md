@@ -208,19 +208,33 @@ Result:
 
 ## Plan 06: Rich Inline Boxes
 
-- [ ] Extend `InlineSegment` into text and box segments.
-- [ ] Box metrics are caller-supplied: `boxId`, `width`, `height`, `baseline`, `breakBehavior`.
-- [ ] Android boxes use object replacement with MeasuredText replacement runs.
-- [ ] iOS boxes use object replacement with `CTRunDelegate`.
-- [ ] Return `InlineBoxFrame[]` from rich layout.
-- [ ] Optional RN overlays may render boxes, but never participate in text layout.
-- [ ] Merge box metrics with native text ascent/descent/fallback metrics to compute final line height.
+- [x] Extend `InlineSegment` into text and box segments.
+- [x] Box metrics are caller-supplied: `boxId`, `width`, `height`, `baseline`, `breakBehavior`.
+- [x] Android boxes use object replacement with MeasuredText replacement runs.
+- [x] iOS boxes use object replacement with `CTRunDelegate`.
+- [x] Return `InlineBoxFrame[]` from rich layout.
+- [x] Optional RN overlays may render boxes, but never participate in text layout.
+- [x] Merge box metrics with native text ascent/descent/fallback metrics to compute final line height.
 
 Acceptance:
 
 - Boxes wrap atomically and line height expands from native box metrics.
 - `agent-device` visual verification captures inline box layout on iOS and Android.
 - Local CI passes before Plan 07 begins.
+
+Result:
+
+- Added text/box inline segment fields to the Nitro API and public TypeScript exports.
+- Added `layoutRichParagraphLines(...)`, returning canonical line ranges, diagnostics, and `InlineBoxFrame[]` for caller-rendered overlays.
+- Android inline boxes now materialize as U+FFFC object replacements and API 29+ `MeasuredText.Builder.appendReplacementRun(...)` entries while reporting atomic `inline_box` spans in diagnostics.
+- iOS inline boxes now materialize as U+FFFC object replacements with `CTRunDelegate` ascent, descent, and width metrics, so Core Text line creation reserves box geometry.
+- Android and iOS line height policies now merge native text ascent/descent/fallback metrics with caller-supplied box height/baseline metrics.
+- The inline segments example renders boxes as RN overlays from `InlineBoxFrame[]`; overlays do not participate in text layout.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed, Metro was started for the debug bundle, and the inline box example displayed the `OK` overlay at the native rich layout frame.
+- Artifact: `example/.maestro-artifacts/plan06/inline-box-ios.png`.
+- Android device verification was attempted with `agent-device devices --platform android`, but no Android device was connected.
 
 ## Plan 07: Selection And Accessibility
 

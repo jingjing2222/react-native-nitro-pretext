@@ -8,6 +8,7 @@ internal let whiteSpacePre = "pre"
 internal let wordBreakNormal = "normal"
 internal let wordBreakBreakAll = "break-all"
 internal let breakBehaviorNever = "never"
+internal let inlineSegmentKindBox = "box"
 internal let layoutEngineIosCoreText = "ios_core_text"
 internal let layoutEngineIosManualTokenFallback = "ios_manual_token_fallback"
 internal let fallbackReasonManualHeightEstimate = "manual_height_estimate"
@@ -38,6 +39,21 @@ internal struct NativeTokenDescriptor {
     let startUTF16: Int
     let endUTF16: Int
     let style: NativeTextStyle
+    let inlineBox: NativeInlineBox?
+
+    init(
+        text: String,
+        startUTF16: Int,
+        endUTF16: Int,
+        style: NativeTextStyle,
+        inlineBox: NativeInlineBox? = nil
+    ) {
+        self.text = text
+        self.startUTF16 = startUTF16
+        self.endUTF16 = endUTF16
+        self.style = style
+        self.inlineBox = inlineBox
+    }
 }
 
 internal struct NativePreparedToken {
@@ -56,6 +72,7 @@ internal struct NativePreparedParagraphSeed {
     let breakUnits: [NativeTokenDescriptor]
     let runs: [NativeTextRun]
     let atomicSpans: [NativeAtomicSpan]
+    let inlineBoxes: [NativeInlineBox]
     let textUnits: Int
     let forceTokenLayout: Bool
     let hasStyledRuns: Bool
@@ -69,6 +86,7 @@ internal final class NativePreparedParagraph {
     let breakUnits: [NativePreparedToken]
     let runs: [NativeTextRun]
     let atomicSpans: [NativeAtomicSpan]
+    let inlineBoxes: [NativeInlineBox]
     let forceTokenLayout: Bool
     let hasStyledRuns: Bool
 
@@ -80,6 +98,7 @@ internal final class NativePreparedParagraph {
         breakUnits: [NativePreparedToken],
         runs: [NativeTextRun],
         atomicSpans: [NativeAtomicSpan],
+        inlineBoxes: [NativeInlineBox],
         forceTokenLayout: Bool,
         hasStyledRuns: Bool
     ) {
@@ -90,6 +109,7 @@ internal final class NativePreparedParagraph {
         self.breakUnits = breakUnits
         self.runs = runs
         self.atomicSpans = atomicSpans
+        self.inlineBoxes = inlineBoxes
         self.forceTokenLayout = forceTokenLayout
         self.hasStyledRuns = hasStyledRuns
     }
@@ -99,6 +119,16 @@ internal struct NativeAtomicSpan {
     let startUTF16: Int
     let endUTF16: Int
     let source: String
+}
+
+internal struct NativeInlineBox {
+    let boxId: String
+    let startUTF16: Int
+    let endUTF16: Int
+    let width: Double
+    let height: Double
+    let baseline: Double
+    let breakBehavior: String
 }
 
 internal final class NativePreparedCorpus {
@@ -210,6 +240,7 @@ internal struct NativeParagraphDrawing {
     let text: NSString
     let attributedText: NSAttributedString
     let hasStyledRuns: Bool
+    let inlineBoxes: [NativeInlineBox]
     let layoutEngine: String
     let fallbackReason: String?
     let heightMetricSource: String
@@ -308,6 +339,7 @@ internal final class PretextShared {
                     ? [NativeTextRun(startUTF16: 0, endUTF16: textUnits, style: baseStyle)]
                     : [],
                 atomicSpans: [],
+                inlineBoxes: [],
                 textUnits: textUnits,
                 forceTokenLayout: false,
                 hasStyledRuns: false
@@ -345,7 +377,11 @@ internal final class PretextShared {
         let measurementStartedAt = nowMs()
         var measurementCache: [String: NativeTokenMetrics] = [:]
         let paragraphs = analyzedParagraphs.map { paragraph in
-            let attributedText = buildAttributedText(text: paragraph.text, runs: paragraph.runs)
+            let attributedText = buildAttributedText(
+                text: paragraph.text,
+                runs: paragraph.runs,
+                inlineBoxes: paragraph.inlineBoxes
+            )
             return NativePreparedParagraph(
                 text: paragraph.text,
                 attributedText: attributedText,
@@ -358,6 +394,7 @@ internal final class PretextShared {
                 },
                 runs: paragraph.runs,
                 atomicSpans: paragraph.atomicSpans,
+                inlineBoxes: paragraph.inlineBoxes,
                 forceTokenLayout: paragraph.forceTokenLayout,
                 hasStyledRuns: paragraph.hasStyledRuns
             )
@@ -403,11 +440,44 @@ internal final class PretextShared {
         var breakUnits: [NativeTokenDescriptor] = []
         var runs: [NativeTextRun] = []
         var atomicSpans: [NativeAtomicSpan] = []
+        var inlineBoxes: [NativeInlineBox] = []
         var forceTokenLayout = false
         var hasStyledRuns = false
 
         for segment in paragraph {
             let baseOffset = (text as NSString).length
+            let breakBehavior = segment.breakBehavior.lowercased()
+            if segment.kind?.lowercased() == inlineSegmentKindBox || segment.boxId != nil {
+                let box = buildInlineBox(segment: segment, startUTF16: baseOffset)
+                text += objectReplacementCharacter
+                inlineBoxes.append(box)
+                atomicSpans.append(
+                    NativeAtomicSpan(
+                        startUTF16: box.startUTF16,
+                        endUTF16: box.endUTF16,
+                        source: "inline_box"
+                    )
+                )
+                tokens.append(
+                    NativeTokenDescriptor(
+                        text: objectReplacementCharacter,
+                        startUTF16: box.startUTF16,
+                        endUTF16: box.endUTF16,
+                        style: baseStyle,
+                        inlineBox: box
+                    )
+                )
+                breakUnits.append(
+                    NativeTokenDescriptor(
+                        text: objectReplacementCharacter,
+                        startUTF16: box.startUTF16,
+                        endUTF16: box.endUTF16,
+                        style: baseStyle,
+                        inlineBox: box
+                    )
+                )
+                continue
+            }
             let resolvedStyle = resolveTextStyle(segment: segment, baseStyle: baseStyle)
             text += segment.text
             let endOffset = (text as NSString).length
@@ -421,8 +491,8 @@ internal final class PretextShared {
                 )
             }
             hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
-            forceTokenLayout = forceTokenLayout || segment.breakBehavior.lowercased() == breakBehaviorNever
-            if segment.breakBehavior.lowercased() == breakBehaviorNever && endOffset > baseOffset {
+            forceTokenLayout = forceTokenLayout || breakBehavior == breakBehaviorNever
+            if breakBehavior == breakBehaviorNever && endOffset > baseOffset {
                 atomicSpans.append(
                     NativeAtomicSpan(
                         startUTF16: baseOffset,
@@ -445,9 +515,25 @@ internal final class PretextShared {
             breakUnits: breakUnits,
             runs: mergeAdjacentRuns(runs),
             atomicSpans: atomicSpans,
+            inlineBoxes: inlineBoxes,
             textUnits: text.utf16.count,
             forceTokenLayout: forceTokenLayout,
             hasStyledRuns: hasStyledRuns
+        )
+    }
+
+    private func buildInlineBox(segment: InlineSegment, startUTF16: Int) -> NativeInlineBox {
+        let width = max(0, segment.width ?? 0)
+        let height = max(0, segment.height ?? 0)
+        let baseline = min(max(0, segment.baseline ?? height), height)
+        return NativeInlineBox(
+            boxId: segment.boxId ?? "inline-box-\(startUTF16)",
+            startUTF16: startUTF16,
+            endUTF16: startUTF16 + (objectReplacementCharacter as NSString).length,
+            width: width,
+            height: height,
+            baseline: baseline,
+            breakBehavior: segment.breakBehavior.lowercased()
         )
     }
 
@@ -495,6 +581,16 @@ internal final class PretextShared {
         request: ParagraphLayoutRequest
     ) throws -> [LaidOutParagraphLinesWithDiagnostics] {
         try layoutParagraphLinesWithDiagnostics(
+            preparedId: preparedId,
+            request: normalizeLayoutRequest(request)
+        )
+    }
+
+    func layoutRichParagraphLines(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutRichParagraphLines] {
+        try layoutRichParagraphLines(
             preparedId: preparedId,
             request: normalizeLayoutRequest(request)
         )
@@ -622,6 +718,7 @@ internal final class PretextShared {
             text: paragraph.text,
             attributedText: paragraph.attributedText,
             hasStyledRuns: paragraph.hasStyledRuns,
+            inlineBoxes: paragraph.inlineBoxes,
             layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosManualTokenFallback,
             fallbackReason: lineLayouts.compactMap(\.fallbackReason).first,
             heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
@@ -722,6 +819,37 @@ internal final class PretextShared {
         }
     }
 
+    private func layoutRichParagraphLines(
+        preparedId: Double,
+        request: NativeLayoutRequest
+    ) throws -> [LaidOutRichParagraphLines] {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
+
+        return prepared.paragraphs.enumerated().map { index, paragraph in
+            let lineLayouts = paragraphLineLayouts[index]
+            return LaidOutRichParagraphLines(
+                lineCount: Double(lineLayouts.count),
+                height: sumHeights(lineLayouts),
+                maxLineWidth: lineLayouts.map(\.width).max() ?? 0,
+                lines: buildParagraphLineRanges(lineLayouts: lineLayouts),
+                boxFrames: buildInlineBoxFrames(
+                    paragraphIndex: index,
+                    paragraph: paragraph,
+                    lineLayouts: lineLayouts
+                ),
+                diagnostics: buildParagraphLayoutDiagnostics(
+                    paragraph: paragraph,
+                    request: request,
+                    lineLayouts: lineLayouts
+                )
+            )
+        }
+    }
+
     private func requirePreparedCorpus(preparedId: Double) throws -> NativePreparedCorpus {
         let handle = Int64(preparedId)
         guard let prepared = preparedCorpora[handle] else {
@@ -744,6 +872,18 @@ internal final class PretextShared {
         _ token: NativeTokenDescriptor,
         cache: inout [String: NativeTokenMetrics]
     ) -> NativePreparedToken {
+        if let box = token.inlineBox {
+            return NativePreparedToken(
+                text: token.text,
+                startUTF16: token.startUTF16,
+                endUTF16: token.endUTF16,
+                width: box.width,
+                lineHeight: box.height,
+                ascent: box.baseline,
+                descent: max(0, box.height - box.baseline)
+            )
+        }
+
         if token.text == newlineToken {
             return NativePreparedToken(
                 text: token.text,
@@ -852,6 +992,88 @@ internal final class PretextShared {
                 heightMetricSource: heightMetricSourcePlatformTextEngineMetrics
             )
         }
+    }
+
+    private func buildInlineBoxFrames(
+        paragraphIndex: Int,
+        paragraph: NativePreparedParagraph,
+        lineLayouts: [NativeLineLayout]
+    ) -> [InlineBoxFrame] {
+        guard !paragraph.inlineBoxes.isEmpty else {
+            return []
+        }
+
+        return paragraph.inlineBoxes.compactMap { box in
+            guard let lineIndex = lineLayouts.firstIndex(where: { line in
+                box.startUTF16 >= line.textStartUTF16 && box.endUTF16 <= line.textEndUTF16
+            }) else {
+                return nil
+            }
+
+            let line = lineLayouts[lineIndex]
+            let actualHeight = max(0, line.ascent + line.descent)
+            let centerOffset = max(0, (line.height - actualHeight) / 2)
+            let baseline = line.top + centerOffset + line.ascent
+            let lineOffset = line.ctLine.map { ctLine in
+                Double(CTLineGetOffsetForStringIndex(ctLine, box.startUTF16, nil))
+            } ?? measureParagraphAdvance(
+                paragraph: paragraph,
+                startUTF16: line.textStartUTF16,
+                endUTF16: box.startUTF16
+            )
+
+            return InlineBoxFrame(
+                boxId: box.boxId,
+                paragraphIndex: Double(paragraphIndex),
+                lineIndex: Double(lineIndex),
+                textStart: Double(box.startUTF16),
+                textEnd: Double(box.endUTF16),
+                left: line.left + lineOffset,
+                top: baseline - box.baseline,
+                width: box.width,
+                height: box.height,
+                baseline: baseline
+            )
+        }
+    }
+
+    private func measureParagraphAdvance(
+        paragraph: NativePreparedParagraph,
+        startUTF16: Int,
+        endUTF16: Int
+    ) -> Double {
+        guard endUTF16 > startUTF16 else {
+            return 0
+        }
+
+        let sortedBoxes = paragraph.inlineBoxes.sorted { $0.startUTF16 < $1.startUTF16 }
+        let sortedRuns = paragraph.runs.sorted { $0.startUTF16 < $1.startUTF16 }
+        var cursor = startUTF16
+        var width = 0.0
+
+        while cursor < endUTF16 {
+            if let box = sortedBoxes.first(where: { $0.startUTF16 == cursor }) {
+                width += box.width
+                cursor = min(endUTF16, box.endUTF16)
+                continue
+            }
+
+            let nextBoxStart = sortedBoxes.first(where: { $0.startUTF16 > cursor })?.startUTF16 ?? endUTF16
+            let run = sortedRuns.first(where: { $0.startUTF16 <= cursor && $0.endUTF16 > cursor })
+            let segmentEnd = min(endUTF16, nextBoxStart, run?.endUTF16 ?? endUTF16)
+            guard segmentEnd > cursor else {
+                break
+            }
+            let substring = paragraph.text.substring(
+                with: NSRange(location: cursor, length: segmentEnd - cursor)
+            )
+            if let style = run?.style {
+                width += measureToken(substring, style: style).width
+            }
+            cursor = segmentEnd
+        }
+
+        return width
     }
 
     private func buildParagraphLayoutDiagnostics(
@@ -1178,6 +1400,7 @@ internal final class PretextShared {
                 lineHeight,
                 maxRequestedLineHeight(
                     runs: prepared.runs,
+                    inlineBoxes: prepared.inlineBoxes,
                     defaultLineHeight: lineHeight,
                     startUTF16: start,
                     endUTF16: start + count
@@ -1584,6 +1807,7 @@ internal final class PretextShared {
 
     private func maxRequestedLineHeight(
         runs: [NativeTextRun],
+        inlineBoxes: [NativeInlineBox] = [],
         defaultLineHeight: Double,
         startUTF16: Int,
         endUTF16: Int
@@ -1592,6 +1816,9 @@ internal final class PretextShared {
 
         for run in runs where run.endUTF16 > startUTF16 && run.startUTF16 < endUTF16 {
             maxHeight = max(maxHeight, run.style.lineHeight > 0 ? run.style.lineHeight : defaultLineHeight)
+        }
+        for box in inlineBoxes where box.endUTF16 > startUTF16 && box.startUTF16 < endUTF16 {
+            maxHeight = max(maxHeight, box.height)
         }
 
         return maxHeight
