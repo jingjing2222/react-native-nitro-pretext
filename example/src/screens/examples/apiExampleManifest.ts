@@ -6,10 +6,10 @@ export type ApiExampleManifestEntry = {
   apiSymbol: string;
   coveredDocSections: string[];
   docAnchor: string;
-  kind: "use-case" | "none-use-case";
+  kind: "use-case" | "non-use-case";
   pairId: string;
   path: string;
-  reportPrefix: "API_EXAMPLE_REPORT" | "NONE_USE_CASE_REPORT";
+  reportPrefix: "API_EXAMPLE_REPORT" | "NON_USE_CASE_REPORT";
   routeName: RouteName;
   shortDescription: string;
   title: string;
@@ -113,14 +113,14 @@ const apiUseCaseEntries = [
   },
 ] as const satisfies Omit<ApiExampleManifestEntry, "kind" | "reportPrefix">[];
 
-const noneUseCaseEntries = [
+const nonUseCaseEntries = [
   {
     apiSymbol: "rn-only:prepare",
     coveredDocSections: ["prepare(text, style)", "PretextPrepared"],
     docAnchor: "preparetext-style",
     pairId: "prepare",
-    path: "examples/none-use-case/prepare",
-    routeName: "ExampleNoneUseCasePrepare",
+    path: "examples/non-use-case/prepare",
+    routeName: "ExampleNonUseCasePrepare",
     shortDescription:
       "Show the hidden measurement cache you build without prepare().",
     title: "RN-only prepare workaround",
@@ -130,8 +130,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ['output: "metrics"'],
     docAnchor: "output-metrics",
     pairId: "layout-metrics",
-    path: "examples/none-use-case/layout-metrics",
-    routeName: "ExampleNoneUseCaseLayoutMetrics",
+    path: "examples/non-use-case/layout-metrics",
+    routeName: "ExampleNonUseCaseLayoutMetrics",
     shortDescription:
       "Measure height with hidden Text before visible cards can render.",
     title: "RN-only metrics workaround",
@@ -141,8 +141,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ["PretextLayoutOptions"],
     docAnchor: "layoutprepared-widthoroptions",
     pairId: "layout-options",
-    path: "examples/none-use-case/layout-options",
-    routeName: "ExampleNoneUseCaseLayoutOptions",
+    path: "examples/non-use-case/layout-options",
+    routeName: "ExampleNonUseCaseLayoutOptions",
     shortDescription:
       "Show why shape and break rules become caller-managed state.",
     title: "RN-only options workaround",
@@ -152,8 +152,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ['output: "lines"'],
     docAnchor: "output-lines",
     pairId: "layout-lines",
-    path: "examples/none-use-case/layout-lines",
-    routeName: "ExampleNoneUseCaseLayoutLines",
+    path: "examples/non-use-case/layout-lines",
+    routeName: "ExampleNonUseCaseLayoutLines",
     shortDescription:
       "Use onTextLayout and expose missing native line geometry.",
     title: "RN-only lines workaround",
@@ -163,8 +163,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ['output: "diagnostics"'],
     docAnchor: "output-diagnostics",
     pairId: "layout-diagnostics",
-    path: "examples/none-use-case/layout-diagnostics",
-    routeName: "ExampleNoneUseCaseDiagnostics",
+    path: "examples/non-use-case/layout-diagnostics",
+    routeName: "ExampleNonUseCaseDiagnostics",
     shortDescription:
       "Show the engine and drift signals RN callbacks do not report.",
     title: "RN-only diagnostics gap",
@@ -174,8 +174,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ['output: "rich"', "InlineBoxFrame"],
     docAnchor: "output-rich",
     pairId: "layout-rich",
-    path: "examples/none-use-case/layout-rich",
-    routeName: "ExampleNoneUseCaseLayoutRich",
+    path: "examples/non-use-case/layout-rich",
+    routeName: "ExampleNonUseCaseLayoutRich",
     shortDescription:
       "Use nested Text and show the missing inline box frame contract.",
     title: "RN-only rich inline gap",
@@ -185,8 +185,8 @@ const noneUseCaseEntries = [
     coveredDocSections: ["usePretextLayout(options)"],
     docAnchor: "usepretextlayoutoptions",
     pairId: "use-pretext-layout",
-    path: "examples/none-use-case/use-pretext-layout",
-    routeName: "ExampleNoneUseCaseHook",
+    path: "examples/non-use-case/use-pretext-layout",
+    routeName: "ExampleNonUseCaseHook",
     shortDescription:
       "Show the custom hook lifecycle required around hidden measurement.",
     title: "RN-only hook workaround",
@@ -199,10 +199,10 @@ export const apiExampleManifest: ApiExampleManifestEntry[] = [
     kind: "use-case" as const,
     reportPrefix: "API_EXAMPLE_REPORT" as const,
   })),
-  ...noneUseCaseEntries.map((entry) => ({
+  ...nonUseCaseEntries.map((entry) => ({
     ...entry,
-    kind: "none-use-case" as const,
-    reportPrefix: "NONE_USE_CASE_REPORT" as const,
+    kind: "non-use-case" as const,
+    reportPrefix: "NON_USE_CASE_REPORT" as const,
   })),
 ];
 
@@ -210,6 +210,6 @@ export const useCaseExamples = apiExampleManifest.filter(
   (entry) => entry.kind === "use-case",
 );
 
-export const noneUseCaseExamples = apiExampleManifest.filter(
-  (entry) => entry.kind === "none-use-case",
+export const nonUseCaseExamples = apiExampleManifest.filter(
+  (entry) => entry.kind === "non-use-case",
 );

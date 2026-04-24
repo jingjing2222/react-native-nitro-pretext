@@ -2,11 +2,16 @@ import type { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import type { AppStackParamList } from "../../navigation/types";
+import type { AppStackParamList } from "../../../navigation/types";
+import type { ApiExampleManifestEntry } from "../apiExampleManifest";
+import { nonUseCaseExamples } from "../apiExampleManifest";
 
-type Props = NativeStackScreenProps<AppStackParamList, "ExampleIndex">;
+type Props = NativeStackScreenProps<
+  AppStackParamList,
+  "ExampleNonUseCaseIndex"
+>;
 
-export function ExampleIndexScreen({ navigation }: Props) {
+export function ExampleNonUseCaseIndexScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
 
   return (
@@ -19,42 +24,32 @@ export function ExampleIndexScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={localStyles.header}>
-          <Text style={localStyles.route}>examples</Text>
-          <Text style={localStyles.title}>API examples</Text>
+          <Text style={localStyles.route}>examples/non-use-case</Text>
+          <Text style={localStyles.title}>RN-only workarounds</Text>
           <Text style={localStyles.description}>
-            Pick a Pretext API page, then compare the matching RN-only
-            workaround.
+            Each page keeps the hidden Text and callback code in the screen file
+            so the workaround is visible.
           </Text>
         </View>
 
-        <ExampleLink
-          description="Focused pages for prepare, layout outputs, hook lifecycle, namespace calls, and exported types."
-          onPress={() => navigation.navigate("ExampleUseCaseIndex")}
-          testID="examples.open-use-case"
-          title="examples/use-case"
-        />
-
-        <ExampleLink
-          description="Matching RN-only pages using hidden Text, onLayout, and onTextLayout."
-          onPress={() => navigation.navigate("ExampleNonUseCaseIndex")}
-          testID="examples.open-non-use-case"
-          title="examples/non-use-case"
-        />
+        {nonUseCaseExamples.map((entry) => (
+          <NonUseCaseLink
+            entry={entry}
+            key={entry.path}
+            onPress={() => navigation.navigate(entry.routeName)}
+          />
+        ))}
       </ScrollView>
     </View>
   );
 }
 
-function ExampleLink({
-  description,
+function NonUseCaseLink({
+  entry,
   onPress,
-  testID,
-  title,
 }: {
-  description: string;
+  entry: ApiExampleManifestEntry;
   onPress: () => void;
-  testID: string;
-  title: string;
 }) {
   return (
     <Pressable
@@ -64,10 +59,11 @@ function ExampleLink({
         localStyles.card,
         pressed && localStyles.cardPressed,
       ]}
-      testID={testID}
+      testID={`examples.non-use-case.open.${entry.pairId}`}
     >
-      <Text style={localStyles.cardTitle}>{title}</Text>
-      <Text style={localStyles.cardDescription}>{description}</Text>
+      <Text style={localStyles.cardRoute}>{entry.path}</Text>
+      <Text style={localStyles.cardTitle}>{entry.title}</Text>
+      <Text style={localStyles.cardDescription}>{entry.shortDescription}</Text>
     </Pressable>
   );
 }
@@ -88,6 +84,12 @@ const localStyles = StyleSheet.create({
   },
   cardPressed: {
     opacity: 0.72,
+  },
+  cardRoute: {
+    color: "#63706b",
+    fontSize: 11,
+    fontWeight: "800",
+    textTransform: "uppercase",
   },
   cardTitle: {
     color: "#1f2725",

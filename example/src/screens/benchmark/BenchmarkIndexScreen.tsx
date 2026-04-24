@@ -13,6 +13,7 @@ import {
 } from "../../benchmark/constants";
 import type { AppStackParamList } from "../../navigation/types";
 import {
+  CatalogCard,
   HeroAutomationPanel,
   NavigationCard,
   SummaryMetric,
@@ -98,6 +99,16 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
           secondarySummary={preparedViewResults.computeSummary}
           summary={preparedViewResults.renderSummary}
           title="benchmark/pretext-layout"
+        />
+
+        <CatalogCard
+          buttonLabel="Open benchmark/measured-layout"
+          buttonTestID="benchmark.index.open-measured-layout"
+          description="Case study for a MeasureLayout-style masonry UI that compares hidden RN Text measurement with Pretext metrics."
+          onPress={() =>
+            navigation.navigate("BenchmarkMeasuredLayoutCaseStudy")
+          }
+          title="benchmark/measured-layout"
         />
 
         <View style={styles.summaryCard}>

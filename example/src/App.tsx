@@ -12,9 +12,8 @@ import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutB
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { createExampleRoutePlaceholder } from "./screens/examples/ExampleRoutePlaceholderScreen";
 import { apiExampleManifest } from "./screens/examples/apiExampleManifest";
-import { ExampleNoneUseCaseIndexScreen } from "./screens/examples/none-use-case/ExampleNoneUseCaseIndexScreen";
+import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
-import { MeasuredLayoutComparisonScreen } from "./screens/examples/MeasuredLayoutComparisonScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -53,26 +52,26 @@ const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
 const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
 );
-const ExampleNoneUseCasePrepareScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCasePrepare"),
+const ExampleNonUseCasePrepareScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCasePrepare"),
 );
-const ExampleNoneUseCaseLayoutMetricsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseLayoutMetrics"),
+const ExampleNonUseCaseLayoutMetricsScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseLayoutMetrics"),
 );
-const ExampleNoneUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseLayoutOptions"),
+const ExampleNonUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseLayoutOptions"),
 );
-const ExampleNoneUseCaseLayoutLinesScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseLayoutLines"),
+const ExampleNonUseCaseLayoutLinesScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseLayoutLines"),
 );
-const ExampleNoneUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseDiagnostics"),
+const ExampleNonUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseDiagnostics"),
 );
-const ExampleNoneUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseLayoutRich"),
+const ExampleNonUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseLayoutRich"),
 );
-const ExampleNoneUseCaseHookScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNoneUseCaseHook"),
+const ExampleNonUseCaseHookScreen = createExampleRoutePlaceholder(
+  getExampleEntry("ExampleNonUseCaseHook"),
 );
 
 const navigationTheme = {
@@ -96,7 +95,6 @@ const linking = {
       BenchmarkPretextLayout: "benchmark/pretext-layout",
       BenchmarkMeasuredLayoutCaseStudy: "benchmark/measured-layout",
       ExampleIndex: "examples",
-      ExampleMeasuredLayout: "examples/measured-layout",
       ExampleUseCaseIndex: "examples/use-case",
       ExampleUseCasePrepare: "examples/use-case/prepare",
       ExampleUseCaseLayoutMetrics: "examples/use-case/layout-metrics",
@@ -106,15 +104,14 @@ const linking = {
       ExampleUseCaseLayoutRich: "examples/use-case/layout-rich",
       ExampleUseCaseHook: "examples/use-case/use-pretext-layout",
       ExampleUseCaseNamespaceAndTypes: "examples/use-case/namespace-and-types",
-      ExampleNoneUseCaseIndex: "examples/none-use-case",
-      ExampleNoneUseCasePrepare: "examples/none-use-case/prepare",
-      ExampleNoneUseCaseLayoutMetrics: "examples/none-use-case/layout-metrics",
-      ExampleNoneUseCaseLayoutOptions: "examples/none-use-case/layout-options",
-      ExampleNoneUseCaseLayoutLines: "examples/none-use-case/layout-lines",
-      ExampleNoneUseCaseDiagnostics:
-        "examples/none-use-case/layout-diagnostics",
-      ExampleNoneUseCaseLayoutRich: "examples/none-use-case/layout-rich",
-      ExampleNoneUseCaseHook: "examples/none-use-case/use-pretext-layout",
+      ExampleNonUseCaseIndex: "examples/non-use-case",
+      ExampleNonUseCasePrepare: "examples/non-use-case/prepare",
+      ExampleNonUseCaseLayoutMetrics: "examples/non-use-case/layout-metrics",
+      ExampleNonUseCaseLayoutOptions: "examples/non-use-case/layout-options",
+      ExampleNonUseCaseLayoutLines: "examples/non-use-case/layout-lines",
+      ExampleNonUseCaseDiagnostics: "examples/non-use-case/layout-diagnostics",
+      ExampleNonUseCaseLayoutRich: "examples/non-use-case/layout-rich",
+      ExampleNonUseCaseHook: "examples/non-use-case/use-pretext-layout",
     },
   },
 };
@@ -176,14 +173,9 @@ export default function App() {
               options={{ title: "examples/use-case" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseIndexScreen}
-              name="ExampleNoneUseCaseIndex"
-              options={{ title: "examples/none-use-case" }}
-            />
-            <Stack.Screen
-              component={MeasuredLayoutComparisonScreen}
-              name="ExampleMeasuredLayout"
-              options={{ title: "examples/measured-layout" }}
+              component={ExampleNonUseCaseIndexScreen}
+              name="ExampleNonUseCaseIndex"
+              options={{ title: "examples/non-use-case" }}
             />
             <Stack.Screen
               component={ExampleUseCasePrepareScreen}
@@ -226,39 +218,39 @@ export default function App() {
               options={{ title: "examples/use-case/namespace-and-types" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCasePrepareScreen}
-              name="ExampleNoneUseCasePrepare"
-              options={{ title: "examples/none-use-case/prepare" }}
+              component={ExampleNonUseCasePrepareScreen}
+              name="ExampleNonUseCasePrepare"
+              options={{ title: "examples/non-use-case/prepare" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseLayoutMetricsScreen}
-              name="ExampleNoneUseCaseLayoutMetrics"
-              options={{ title: "examples/none-use-case/layout-metrics" }}
+              component={ExampleNonUseCaseLayoutMetricsScreen}
+              name="ExampleNonUseCaseLayoutMetrics"
+              options={{ title: "examples/non-use-case/layout-metrics" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseLayoutOptionsScreen}
-              name="ExampleNoneUseCaseLayoutOptions"
-              options={{ title: "examples/none-use-case/layout-options" }}
+              component={ExampleNonUseCaseLayoutOptionsScreen}
+              name="ExampleNonUseCaseLayoutOptions"
+              options={{ title: "examples/non-use-case/layout-options" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseLayoutLinesScreen}
-              name="ExampleNoneUseCaseLayoutLines"
-              options={{ title: "examples/none-use-case/layout-lines" }}
+              component={ExampleNonUseCaseLayoutLinesScreen}
+              name="ExampleNonUseCaseLayoutLines"
+              options={{ title: "examples/non-use-case/layout-lines" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseDiagnosticsScreen}
-              name="ExampleNoneUseCaseDiagnostics"
-              options={{ title: "examples/none-use-case/layout-diagnostics" }}
+              component={ExampleNonUseCaseDiagnosticsScreen}
+              name="ExampleNonUseCaseDiagnostics"
+              options={{ title: "examples/non-use-case/layout-diagnostics" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseLayoutRichScreen}
-              name="ExampleNoneUseCaseLayoutRich"
-              options={{ title: "examples/none-use-case/layout-rich" }}
+              component={ExampleNonUseCaseLayoutRichScreen}
+              name="ExampleNonUseCaseLayoutRich"
+              options={{ title: "examples/non-use-case/layout-rich" }}
             />
             <Stack.Screen
-              component={ExampleNoneUseCaseHookScreen}
-              name="ExampleNoneUseCaseHook"
-              options={{ title: "examples/none-use-case/use-pretext-layout" }}
+              component={ExampleNonUseCaseHookScreen}
+              name="ExampleNonUseCaseHook"
+              options={{ title: "examples/non-use-case/use-pretext-layout" }}
             />
           </Stack.Navigator>
         </NavigationContainer>
