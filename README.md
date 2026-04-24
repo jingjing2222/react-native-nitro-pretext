@@ -20,8 +20,12 @@ Implemented in the repository:
 - native request-level relayout cache on iOS and Android for repeated width / request reuse
 - cursor-style streaming with `createParagraphLineCursor()` and `nextParagraphLine()`
 - `PreparedParagraphView`, a native paragraph surface that consumes `preparedId + paragraphIndex + layoutRequest` directly
+- `PreparedParagraphsView`, a batched native paragraph surface that renders a prepared corpus without mounting one RN `<Text>` per paragraph
 - `PreparedParagraphLinesView`, a line-range renderer that consumes explicit line positions and places one RN `<Text>` node per line
 - `PreparedParagraphText`, a React Native `<Text>` renderer that materializes prepared paragraph breaks on demand
+- `layoutParagraphLinesWithDiagnostics()` for native engine, renderer, padding, break-table, boundary-map, and drift diagnostics
+- `layoutRichParagraphLines()` with caller-supplied inline box metrics and returned `InlineBoxFrame[]`
+- native prepared selection helpers: hit testing, selection rects, select-all, selected-text readback, and clipboard copy
 - benchmark corpus helpers: `prepareBenchmarkCorpus()`, `layoutPreparedBenchmarkCorpus()`, and `releasePreparedBenchmarkCorpus()`
 - split example app into dedicated `screens/benchmark/*` and `screens/examples/*` pages with React Navigation
 - pretext-style comparison scenarios under `screens/examples/slites/*`
@@ -30,14 +34,15 @@ Implemented in the repository:
 
 Platform backends:
 
-- Android: `MeasuredText + LineBreaker` on API 29+, token fallback below API 29
-- iOS: `CTTypesetter`-based line breaking via CoreText
+- Android: canonical `MeasuredText + LineBreaker` on API 29+, named legacy/token fallback below API 29
+- iOS: Core Text `CTTypesetter + CTLine + CTLineDraw`
 
 Not implemented yet:
 
-- embedded non-text inline content like chips/images
-- renderer integrations beyond the current native paragraph view, line-range renderer, and React Native `<Text>` helpers
-- full `pretext` feature parity for parity-perfect line breaking, advanced shaping edge cases, and rich inline layout beyond styled text runs
+- editing and paste support; prepared text is selectable/copyable, not an editable text input
+- Android API 24-28 canonical parity; those versions remain supported only through named legacy fallback paths
+- browser canvas pixel parity; diagnostics compare native engine traces instead
+- full `pretext` feature parity for every advanced shaping and rich inline layout case
 
 ## Installation
 
@@ -55,8 +60,8 @@ The library is organized around three steps:
    Build prepared paragraph state once and capture cold setup cost.
 2. `layoutParagraphsMetadata()` or `layoutParagraphLines()`
    Reflow the same prepared paragraphs for a new width on the hot path.
-3. `PreparedParagraphView`
-   Render a paragraph by passing a prepared handle, paragraph index, and request-based relayout input to a native view instead of materializing line objects through JS props.
+3. `PreparedParagraphsView` or `PreparedParagraphView`
+   Render prepared state through native surfaces instead of materializing line objects through JS props.
 
 ## Usage
 
@@ -65,13 +70,20 @@ import {
   PreparedParagraphView,
   PreparedParagraphLinesView,
   PreparedParagraphText,
+  copyPreparedTextSelection,
   createParagraphLayoutRequest,
   createParagraphLineCursor,
+  hitTestPreparedTextPosition,
+  layoutParagraphLinesWithDiagnostics,
   layoutParagraphLinesWithRequest,
+  layoutParagraphsMetadata,
   layoutParagraphsMetadataWithRequest,
+  layoutPreparedTextSelectionRects,
+  layoutRichParagraphLines,
   nextParagraphLine,
   prepareInlineParagraphsWithStats,
   prepareParagraphsWithStats,
+  selectAllPreparedText,
   type InlineSegment,
   type ParagraphStyle,
 } from "react-native-nitro-pretext";
@@ -82,6 +94,8 @@ const style: ParagraphStyle = {
   lineHeight: 28,
   letterSpacing: 0,
   locale: "ko-KR",
+  includeFontPadding: true,
+  textDirection: "auto",
 };
 
 const { prepared, stats } = prepareParagraphsWithStats(
@@ -133,7 +147,7 @@ If you want to consume explicit line ranges directly from JS:
 />
 ```
 
-For inline content with styled runs and non-breakable spans:
+For inline content with styled runs, atomic boxes, and non-breakable spans:
 
 ```ts
 const inlineParagraph: InlineSegment[] = [
@@ -141,12 +155,19 @@ const inlineParagraph: InlineSegment[] = [
   { text: "bold runs", breakBehavior: "normal", fontWeight: "700" },
   { text: ", ", breakBehavior: "normal" },
   { text: "italic emphasis", breakBehavior: "normal", fontStyle: "italic" },
-  { text: ", and ", breakBehavior: "normal" },
+  { text: ", a ", breakBehavior: "normal" },
+  { kind: "box", boxId: "badge", width: 28, height: 22, baseline: 17, breakBehavior: "never" },
+  { text: " badge, and ", breakBehavior: "normal" },
   { text: "@pretext", breakBehavior: "never", fontSize: 20, lineHeight: 30, fontWeight: "700" },
   { text: " while the rest can wrap normally.", breakBehavior: "normal" },
 ];
 
 const inlinePrepared = prepareInlineParagraphsWithStats([inlineParagraph], style);
+const [richLayout] = layoutRichParagraphLines(
+  inlinePrepared.prepared.id,
+  createParagraphLayoutRequest(280),
+);
+const badgeFrame = richLayout.boxFrames[0];
 
 function InlineExample() {
   const [metrics] = layoutParagraphsMetadata(inlinePrepared.prepared.id, 280);
@@ -182,8 +203,21 @@ const request = createParagraphLayoutRequest(280, {
 });
 
 const [paragraph] = layoutParagraphLinesWithRequest(prepared.id, request);
+const [diagnosticParagraph] = layoutParagraphLinesWithDiagnostics(
+  prepared.id,
+  request,
+);
 const cursor = createParagraphLineCursor(prepared.id, 0, request);
 const firstLine = nextParagraphLine(cursor.id);
+```
+
+For native prepared selection, use `PreparedParagraphView` with `selectable`, or call the lower-level helpers directly:
+
+```ts
+const position = hitTestPreparedTextPosition(prepared.id, 0, request, 48, 12);
+const selected = selectAllPreparedText(prepared.id, position.paragraphIndex);
+const rects = layoutPreparedTextSelectionRects(prepared.id, selected, request);
+const copiedText = copyPreparedTextSelection(prepared.id, selected);
 ```
 
 ## Public API
@@ -203,6 +237,13 @@ const firstLine = nextParagraphLine(cursor.id);
 - `layoutParagraphsWithRequest(preparedId, request)`
 - `layoutParagraphsMetadataWithRequest(preparedId, request)`
 - `layoutParagraphLinesWithRequest(preparedId, request)`
+- `layoutParagraphLinesWithDiagnostics(preparedId, request)`
+- `layoutRichParagraphLines(preparedId, request)`
+- `hitTestPreparedTextPosition(preparedId, paragraphIndex, request, x, y)`
+- `layoutPreparedTextSelectionRects(preparedId, range, request)`
+- `selectAllPreparedText(preparedId, paragraphIndex)`
+- `getPreparedTextSelection(preparedId, range)`
+- `copyPreparedTextSelection(preparedId, range)`
 - `createParagraphLineCursor(preparedId, paragraphIndex, request)`
 - `nextParagraphLine(cursorId)`
 - `releaseParagraphLineCursor(cursorId)`
@@ -211,8 +252,18 @@ const firstLine = nextParagraphLine(cursor.id);
 - `layoutPreparedBenchmarkCorpus(preparedId, width)`
 - `releasePreparedBenchmarkCorpus(preparedId)`
 - `PreparedParagraphView`
+- `PreparedParagraphsView`
 - `PreparedParagraphLinesView`
 - `PreparedParagraphText`
+
+Important public types and style fields:
+
+- `ParagraphStyle.includeFontPadding?: boolean`: Android padding policy is explicit and defaults to `true` for RN `<Text>` compatibility.
+- `ParagraphStyle.textDirection?: "auto" | "ltr" | "rtl"`: native engines own visual order; public ranges stay source UTF-16 offsets.
+- `InlineSegment` supports text segments and box segments. Box segments use caller-supplied `boxId`, `width`, `height`, `baseline`, and `breakBehavior`.
+- `InlineBoxFrame` reports the native frame for each box so React Native overlays can render non-text content without participating in text layout.
+- `ParagraphLayoutDiagnostics`, `ParagraphBoundaryMap`, and `ParagraphComplexShapeCounters` expose engine, renderer, padding, break, grapheme, bidi, emoji, and fallback diagnostics.
+- `PreparedTextPosition`, `PreparedTextRange`, and `PreparedTextSelectionRect` back prepared selection/copy surfaces.
 
 ## Benchmark App
 
@@ -221,12 +272,12 @@ The example app is intentionally split by page so each path can be measured inde
 - `Home`: combines the latest results from both benchmark pages
 - `screens/benchmark/BenchmarkIndexScreen`: benchmark landing page
 - `screens/benchmark/BaseTextBenchmarkScreen`: plain React Native `<Text>` compatibility baseline for parity comparison
-- `screens/benchmark/PreparedParagraphViewBenchmarkScreen`: prepared-state relayout plus native paragraph view rendering
+- `screens/benchmark/PreparedParagraphViewBenchmarkScreen`: prepared-state relayout plus batched native paragraph rendering
 - `screens/examples/ExampleIndexScreen`: examples landing page
 - `screens/examples/PreparedViewExampleScreen`: native paragraph surface example
 - `screens/examples/PreparedLinesExampleScreen`: explicit line-range renderer example
 - `screens/examples/PreparedTextExampleScreen`: prepared-state-backed `<Text>` example
-- `screens/examples/InlineSegmentsExampleScreen`: styled inline run example with a glued handle span
+- `screens/examples/InlineSegmentsExampleScreen`: styled inline run example with a caller-supplied atomic box
 - `screens/examples/LineCursorExampleScreen`: request-based relayout and cursor streaming example
 - `screens/examples/slites/AccordionSliteScreen`: predict accordion height before opening
 - `screens/examples/slites/BubblesSliteScreen`: search the smallest bubble width that preserves the same wrapped lines
@@ -294,37 +345,42 @@ If Maestro reports `iOS driver not ready in time`, restart the simulator and rer
 
 ## Latest Local Benchmark Snapshot
 
-Latest validated iOS suite snapshot on `2026-04-13`:
+Latest validated iOS suite snapshot on `2026-04-24`, from [latest-summary.txt](example/.maestro-artifacts/ios-suite/latest-summary.txt).
 
-Source artifacts:
+The automated suite measures the current canonical paths:
 
-- [Benchmark suite summary](example/.maestro-artifacts/ios-suite/latest-summary.txt)
-- [Improvement report](docs/benchmark-improvement-report.md)
+- BaseText baseline: RN `<Text>` compatibility oracle, `rendererKind: "rn_text"`.
+- Prepared compute: native line layout only, `rendererKind: "prepared_compute"`.
+- Prepared render: batched native surface, `rendererKind: "prepared_native_batch"`.
 
-| Metric             |    BaseText | Prepared view |        Delta |                             Gain |
-| ------------------ | ----------: | ------------: | -----------: | -------------------------------: |
-| Interaction median | `232.58 ms` |    `95.40 ms` | `-137.18 ms` |                   `59.0% faster` |
-| Interaction p95    | `366.54 ms` |   `155.14 ms` | `-211.40 ms` |                   `57.7% faster` |
-| Layout-only median |         `—` |     `0.15 ms` |          `—` |            hot relayout isolated |
-| Prepare once       |         `—` |    `47.73 ms` |          `—` | amortized after about 1 relayout |
-| Native measure     |         `—` |    `47.04 ms` |          `—` |          `98.6%` of prepare time |
+Measured improvement against the existing RN `<Text>` baseline:
 
-Prepared path improvement versus the earlier pre-cache prepared-view run:
+| API / path                                                            | Baseline                         | Current                    |        Delta |                             Improvement |
+| --------------------------------------------------------------------- | -------------------------------- | -------------------------- | -----------: | --------------------------------------: |
+| `PreparedParagraphsView` median interaction                           | BaseText `231.35 ms`             | Prepared batch `67.08 ms`  | `-164.27 ms` |                          `71.0% faster` |
+| `PreparedParagraphsView` p95 interaction                              | BaseText `364.52 ms`             | Prepared batch `103.79 ms` | `-260.73 ms` |                          `71.5% faster` |
+| `layoutParagraph*WithRequest()` hot relayout                          | RN internal layout               | `0.18 ms` layout-only      |          `—` |                isolated native hot path |
+| `createParagraphLineCursor()` / `nextParagraphLine()`                 | RN internal line materialization | same prepared line records |          `—` | streams the `0.18 ms` hot-layout result |
+| `prepareParagraphsWithStats()` / `prepareInlineParagraphsWithStats()` | no RN equivalent                 | `48.10 ms` once            |          `—` |  setup amortized after about 1 relayout |
+| `measureBatch()` share of prepare                                     | no RN equivalent                 | `48.01 ms`                 |          `—` |                 `99.8%` of prepare time |
 
-| Metric                      |      Before |       After |           Gain |
-| --------------------------- | ----------: | ----------: | -------------: |
-| Prepared render median      | `145.96 ms` |  `95.40 ms` | `34.6% faster` |
-| Prepared render p95         | `211.44 ms` | `155.14 ms` | `26.6% faster` |
-| Prepared layout-only median |  `14.11 ms` |   `0.15 ms` | `98.9% faster` |
-| Prepare once                |  `55.92 ms` |  `47.73 ms` | `14.6% faster` |
+Prepared path improvement versus the earlier `2026-04-13` pre-batch/pre-cache prepared-view run:
+
+| API / metric                    | Earlier prepared view | Current prepared batch |    Improvement |
+| ------------------------------- | --------------------: | ---------------------: | -------------: |
+| Prepared render median          |           `145.96 ms` |             `67.08 ms` | `54.0% faster` |
+| Prepared render p95             |           `211.44 ms` |            `103.79 ms` | `50.9% faster` |
+| Prepared layout-only median     |            `14.11 ms` |              `0.18 ms` | `98.7% faster` |
+| `prepare*WithStats()` total     |            `55.92 ms` |             `48.10 ms` | `14.0% faster` |
+| `measureBatch()` inside prepare |            `55.77 ms` |             `48.01 ms` | `13.9% faster` |
 
 Current reading of the numbers:
 
-- the prepared native view path is already materially faster than plain RN `<Text>` in the repeated-relayout benchmark
-- most cold cost is still in native measurement during `prepare*()`, not in JS object construction
-- the renderer-oriented path is where the architecture currently pays off; `PreparedParagraphText` exists as a compatibility helper, `PreparedParagraphLinesView` exposes the direct line-range contract in JS, and the main performance win still comes from consuming prepared state directly from native
-- the remaining bottleneck is renderer/materialization work after hot relayout, not the cached line-break computation itself
-- the automated suite now measures exactly the relayout question we care about: BaseText vs prepared-native-view across the same width sequence, plus the hot-path layout-only cost
+- the primary performance win is the batched native renderer consuming prepared state directly
+- hot relayout is no longer the bottleneck; it is `0.3%` of the prepared render interaction in the latest suite
+- cold prepare remains measurement-bound, with native measurement taking `99.8%` of prepare time
+- `PreparedParagraphText` and `PreparedParagraphLinesView` are compatibility/custom-renderer helpers; the latest automated suite does not claim separate speedups for those surfaces
+- Android benchmark numbers are not included in this snapshot because no Android device was connected during the latest local verification
 
 Do not treat these numbers as universal. Compare on the same device, same build type, same font, and same corpus.
 
@@ -364,6 +420,8 @@ It is not yet equivalent to `pretext` as a full feature set. The current impleme
 
 ```sh
 yarn typecheck
+yarn lint
+yarn fmt:check
 yarn test --runInBand
 yarn build
 ```
@@ -371,9 +429,8 @@ yarn build
 Useful example-specific commands:
 
 ```sh
-cd example
-yarn build:android
-yarn build:ios
+yarn workspace react-native-nitro-pretext-example build:android
+yarn workspace react-native-nitro-pretext-example build:ios
 ```
 
 ## Contributing
