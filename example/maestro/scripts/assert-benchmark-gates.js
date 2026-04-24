@@ -98,6 +98,34 @@ function requirePresentMetric(state, label, value) {
   );
 }
 
+function assertEqual(state, label, value, expected) {
+  pushCheck(
+    state,
+    value === expected,
+    `${label} == ${expected}`,
+    value === null || value === undefined ? "missing" : String(value),
+    expected,
+  );
+}
+
+function assertNotFontSizeOnlyHeight(state, label, value) {
+  const normalized =
+    value === null || value === undefined
+      ? "missing"
+      : String(value).toLowerCase();
+
+  pushCheck(
+    state,
+    normalized !== "missing" &&
+      normalized !== "fontsize" &&
+      normalized !== "font_size" &&
+      normalized !== "font_size_only",
+    `${label} is not font-size-only`,
+    normalized,
+    "platform text-engine metrics",
+  );
+}
+
 function assertMax(state, label, value, threshold, formatter = String) {
   if (threshold === undefined) {
     return;
@@ -130,6 +158,122 @@ function assertMin(state, label, value, threshold, formatter = String) {
   );
 }
 
+function expectedCanonicalLayoutEngine(platformName) {
+  if (platformName === "android") {
+    return "android_measured_text_line_breaker";
+  }
+
+  if (platformName === "ios") {
+    return "ios_core_text";
+  }
+
+  return null;
+}
+
+function requireAndroidIncludeFontPadding(state, label, value) {
+  if (platform !== "android") {
+    return;
+  }
+
+  pushCheck(
+    state,
+    value !== null && value !== undefined,
+    `${label} includeFontPadding is present on Android`,
+    value === null || value === undefined ? "missing" : String(value),
+    "present",
+  );
+}
+
+function assertBaseTextContract(state, report) {
+  if (!report) {
+    pushCheck(
+      state,
+      false,
+      "base-text diagnostics are present",
+      "missing",
+      "present",
+    );
+    return;
+  }
+
+  assertEqual(
+    state,
+    "base-text layoutEngine",
+    report.layoutEngine,
+    "rn_text_compat",
+  );
+  assertEqual(state, "base-text rendererKind", report.rendererKind, "rn_text");
+  assertEqual(
+    state,
+    "base-text parityRole",
+    report.parityRole,
+    "rn_text_compat_oracle",
+  );
+  requireAndroidIncludeFontPadding(
+    state,
+    "base-text",
+    report.includeFontPadding,
+  );
+  assertNotFontSizeOnlyHeight(
+    state,
+    "base-text heightMetricSource",
+    report.heightMetricSource,
+  );
+}
+
+function assertPreparedContract(
+  state,
+  label,
+  report,
+  prefix,
+  role,
+  rendererKind,
+) {
+  if (!report) {
+    pushCheck(
+      state,
+      false,
+      `${label} diagnostics are present`,
+      "missing",
+      "present",
+    );
+    return;
+  }
+
+  const expectedEngine = expectedCanonicalLayoutEngine(platform);
+  if (expectedEngine !== null) {
+    assertEqual(
+      state,
+      `${label} layoutEngine`,
+      report[`${prefix}LayoutEngine`],
+      expectedEngine,
+    );
+  }
+
+  assertEqual(
+    state,
+    `${label} rendererKind`,
+    report[`${prefix}RendererKind`],
+    rendererKind,
+  );
+  assertEqual(
+    state,
+    `${label} parityRole`,
+    report[`${prefix}ParityRole`],
+    role,
+  );
+  requireAndroidIncludeFontPadding(
+    state,
+    label,
+    report[`${prefix}IncludeFontPadding`],
+  );
+  assertNotFontSizeOnlyHeight(
+    state,
+    `${label} heightMetricSource`,
+    report[`${prefix}HeightMetricSource`],
+  );
+}
+
 function renderCheckLine(prefix, check) {
   return `${prefix} ${check.label} (actual ${check.actual}, expected ${check.threshold})`;
 }
@@ -154,84 +298,104 @@ const preparedP95 =
     : (combined?.preparedP95Ms ?? preparedView?.renderInteractionP95Ms ?? null);
 const preparedMedianRatio = numericRatio(preparedMedian, baseMedian);
 const preparedP95Ratio = numericRatio(preparedP95, baseText?.interactionP95Ms);
-const checks = createCheckState();
+const timingChecks = createCheckState();
+const contractChecks = createCheckState();
 
 if (thresholds.requireCompleted) {
   if (flow === "base-text") {
-    requireCompletedStatus(checks, "base-text", baseText);
+    requireCompletedStatus(contractChecks, "base-text", baseText);
   } else if (flow === "prepared-view") {
-    requireCompletedStatus(checks, "base-text", baseText);
-    requireCompletedStatus(checks, "prepared-view", preparedView);
+    requireCompletedStatus(contractChecks, "base-text", baseText);
+    requireCompletedStatus(contractChecks, "prepared-view", preparedView);
   } else {
-    requireCompletedStatus(checks, "base-text", baseText);
-    requireCompletedStatus(checks, "prepared-view", preparedView);
-    requireCompletedStatus(checks, "combined", combined);
+    requireCompletedStatus(contractChecks, "base-text", baseText);
+    requireCompletedStatus(contractChecks, "prepared-view", preparedView);
+    requireCompletedStatus(contractChecks, "combined", combined);
   }
 }
 
 if (flow === "base-text") {
   requirePresentMetric(
-    checks,
+    timingChecks,
     "base interaction median",
     baseText?.interactionMedianMs ?? combined?.baseMedianMs,
   );
+  assertBaseTextContract(contractChecks, baseText);
 }
 
 if (flow === "prepared-view" || flow === "suite") {
-  requirePresentMetric(checks, "base median", baseMedian);
-  requirePresentMetric(checks, "prepared render median", preparedMedian);
+  assertBaseTextContract(contractChecks, baseText);
+  assertPreparedContract(
+    contractChecks,
+    "prepared compute",
+    preparedView,
+    "compute",
+    "canonical_prepared_compute",
+    "prepared_compute",
+  );
+  assertPreparedContract(
+    contractChecks,
+    "prepared render",
+    preparedView,
+    "render",
+    "canonical_prepared_native_render",
+    "prepared_native_view",
+  );
+
+  requirePresentMetric(timingChecks, "base median", baseMedian);
+  requirePresentMetric(timingChecks, "prepared render median", preparedMedian);
   requirePresentMetric(
-    checks,
+    timingChecks,
     "prepared layout-only median",
     preparedView?.computeLayoutOnlyMedianMs ??
       combined?.preparedLayoutOnlyMedianMs,
   );
-  requirePresentMetric(checks, "prepare once", preparedView?.prepareMs);
+  requirePresentMetric(timingChecks, "prepare once", preparedView?.prepareMs);
 
   assertMax(
-    checks,
+    timingChecks,
     "prepared median ratio",
     preparedMedianRatio,
     thresholds.maxPreparedMedianRatio,
     formatRatio,
   );
   assertMax(
-    checks,
+    timingChecks,
     "prepared p95 ratio",
     preparedP95Ratio,
     thresholds.maxPreparedP95Ratio,
     formatRatio,
   );
   assertMax(
-    checks,
+    timingChecks,
     "prepare once",
     preparedView?.prepareMs,
     thresholds.maxPrepareMs,
     formatMs,
   );
   assertMax(
-    checks,
+    timingChecks,
     "measure batch",
     preparedView?.measureMs,
     thresholds.maxMeasureMs,
     formatMs,
   );
   assertMax(
-    checks,
+    timingChecks,
     "build prepared",
     preparedView?.buildPreparedMs,
     thresholds.maxBuildPreparedMs,
     formatMs,
   );
   assertMax(
-    checks,
+    timingChecks,
     "tokenize",
     preparedView?.tokenizeMs,
     thresholds.maxTokenizeMs,
     formatMs,
   );
   assertMax(
-    checks,
+    timingChecks,
     "layout-only median",
     preparedView?.computeLayoutOnlyMedianMs ??
       combined?.preparedLayoutOnlyMedianMs,
@@ -239,61 +403,73 @@ if (flow === "prepared-view" || flow === "suite") {
     formatMs,
   );
   assertMin(
-    checks,
+    contractChecks,
     "render parity checks",
     preparedView?.renderParityChecks,
     thresholds.minRenderParityChecks,
     formatCount,
   );
   assertMax(
-    checks,
+    contractChecks,
     "render parity mismatches",
     preparedView?.renderParityMismatches,
     thresholds.maxRenderParityMismatches,
     formatCount,
   );
   assertMin(
-    checks,
+    contractChecks,
     "render line-text checks",
     preparedView?.renderLineTextParityChecks,
     thresholds.minRenderLineTextParityChecks,
     formatCount,
   );
   assertMax(
-    checks,
+    contractChecks,
     "render line-text mismatches",
     preparedView?.renderLineTextParityMismatches,
     thresholds.maxRenderLineTextParityMismatches,
     formatCount,
   );
   assertMin(
-    checks,
+    contractChecks,
     "compute parity checks",
     preparedView?.computeParityChecks,
     thresholds.minComputeParityChecks,
     formatCount,
   );
   assertMax(
-    checks,
+    contractChecks,
     "compute parity mismatches",
     preparedView?.computeParityMismatches,
     thresholds.maxComputeParityMismatches,
     formatCount,
   );
   assertMin(
-    checks,
+    contractChecks,
     "compute line-text checks",
     preparedView?.computeLineTextParityChecks,
     thresholds.minComputeLineTextParityChecks,
     formatCount,
   );
   assertMax(
-    checks,
+    contractChecks,
     "compute line-text mismatches",
     preparedView?.computeLineTextParityMismatches,
     thresholds.maxComputeLineTextParityMismatches,
     formatCount,
   );
+}
+
+function renderCheckSection(title, state) {
+  return [
+    title,
+    ...(state.passes.length === 0
+      ? ["  PASS none"]
+      : state.passes.map((check) => renderCheckLine("  PASS", check))),
+    ...(state.failures.length === 0
+      ? []
+      : state.failures.map((check) => renderCheckLine("  FAIL", check))),
+  ];
 }
 
 const reportLines = [
@@ -308,19 +484,15 @@ const reportLines = [
     labelValue(key, typeof value === "number" ? String(value) : String(value)),
   ),
   "",
-  "Checks",
-  ...(checks.passes.length === 0
-    ? ["  PASS none"]
-    : checks.passes.map((check) => renderCheckLine("  PASS", check))),
-  ...(checks.failures.length === 0
-    ? []
-    : checks.failures.map((check) => renderCheckLine("  FAIL", check))),
+  ...renderCheckSection("Timing Checks", timingChecks),
+  "",
+  ...renderCheckSection("Parity Contract Checks", contractChecks),
 ];
 
 const report = reportLines.join("\n").trimEnd();
 fs.writeFileSync(reportPath, `${report}\n`);
 process.stdout.write(`${report}\n`);
 
-if (checks.failures.length > 0) {
+if (timingChecks.failures.length > 0 || contractChecks.failures.length > 0) {
   process.exit(1);
 }

@@ -26,6 +26,7 @@ import {
   buildSummary,
   compareLineParity,
 } from "./harnessUtils";
+import { createBenchmarkDiagnostics } from "./diagnostics";
 import {
   createSummaryRecord,
   type BenchmarkHarnessArgs,
@@ -286,7 +287,12 @@ export function usePreparedViewBenchmarkHarness({
           });
         }
 
-        const summary = buildSummary(modeMetrics, prepareMs, baselineMedianMs);
+        const summary = buildSummary(
+          modeMetrics,
+          prepareMs,
+          baselineMedianMs,
+          createBenchmarkDiagnostics(mode),
+        );
         nextSummaries[mode] = summary;
         setSummaries(createSummaryRecord(nextSummaries));
       }

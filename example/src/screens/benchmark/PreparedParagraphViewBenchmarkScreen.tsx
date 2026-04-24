@@ -58,7 +58,7 @@ export function PreparedParagraphViewBenchmarkScreen({ navigation }: Props) {
 
   const comparisonNote =
     baselineResults.summary === null
-      ? "Run benchmark/base-text once so this page can compare against the RN Text oracle."
+      ? "Run benchmark/base-text once so this page can compare against the RN Text compatibility baseline."
       : "BaseText calibration is loaded. Prepared view runs can compare parity and amortization.";
   const automationStatus = isPreparing
     ? "preparing"

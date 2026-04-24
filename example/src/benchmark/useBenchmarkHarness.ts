@@ -26,6 +26,7 @@ import {
   buildSummary,
   compareLineParity,
 } from "./harnessUtils";
+import { createBenchmarkDiagnostics } from "./diagnostics";
 import {
   createSummaryRecord,
   type ActiveRenderPass,
@@ -293,6 +294,7 @@ export function useBenchmarkHarness({
           modeMetrics,
           prepareMs ?? 0,
           baselineMedianMs,
+          createBenchmarkDiagnostics(mode),
         );
         nextSummaries[mode] = summary;
         setSummaries(createSummaryRecord(nextSummaries));

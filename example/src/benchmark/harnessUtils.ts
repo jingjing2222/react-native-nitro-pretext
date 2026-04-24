@@ -5,7 +5,12 @@ import {
   percentile,
   sum,
 } from "../relayoutBenchmark";
-import type { BenchmarkSummary, ModeRunMetric } from "./types";
+import { resolveBenchmarkDrift } from "./diagnostics";
+import type {
+  BenchmarkDiagnostics,
+  BenchmarkSummary,
+  ModeRunMetric,
+} from "./types";
 
 export function beginJankTracker(): () => number {
   let frameId = 0;
@@ -120,6 +125,7 @@ export function buildSummary(
   modeMetrics: ModeRunMetric[],
   prepareMs: number,
   baselineMedianMs: number | null,
+  diagnostics: BenchmarkDiagnostics,
 ): BenchmarkSummary {
   const interactionValues = modeMetrics.map((metric) => metric.interactionMs);
   const layoutValues = modeMetrics.flatMap((metric) =>
@@ -134,20 +140,32 @@ export function buildSummary(
     baselineMedianMs > interactionMedianMs
       ? Math.ceil(prepareMs / (baselineMedianMs - interactionMedianMs))
       : null;
+  const parityMismatches = sum(
+    modeMetrics.map((metric) => metric.parityMismatches),
+  );
+  const lineTextParityMismatches = sum(
+    modeMetrics.map((metric) => metric.lineTextParityMismatches),
+  );
+  const drift = resolveBenchmarkDrift({
+    diagnostics,
+    lineTextParityMismatches,
+    parityMismatches,
+  });
 
   return {
+    ...diagnostics,
     amortizedAfterRuns,
+    driftKinds: drift.driftKinds,
+    heightDriftBuckets: drift.heightDriftBuckets,
     interactionMedianMs,
     interactionP95Ms,
     layoutOnlyMedianMs,
     lineTextParityChecks: sum(
       modeMetrics.map((metric) => metric.lineTextParityChecks),
     ),
-    lineTextParityMismatches: sum(
-      modeMetrics.map((metric) => metric.lineTextParityMismatches),
-    ),
+    lineTextParityMismatches,
     parityChecks: sum(modeMetrics.map((metric) => metric.parityChecks)),
-    parityMismatches: sum(modeMetrics.map((metric) => metric.parityMismatches)),
+    parityMismatches,
     totalJankCount: sum(modeMetrics.map((metric) => metric.jankCount)),
   };
 }

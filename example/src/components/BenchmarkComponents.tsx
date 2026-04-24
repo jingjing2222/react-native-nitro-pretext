@@ -244,6 +244,33 @@ export function SummaryCard({
           value={formatMilliseconds(summary?.layoutOnlyMedianMs ?? null)}
         />
         <SummaryMetric
+          label="Layout engine"
+          value={summary?.layoutEngine ?? "—"}
+        />
+        <SummaryMetric label="Renderer" value={summary?.rendererKind ?? "—"} />
+        <SummaryMetric label="Parity role" value={summary?.parityRole ?? "—"} />
+        <SummaryMetric
+          label="Height metrics"
+          value={summary?.heightMetricSource ?? "—"}
+        />
+        <SummaryMetric
+          label="Font padding"
+          value={
+            summary?.includeFontPadding === null ||
+            summary?.includeFontPadding === undefined
+              ? "—"
+              : String(summary.includeFontPadding)
+          }
+        />
+        <SummaryMetric
+          label="Drift"
+          value={
+            summary === null || summary.driftKinds.length === 0
+              ? "—"
+              : summary.driftKinds.join(", ")
+          }
+        />
+        <SummaryMetric
           label="Jank frames"
           value={summary === null ? "—" : String(summary.totalJankCount)}
         />

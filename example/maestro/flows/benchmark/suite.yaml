@@ -8,6 +8,7 @@ appId: pretext.example
     element:
       text: "AUTOMATION_REPORT::benchmark/index::.*"
     timeout: 20000
+    visibilityPercentage: 1
 - copyTextFrom:
     text: "AUTOMATION_REPORT::benchmark/index::.*"
 - runScript:

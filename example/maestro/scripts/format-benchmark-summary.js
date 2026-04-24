@@ -78,6 +78,14 @@ function formatPercent(value) {
   return `${(value * 100).toFixed(1)}%`;
 }
 
+function formatList(value) {
+  if (!Array.isArray(value) || value.length === 0) {
+    return "n/a";
+  }
+
+  return value.join(", ");
+}
+
 function buildComparisonNotes() {
   if (!combined) {
     return ["  comparison           n/a"];
@@ -156,6 +164,18 @@ if (baseText) {
     labelValue("median interaction", formatMs(baseText.interactionMedianMs)),
     labelValue("p95 interaction", formatMs(baseText.interactionP95Ms)),
     labelValue("jank frames", formatCount(baseText.jankCount)),
+    labelValue("layout engine", baseText.layoutEngine ?? "n/a"),
+    labelValue("renderer", baseText.rendererKind ?? "n/a"),
+    labelValue("parity role", baseText.parityRole ?? "n/a"),
+    labelValue("height source", baseText.heightMetricSource ?? "n/a"),
+    labelValue(
+      "font padding",
+      baseText.includeFontPadding === null ||
+        baseText.includeFontPadding === undefined
+        ? "n/a"
+        : String(baseText.includeFontPadding),
+    ),
+    labelValue("drift", formatList(baseText.driftKinds)),
     labelValue(
       "line parity",
       `${formatCount(baseText.parityMismatches)}/${formatCount(
@@ -193,6 +213,36 @@ if (preparedView) {
     labelValue("render overhead", formatMs(renderOverheadMs)),
     labelValue("engine share", formatPercent(engineShare)),
     labelValue("measure share", formatPercent(measurementShare)),
+    labelValue("render engine", preparedView.renderLayoutEngine ?? "n/a"),
+    labelValue("render renderer", preparedView.renderRendererKind ?? "n/a"),
+    labelValue("render role", preparedView.renderParityRole ?? "n/a"),
+    labelValue(
+      "render height src",
+      preparedView.renderHeightMetricSource ?? "n/a",
+    ),
+    labelValue(
+      "render font pad",
+      preparedView.renderIncludeFontPadding === null ||
+        preparedView.renderIncludeFontPadding === undefined
+        ? "n/a"
+        : String(preparedView.renderIncludeFontPadding),
+    ),
+    labelValue("render drift", formatList(preparedView.renderDriftKinds)),
+    labelValue("compute engine", preparedView.computeLayoutEngine ?? "n/a"),
+    labelValue("compute renderer", preparedView.computeRendererKind ?? "n/a"),
+    labelValue("compute role", preparedView.computeParityRole ?? "n/a"),
+    labelValue(
+      "compute height src",
+      preparedView.computeHeightMetricSource ?? "n/a",
+    ),
+    labelValue(
+      "compute font pad",
+      preparedView.computeIncludeFontPadding === null ||
+        preparedView.computeIncludeFontPadding === undefined
+        ? "n/a"
+        : String(preparedView.computeIncludeFontPadding),
+    ),
+    labelValue("compute drift", formatList(preparedView.computeDriftKinds)),
     labelValue(
       "render line parity",
       `${formatCount(preparedView.renderParityMismatches)}/${formatCount(
@@ -241,6 +291,23 @@ if (combined) {
     labelValue(
       "layout-only median",
       formatMs(combined.preparedLayoutOnlyMedianMs),
+    ),
+    labelValue("base engine", combined.baseLayoutEngine ?? "n/a"),
+    labelValue(
+      "prepared render engine",
+      combined.preparedRenderLayoutEngine ?? "n/a",
+    ),
+    labelValue(
+      "prepared compute engine",
+      combined.preparedComputeLayoutEngine ?? "n/a",
+    ),
+    labelValue(
+      "render height src",
+      combined.preparedRenderHeightMetricSource ?? "n/a",
+    ),
+    labelValue(
+      "compute height src",
+      combined.preparedComputeHeightMetricSource ?? "n/a",
     ),
     labelValue(
       "render text parity",

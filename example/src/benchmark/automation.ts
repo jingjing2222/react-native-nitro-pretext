@@ -1,5 +1,6 @@
 import type {
   BaseTextResultState,
+  BenchmarkDiagnostics,
   BenchmarkSummary,
   PreparedViewResultState,
   RunStatus,
@@ -13,7 +14,7 @@ export type AutomationStatus =
   | "completed"
   | "partial";
 
-type SerializableSummary = {
+type SerializableSummary = BenchmarkDiagnostics & {
   amortizedAfterRuns: number | null;
   interactionMedianMs: number | null;
   interactionP95Ms: number | null;
@@ -27,14 +28,23 @@ type SerializableSummary = {
 
 type BaseTextAutomationReport = {
   completedAt: string | null;
+  driftKinds: BenchmarkDiagnostics["driftKinds"] | null;
+  heightDriftBuckets: BenchmarkDiagnostics["heightDriftBuckets"] | null;
+  heightMetricDrivers: BenchmarkDiagnostics["heightMetricDrivers"] | null;
+  heightMetricSource: BenchmarkDiagnostics["heightMetricSource"] | null;
+  includeFontPadding: boolean | null;
   interactionMedianMs: number | null;
   interactionP95Ms: number | null;
   jankCount: number | null;
   layoutOnlyMedianMs: number | null;
+  layoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   lineTextParityChecks: number | null;
   lineTextParityMismatches: number | null;
+  parityBucket: BenchmarkDiagnostics["parityBucket"] | null;
   parityChecks: number | null;
   parityMismatches: number | null;
+  parityRole: BenchmarkDiagnostics["parityRole"] | null;
+  rendererKind: BenchmarkDiagnostics["rendererKind"] | null;
   screen: "benchmark/base-text";
   status: AutomationStatus;
   totalRuns: number;
@@ -43,20 +53,40 @@ type BaseTextAutomationReport = {
 type PreparedViewAutomationReport = {
   buildPreparedMs: number | null;
   completedAt: string | null;
+  computeDriftKinds: BenchmarkDiagnostics["driftKinds"] | null;
+  computeHeightDriftBuckets: BenchmarkDiagnostics["heightDriftBuckets"] | null;
+  computeHeightMetricDrivers:
+    | BenchmarkDiagnostics["heightMetricDrivers"]
+    | null;
+  computeHeightMetricSource: BenchmarkDiagnostics["heightMetricSource"] | null;
+  computeIncludeFontPadding: boolean | null;
+  computeLayoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   computeLayoutOnlyMedianMs: number | null;
   measureMs: number | null;
   prepareMs: number | null;
   computeLineTextParityChecks: number | null;
   computeLineTextParityMismatches: number | null;
+  computeParityBucket: BenchmarkDiagnostics["parityBucket"] | null;
   computeParityChecks: number | null;
   computeParityMismatches: number | null;
+  computeParityRole: BenchmarkDiagnostics["parityRole"] | null;
+  computeRendererKind: BenchmarkDiagnostics["rendererKind"] | null;
+  renderDriftKinds: BenchmarkDiagnostics["driftKinds"] | null;
+  renderHeightDriftBuckets: BenchmarkDiagnostics["heightDriftBuckets"] | null;
+  renderHeightMetricDrivers: BenchmarkDiagnostics["heightMetricDrivers"] | null;
+  renderHeightMetricSource: BenchmarkDiagnostics["heightMetricSource"] | null;
+  renderIncludeFontPadding: boolean | null;
   renderInteractionMedianMs: number | null;
   renderInteractionP95Ms: number | null;
   renderJankCount: number | null;
+  renderLayoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   renderLineTextParityChecks: number | null;
   renderLineTextParityMismatches: number | null;
+  renderParityBucket: BenchmarkDiagnostics["parityBucket"] | null;
   renderParityChecks: number | null;
   renderParityMismatches: number | null;
+  renderParityRole: BenchmarkDiagnostics["parityRole"] | null;
+  renderRendererKind: BenchmarkDiagnostics["rendererKind"] | null;
   screen: "benchmark/prepared-view";
   status: AutomationStatus;
   tokenizeMs: number | null;
@@ -65,11 +95,19 @@ type PreparedViewAutomationReport = {
 
 type CombinedAutomationReport = {
   baseCompletedAt: string | null;
+  baseHeightMetricSource: BenchmarkDiagnostics["heightMetricSource"] | null;
+  baseIncludeFontPadding: boolean | null;
+  baseLayoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   baseMedianMs: number | null;
   medianDeltaMs: number | null;
   measurementMs: number | null;
   p95DeltaMs: number | null;
   prepareMs: number | null;
+  preparedComputeHeightMetricSource:
+    | BenchmarkDiagnostics["heightMetricSource"]
+    | null;
+  preparedComputeIncludeFontPadding: boolean | null;
+  preparedComputeLayoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   preparedComputeLineTextParityChecks: number | null;
   preparedComputeLineTextParityMismatches: number | null;
   preparedComputeParityChecks: number | null;
@@ -78,7 +116,12 @@ type CombinedAutomationReport = {
   preparedLayoutOnlyMedianMs: number | null;
   preparedMedianMs: number | null;
   preparedP95Ms: number | null;
+  preparedRenderHeightMetricSource:
+    | BenchmarkDiagnostics["heightMetricSource"]
+    | null;
+  preparedRenderIncludeFontPadding: boolean | null;
   preparedRenderJankCount: number | null;
+  preparedRenderLayoutEngine: BenchmarkDiagnostics["layoutEngine"] | null;
   preparedRenderLineTextParityChecks: number | null;
   preparedRenderLineTextParityMismatches: number | null;
   preparedRenderParityChecks: number | null;
@@ -104,13 +147,22 @@ function serializeSummary(
 
   return {
     amortizedAfterRuns: summary.amortizedAfterRuns,
+    driftKinds: summary.driftKinds,
+    heightDriftBuckets: summary.heightDriftBuckets,
+    heightMetricDrivers: summary.heightMetricDrivers,
+    heightMetricSource: summary.heightMetricSource,
+    includeFontPadding: summary.includeFontPadding,
     interactionMedianMs: roundMetric(summary.interactionMedianMs),
     interactionP95Ms: roundMetric(summary.interactionP95Ms),
     layoutOnlyMedianMs: roundMetric(summary.layoutOnlyMedianMs),
+    layoutEngine: summary.layoutEngine,
     lineTextParityChecks: summary.lineTextParityChecks,
     lineTextParityMismatches: summary.lineTextParityMismatches,
+    parityBucket: summary.parityBucket,
     parityChecks: summary.parityChecks,
     parityMismatches: summary.parityMismatches,
+    parityRole: summary.parityRole,
+    rendererKind: summary.rendererKind,
     totalJankCount: summary.totalJankCount,
   };
 }
@@ -152,14 +204,23 @@ export function createBaseTextAutomationReport(args: {
 
   return {
     completedAt: args.completedAt,
+    driftKinds: summary?.driftKinds ?? null,
+    heightDriftBuckets: summary?.heightDriftBuckets ?? null,
+    heightMetricDrivers: summary?.heightMetricDrivers ?? null,
+    heightMetricSource: summary?.heightMetricSource ?? null,
+    includeFontPadding: summary?.includeFontPadding ?? null,
     interactionMedianMs: summary?.interactionMedianMs ?? null,
     interactionP95Ms: summary?.interactionP95Ms ?? null,
     jankCount: summary?.totalJankCount ?? null,
     layoutOnlyMedianMs: summary?.layoutOnlyMedianMs ?? null,
+    layoutEngine: summary?.layoutEngine ?? null,
     lineTextParityChecks: summary?.lineTextParityChecks ?? null,
     lineTextParityMismatches: summary?.lineTextParityMismatches ?? null,
+    parityBucket: summary?.parityBucket ?? null,
     parityChecks: summary?.parityChecks ?? null,
     parityMismatches: summary?.parityMismatches ?? null,
+    parityRole: summary?.parityRole ?? null,
+    rendererKind: summary?.rendererKind ?? null,
     screen: "benchmark/base-text",
     status: args.status,
     totalRuns: args.totalRuns,
@@ -195,25 +256,43 @@ export function createPreparedViewAutomationReport(args: {
         ? null
         : roundMetric(args.prepareState.buildPreparedMs),
     completedAt: args.completedAt,
+    computeDriftKinds: computeSummary?.driftKinds ?? null,
+    computeHeightDriftBuckets: computeSummary?.heightDriftBuckets ?? null,
+    computeHeightMetricDrivers: computeSummary?.heightMetricDrivers ?? null,
+    computeHeightMetricSource: computeSummary?.heightMetricSource ?? null,
+    computeIncludeFontPadding: computeSummary?.includeFontPadding ?? null,
+    computeLayoutEngine: computeSummary?.layoutEngine ?? null,
     computeLineTextParityChecks: computeSummary?.lineTextParityChecks ?? null,
     computeLineTextParityMismatches:
       computeSummary?.lineTextParityMismatches ?? null,
     computeLayoutOnlyMedianMs: computeSummary?.layoutOnlyMedianMs ?? null,
+    computeParityBucket: computeSummary?.parityBucket ?? null,
     computeParityChecks: computeSummary?.parityChecks ?? null,
     computeParityMismatches: computeSummary?.parityMismatches ?? null,
+    computeParityRole: computeSummary?.parityRole ?? null,
+    computeRendererKind: computeSummary?.rendererKind ?? null,
     measureMs:
       args.prepareState === null
         ? null
         : roundMetric(args.prepareState.measurementMs),
     prepareMs: roundMetric(args.prepareMs),
+    renderDriftKinds: renderSummary?.driftKinds ?? null,
+    renderHeightDriftBuckets: renderSummary?.heightDriftBuckets ?? null,
+    renderHeightMetricDrivers: renderSummary?.heightMetricDrivers ?? null,
+    renderHeightMetricSource: renderSummary?.heightMetricSource ?? null,
+    renderIncludeFontPadding: renderSummary?.includeFontPadding ?? null,
     renderInteractionMedianMs: renderSummary?.interactionMedianMs ?? null,
     renderInteractionP95Ms: renderSummary?.interactionP95Ms ?? null,
     renderJankCount: renderSummary?.totalJankCount ?? null,
+    renderLayoutEngine: renderSummary?.layoutEngine ?? null,
     renderLineTextParityChecks: renderSummary?.lineTextParityChecks ?? null,
     renderLineTextParityMismatches:
       renderSummary?.lineTextParityMismatches ?? null,
+    renderParityBucket: renderSummary?.parityBucket ?? null,
     renderParityChecks: renderSummary?.parityChecks ?? null,
     renderParityMismatches: renderSummary?.parityMismatches ?? null,
+    renderParityRole: renderSummary?.parityRole ?? null,
+    renderRendererKind: renderSummary?.rendererKind ?? null,
     screen: "benchmark/prepared-view",
     status: args.status,
     tokenizeMs:
@@ -256,6 +335,9 @@ export function createCombinedBenchmarkAutomationReport(args: {
 
   return {
     baseCompletedAt: args.baselineResults.completedAt,
+    baseHeightMetricSource: baseSummary?.heightMetricSource ?? null,
+    baseIncludeFontPadding: baseSummary?.includeFontPadding ?? null,
+    baseLayoutEngine: baseSummary?.layoutEngine ?? null,
     baseMedianMs: baseSummary?.interactionMedianMs ?? null,
     medianDeltaMs,
     measurementMs:
@@ -264,6 +346,11 @@ export function createCombinedBenchmarkAutomationReport(args: {
         : roundMetric(args.preparedViewResults.prepareStats.measurementMs),
     p95DeltaMs,
     prepareMs: roundMetric(args.preparedViewResults.prepareMs),
+    preparedComputeHeightMetricSource:
+      computeSummary?.heightMetricSource ?? null,
+    preparedComputeIncludeFontPadding:
+      computeSummary?.includeFontPadding ?? null,
+    preparedComputeLayoutEngine: computeSummary?.layoutEngine ?? null,
     preparedComputeLineTextParityChecks:
       computeSummary?.lineTextParityChecks ?? null,
     preparedComputeLineTextParityMismatches:
@@ -274,7 +361,10 @@ export function createCombinedBenchmarkAutomationReport(args: {
     preparedLayoutOnlyMedianMs: computeSummary?.layoutOnlyMedianMs ?? null,
     preparedMedianMs: renderSummary?.interactionMedianMs ?? null,
     preparedP95Ms: renderSummary?.interactionP95Ms ?? null,
+    preparedRenderHeightMetricSource: renderSummary?.heightMetricSource ?? null,
+    preparedRenderIncludeFontPadding: renderSummary?.includeFontPadding ?? null,
     preparedRenderJankCount: renderSummary?.totalJankCount ?? null,
+    preparedRenderLayoutEngine: renderSummary?.layoutEngine ?? null,
     preparedRenderLineTextParityChecks:
       renderSummary?.lineTextParityChecks ?? null,
     preparedRenderLineTextParityMismatches:

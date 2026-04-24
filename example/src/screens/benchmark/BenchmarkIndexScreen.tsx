@@ -71,7 +71,7 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
         <NavigationCard
           buttonLabel="Open benchmark/base-text"
           buttonTestID="benchmark.index.open-base-text"
-          description="Plain React Native <Text> baseline. This page also records the line-count oracle used by the prepared renderer page."
+          description="Plain React Native <Text> compatibility baseline. This page also records the line-count comparison input used by the prepared renderer page."
           lastCompletedAt={baselineResults.completedAt}
           onPress={() => navigation.navigate("BenchmarkBaseText")}
           summary={baselineResults.summary}

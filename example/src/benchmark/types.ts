@@ -26,7 +26,69 @@ export type AppStackParamList = {
 export type PreparedParagraph = ImportedPreparedParagraph;
 export type PreparedParagraphMetrics = ImportedPreparedParagraphMetrics;
 
-export type BenchmarkSummary = {
+export type BenchmarkPlatform = "android" | "ios" | "unknown";
+
+export type BenchmarkLayoutEngine =
+  | "android_legacy_fallback"
+  | "android_measured_text_line_breaker"
+  | "android_static_layout_compat"
+  | "ios_core_text"
+  | "rn_text_compat"
+  | "unknown";
+
+export type BenchmarkRendererKind =
+  | "prepared_compute"
+  | "prepared_native_view"
+  | "rn_text"
+  | "unknown";
+
+export type BenchmarkParityRole =
+  | "canonical_prepared_compute"
+  | "canonical_prepared_native_render"
+  | "fallback_legacy"
+  | "rn_text_compat_oracle";
+
+export type BenchmarkParityBucket = BenchmarkParityRole;
+
+export type BenchmarkHeightMetricSource =
+  | "font_size_only"
+  | "platform_text_engine_metrics"
+  | "unknown";
+
+export type BenchmarkHeightMetricDriver =
+  | "emoji_fallback"
+  | "explicit_line_height"
+  | "fallback_font"
+  | "font_metrics"
+  | "include_font_padding"
+  | "line_break_strategy"
+  | "locale";
+
+export type BenchmarkHeightDriftBucket =
+  | BenchmarkHeightMetricDriver
+  | "unclassified";
+
+export type BenchmarkDriftKind =
+  | "algorithm_rule_drift"
+  | "compat_drift"
+  | "engine_drift"
+  | "height_metric_drift"
+  | "padding_drift"
+  | "renderer_drift";
+
+export type BenchmarkDiagnostics = {
+  driftKinds: BenchmarkDriftKind[];
+  heightDriftBuckets: Record<BenchmarkHeightDriftBucket, number>;
+  heightMetricDrivers: BenchmarkHeightMetricDriver[];
+  heightMetricSource: BenchmarkHeightMetricSource;
+  includeFontPadding: boolean | null;
+  layoutEngine: BenchmarkLayoutEngine;
+  parityBucket: BenchmarkParityBucket;
+  parityRole: BenchmarkParityRole;
+  rendererKind: BenchmarkRendererKind;
+};
+
+export type BenchmarkSummary = BenchmarkDiagnostics & {
   interactionMedianMs: number | null;
   interactionP95Ms: number | null;
   layoutOnlyMedianMs: number | null;

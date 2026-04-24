@@ -220,7 +220,7 @@ The example app is intentionally split by page so each path can be measured inde
 
 - `Home`: combines the latest results from both benchmark pages
 - `screens/benchmark/BenchmarkIndexScreen`: benchmark landing page
-- `screens/benchmark/BaseTextBenchmarkScreen`: plain React Native `<Text>` baseline and line-count oracle
+- `screens/benchmark/BaseTextBenchmarkScreen`: plain React Native `<Text>` compatibility baseline for parity comparison
 - `screens/benchmark/PreparedParagraphViewBenchmarkScreen`: prepared-state relayout plus native paragraph view rendering
 - `screens/examples/ExampleIndexScreen`: examples landing page
 - `screens/examples/PreparedViewExampleScreen`: native paragraph surface example
@@ -250,7 +250,7 @@ npx react-native run-ios --simulator "${IOS_SIMULATOR:-iPhone 16}" --mode Releas
 
 For the current benchmark flow:
 
-1. Run `BaseText` first.
+1. Run `BaseText` first to capture the RN `<Text>` compatibility baseline.
 2. Run `Prepared View` next.
 3. Return to `benchmark/*` or `Home` to compare the latest summaries.
 
@@ -285,8 +285,9 @@ BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios
 
 Current gate coverage:
 
-- performance regression thresholds compare prepared view against the BaseText oracle with ratio-based limits plus absolute limits for prepare, measure, and layout-only hot path time
+- performance regression thresholds compare prepared view against the RN `<Text>` compatibility baseline with ratio-based limits plus absolute limits for prepare, measure, and layout-only hot path time
 - parity coverage now checks both line counts and sampled rendered line text, not just line-count totals
+- parity-contract coverage checks reported layout engine, renderer kind, parity role, Android `includeFontPadding`, and height metric source separately from timing thresholds
 - CI runs the iOS benchmark suite and fails the workflow if the benchmark gate fails
 
 If Maestro reports `iOS driver not ready in time`, restart the simulator and rerun the command. The benchmark flows themselves are machine-readable and were validated successfully on the release app; the flaky part is the local XCTest runner bootstrap.

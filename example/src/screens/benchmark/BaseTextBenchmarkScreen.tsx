@@ -79,7 +79,8 @@ export function BaseTextBenchmarkScreen({ navigation }: Props) {
           </Text>
           <Text style={styles.subtitle}>
             This screen owns the baseline interaction cost and the sample
-            line-count oracle used by the prepared view benchmark.
+            line-count compatibility baseline used by the prepared view
+            benchmark.
           </Text>
 
           <View style={styles.metricRow}>
