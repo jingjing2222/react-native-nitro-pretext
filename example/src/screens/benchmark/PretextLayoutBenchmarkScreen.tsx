@@ -23,7 +23,7 @@ import {
 } from "../../components/BenchmarkComponents";
 import { useBenchmarkResults } from "../../context/BenchmarkResultsContext";
 import { usePretextPreparedCorpus } from "../../benchmark/usePretextPreparedCorpus";
-import type { AppStackParamList } from "../../benchmark/types";
+import type { AppStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<
   AppStackParamList,

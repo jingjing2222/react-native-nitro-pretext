@@ -5,15 +5,6 @@ import type {
   PretextPrepareStats,
 } from "../relayoutBenchmark";
 
-export type AppStackParamList = {
-  Home: undefined;
-  BenchmarkIndex: undefined;
-  BenchmarkBaseText: undefined;
-  BenchmarkPretextLayout: undefined;
-  ExampleIndex: undefined;
-  ExampleMeasuredLayout: undefined;
-};
-
 export type PretextPreparedCorpus = ImportedPretextPreparedCorpus;
 export type PretextParagraphMetrics = ImportedPretextParagraphMetrics;
 

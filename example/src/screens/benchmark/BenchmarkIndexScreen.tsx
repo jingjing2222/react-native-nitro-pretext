@@ -11,7 +11,7 @@ import {
   formatMilliseconds,
   styles,
 } from "../../benchmark/constants";
-import type { AppStackParamList } from "../../benchmark/types";
+import type { AppStackParamList } from "../../navigation/types";
 import {
   HeroAutomationPanel,
   NavigationCard,
