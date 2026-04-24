@@ -15,4 +15,6 @@ const config = withMetroConfig(getDefaultConfig(__dirname), {
   dirname: __dirname,
 });
 
+config.resolver.useWatchman = false;
+
 module.exports = config;

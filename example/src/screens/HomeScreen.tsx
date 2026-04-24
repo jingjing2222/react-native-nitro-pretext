@@ -44,14 +44,14 @@ export function HomeScreen({ navigation }: Props) {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
-          <Text style={styles.eyebrow}>Prepared Paragraph Lab</Text>
+          <Text style={styles.eyebrow}>PreText Layout Lab</Text>
           <Text style={styles.title}>
-            Keep benchmark pages and example pages physically separate.
+            Measure text height before visible render.
           </Text>
           <Text style={styles.subtitle}>
-            Benchmarks measure relayout cost. Examples show how the prepared
-            paragraph APIs map onto renderer paths and inline segment use cases
-            without mixing them into the benchmark flow.
+            Benchmarks measure relayout cost. The example screen shows a
+            complex RN layout that normally waits for hidden onLayout
+            measurement, then compares it with PreText layout metrics.
           </Text>
 
           <View style={styles.metricRow}>
@@ -70,7 +70,7 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open benchmark/*"
           buttonTestID="home.open-benchmark"
-          description="Run BaseText and Prepared Native Batch as dedicated benchmark screens under screens/benchmark/*."
+          description="Run BaseText and PreText batch layout as dedicated benchmark screens under screens/benchmark/*."
           onPress={() => navigation.navigate("BenchmarkIndex")}
           title="Benchmarks"
         />
@@ -78,24 +78,16 @@ export function HomeScreen({ navigation }: Props) {
         <CatalogCard
           buttonLabel="Open examples/*"
           buttonTestID="home.open-examples"
-          description="Browse PreparedParagraphView, PreparedParagraphLinesView, PreparedParagraphText, Inline Segments, and Line Cursor as dedicated example screens under screens/examples/*."
+          description="Open the MeasureLayout-style comparison that shows hidden onLayout measurement versus PreText layout before render."
           onPress={() => navigation.navigate("ExampleIndex")}
           title="Examples"
-        />
-
-        <CatalogCard
-          buttonLabel="Open examples/slites/*"
-          buttonTestID="home.open-slites"
-          description="Walk through pretext-style scenario pages that compare plain Text against prepared paragraph state in actual UI patterns."
-          onPress={() => navigation.navigate("ExampleSlitesIndex")}
-          title="Scenario Slites"
         />
 
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Latest Benchmark Snapshot</Text>
           <Text style={styles.summaryDescription}>
             Latest cross-page comparison from benchmark/*. Run BaseText first,
-            then Prepared Native Batch, and come back here for the combined
+            then PreText batch layout, and come back here for the combined
             read.
           </Text>
           <View style={styles.summaryMetricList}>
@@ -106,14 +98,14 @@ export function HomeScreen({ navigation }: Props) {
               )}
             />
             <SummaryMetric
-              label="Prepared batch median"
+              label="PreText batch median"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionMedianMs ?? null,
               )}
             />
             <SummaryMetric label="Median delta" value={comparisonMedianDelta} />
             <SummaryMetric
-              label="Prepared batch p95"
+              label="PreText batch p95"
               value={formatMilliseconds(
                 preparedViewResults.renderSummary?.interactionP95Ms ?? null,
               )}

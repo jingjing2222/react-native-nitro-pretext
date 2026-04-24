@@ -6,17 +6,14 @@ import {
   useRef,
   useState,
 } from "react";
-import type { LayoutChangeEvent } from "react-native";
+import type { LayoutChangeEvent, TextStyle } from "react-native";
 import { StyleSheet, Text, View } from "react-native";
 import {
-  PreparedParagraphView,
-  layoutParagraphsMetadata,
-  prepareParagraphsWithStats,
-  releaseParagraphs,
-  type LaidOutParagraphMetrics,
-  type ParagraphStyle,
-  type PreparedParagraphResult,
-} from "../../pretextLegacy";
+  layout,
+  prepare,
+  type PreTextPrepared,
+  type PreTextStyle,
+} from "react-native-nitro-pretext";
 
 import {
   formatMilliseconds,
@@ -66,7 +63,7 @@ type MasonryLayout = {
   cards: PositionedCard[];
 };
 
-const MEASURED_LAYOUT_STYLE: ParagraphStyle = {
+const MEASURED_LAYOUT_STYLE: PreTextStyle = {
   fontFamily: "System",
   fontSize: 15,
   lineHeight: 22,
@@ -74,6 +71,15 @@ const MEASURED_LAYOUT_STYLE: ParagraphStyle = {
   locale: "ko-KR",
   includeFontPadding: true,
   textDirection: "auto",
+};
+
+const TEXT_RENDER_STYLE: TextStyle = {
+  color: "#221f1c",
+  fontFamily: MEASURED_LAYOUT_STYLE.fontFamily,
+  fontSize: MEASURED_LAYOUT_STYLE.fontSize,
+  includeFontPadding: MEASURED_LAYOUT_STYLE.includeFontPadding,
+  letterSpacing: MEASURED_LAYOUT_STYLE.letterSpacing,
+  lineHeight: MEASURED_LAYOUT_STYLE.lineHeight,
 };
 
 const MEASURED_LAYOUT_CARDS: LayoutCard[] = [
@@ -117,14 +123,14 @@ const MEASURED_LAYOUT_CARDS: LayoutCard[] = [
     kicker: "Finance",
     title: "Dense approval copy",
     tone: "green",
-    text: "Prepared metadata lets the UI calculate the board before mounting the visible text renderer. Plain Text has to mount a measurement copy first.",
+    text: "PreText metadata lets the UI calculate the board before mounting the visible text renderer. Plain Text has to mount a measurement copy first.",
   },
   {
     id: "timeline",
     kicker: "Timeline",
     title: "Long activity item",
     tone: "orange",
-    text: "When the user drags the panel width, every card needs a new width and height. In the baseline path that means another hidden Text pass and another round of onLayout callbacks.",
+    text: "When the user drags the panel width, every card needs a new width and height. In the onLayout path that means another hidden Text pass and another round of callbacks.",
   },
   {
     id: "legal",
@@ -145,7 +151,7 @@ const MEASURED_LAYOUT_CARDS: LayoutCard[] = [
     kicker: "Handoff",
     title: "Reviewer context",
     tone: "green",
-    text: "The same prepared paragraph state is reused across widths. Only layout metadata is recalculated, so the visible renderer can be placed without an extra React Native Text probe.",
+    text: "The same prepared text is reused across widths. Only layout metadata is recalculated, so the visible renderer can be placed without an extra React Native Text probe.",
   },
 ];
 
@@ -217,7 +223,7 @@ function buildMasonryLayout(args: {
 
 function formatPercent(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return "-";
   }
 
   return `${value.toFixed(1)}%`;
@@ -225,7 +231,7 @@ function formatPercent(value: number | null): string {
 
 function formatPixel(value: number | null): string {
   if (value === null || !Number.isFinite(value)) {
-    return "—";
+    return "-";
   }
 
   return `${Math.round(value)} px`;
@@ -239,18 +245,15 @@ export function MeasuredLayoutComparisonScreen() {
   const { selectedWidth, setSelectedWidth, widths } =
     useExampleWidthSelection();
   const [runIndex, setRunIndex] = useState(0);
-  const [prepared, setPrepared] = useState<PreparedParagraphResult | null>(
-    null,
-  );
-  const [baselineMeasurements, setBaselineMeasurements] = useState<
+  const [preTextPrepared, setPreTextPrepared] =
+    useState<PreTextPrepared | null>(null);
+  const [onLayoutMeasurements, setOnLayoutMeasurements] = useState<
     Record<string, MeasuredTextBox>
   >({});
-  const [baselineElapsedMs, setBaselineElapsedMs] = useState<number | null>(
-    null,
-  );
-  const [baselineSamples, setBaselineSamples] = useState<number[]>([]);
-  const [preparedSamples, setPreparedSamples] = useState<number[]>([]);
-  const baselineStartedAtRef = useRef(now());
+  const [onLayoutPathMs, setOnLayoutPathMs] = useState<number | null>(null);
+  const [onLayoutSamples, setOnLayoutSamples] = useState<number[]>([]);
+  const [preTextSamples, setPreTextSamples] = useState<number[]>([]);
+  const onLayoutStartedAtRef = useRef(now());
 
   const boardWidth = selectedWidth;
   const columnCount = resolveColumnCount(boardWidth);
@@ -260,28 +263,28 @@ export function MeasuredLayoutComparisonScreen() {
   const layoutKey = `${Math.round(textWidth)}:${runIndex}`;
 
   useEffect(() => {
-    const nextPrepared = prepareParagraphsWithStats(
+    const nextPrepared = prepare(
       MEASURED_LAYOUT_CARDS.map((card) => card.text),
       MEASURED_LAYOUT_STYLE,
     );
-    setPrepared(nextPrepared);
+    setPreTextPrepared(nextPrepared);
 
     return () => {
-      releaseParagraphs(nextPrepared.prepared.id);
+      nextPrepared.release();
     };
   }, []);
 
   useLayoutEffect(() => {
-    baselineStartedAtRef.current = now();
-    setBaselineMeasurements({});
-    setBaselineElapsedMs(null);
+    onLayoutStartedAtRef.current = now();
+    setOnLayoutMeasurements({});
+    setOnLayoutPathMs(null);
   }, [layoutKey]);
 
   const handleMeasuredTextLayout = useCallback(
     (cardId: string, event: LayoutChangeEvent) => {
       const { height, width } = event.nativeEvent.layout;
 
-      setBaselineMeasurements((current) => {
+      setOnLayoutMeasurements((current) => {
         const previous = current[cardId];
         if (
           previous?.layoutKey === layoutKey &&
@@ -304,16 +307,17 @@ export function MeasuredLayoutComparisonScreen() {
     [layoutKey],
   );
 
-  const baselineMeasuredCount = useMemo(
+  const onLayoutMeasuredCount = useMemo(
     () =>
       MEASURED_LAYOUT_CARDS.filter(
-        (card) => baselineMeasurements[card.id]?.layoutKey === layoutKey,
+        (card) => onLayoutMeasurements[card.id]?.layoutKey === layoutKey,
       ).length,
-    [baselineMeasurements, layoutKey],
+    [onLayoutMeasurements, layoutKey],
   );
-  const baselineReady = baselineMeasuredCount === MEASURED_LAYOUT_CARDS.length;
-  const baselineLayout = useMemo(() => {
-    if (!baselineReady) {
+  const onLayoutReady =
+    onLayoutMeasuredCount === MEASURED_LAYOUT_CARDS.length;
+  const onLayoutMasonry = useMemo(() => {
+    if (!onLayoutReady) {
       return null;
     }
 
@@ -327,31 +331,36 @@ export function MeasuredLayoutComparisonScreen() {
         }
 
         return (
-          baselineMeasurements[card.id]?.height ??
+          onLayoutMeasurements[card.id]?.height ??
           MEASURED_LAYOUT_STYLE.lineHeight
         );
       },
     });
-  }, [baselineMeasurements, baselineReady, boardWidth, columnCount]);
+  }, [boardWidth, columnCount, onLayoutMeasurements, onLayoutReady]);
 
-  const handleBaselineVisibleLayout = useCallback(() => {
-    if (!baselineReady || baselineElapsedMs !== null) {
+  const handleOnLayoutBoardVisible = useCallback(() => {
+    if (!onLayoutReady || onLayoutPathMs !== null) {
       return;
     }
 
-    const elapsedMs = now() - baselineStartedAtRef.current;
-    setBaselineElapsedMs(elapsedMs);
-    setBaselineSamples((current) => pushSample(current, elapsedMs));
-  }, [baselineElapsedMs, baselineReady]);
+    const elapsedMs = now() - onLayoutStartedAtRef.current;
+    setOnLayoutPathMs(elapsedMs);
+    setOnLayoutSamples((current) => pushSample(current, elapsedMs));
+  }, [onLayoutPathMs, onLayoutReady]);
 
-  const preparedLayout = useMemo(() => {
-    if (prepared === null) {
+  const preTextMasonry = useMemo(() => {
+    if (preTextPrepared === null) {
       return null;
     }
 
     const startedAt = now();
-    const metrics = layoutParagraphsMetadata(prepared.prepared.id, textWidth);
-    const layout = buildMasonryLayout({
+    const metricsLayout = layout(preTextPrepared, {
+      output: "metrics",
+      width: textWidth,
+    });
+    const metrics =
+      metricsLayout.output === "metrics" ? metricsLayout.paragraphs : [];
+    const masonry = buildMasonryLayout({
       boardWidth,
       columnCount,
       getParagraphHeight: (index) =>
@@ -360,49 +369,51 @@ export function MeasuredLayoutComparisonScreen() {
 
     return {
       elapsedMs: now() - startedAt,
-      layout,
+      layout: masonry,
       metrics,
       runKey: layoutKey,
     };
-  }, [boardWidth, columnCount, layoutKey, prepared, textWidth]);
+  }, [boardWidth, columnCount, layoutKey, preTextPrepared, textWidth]);
 
   useEffect(() => {
-    if (preparedLayout === null) {
+    if (preTextMasonry === null) {
       return;
     }
 
-    setPreparedSamples((current) =>
-      pushSample(current, preparedLayout.elapsedMs),
+    setPreTextSamples((current) =>
+      pushSample(current, preTextMasonry.elapsedMs),
     );
-  }, [preparedLayout]);
+  }, [preTextMasonry]);
 
-  const baselineMedianMs = median(baselineSamples);
-  const preparedMedianMs = median(preparedSamples);
+  const onLayoutMedianMs = median(onLayoutSamples);
+  const preTextMedianMs = median(preTextSamples);
   const currentDeltaMs =
-    baselineElapsedMs === null || preparedLayout === null
+    onLayoutPathMs === null || preTextMasonry === null
       ? null
-      : baselineElapsedMs - preparedLayout.elapsedMs;
+      : onLayoutPathMs - preTextMasonry.elapsedMs;
   const currentImprovement =
-    currentDeltaMs === null ||
-    baselineElapsedMs === null ||
-    baselineElapsedMs <= 0
+    currentDeltaMs === null || onLayoutPathMs === null || onLayoutPathMs <= 0
       ? null
-      : (currentDeltaMs / baselineElapsedMs) * 100;
+      : (currentDeltaMs / onLayoutPathMs) * 100;
   const medianImprovement =
-    baselineMedianMs === null ||
-    preparedMedianMs === null ||
-    baselineMedianMs <= 0
+    onLayoutMedianMs === null ||
+    preTextMedianMs === null ||
+    onLayoutMedianMs <= 0
       ? null
-      : ((baselineMedianMs - preparedMedianMs) / baselineMedianMs) * 100;
-  const baselineFirstMeasurement =
-    MEASURED_LAYOUT_CARDS.map((card) => baselineMeasurements[card.id]).find(
+      : ((onLayoutMedianMs - preTextMedianMs) / onLayoutMedianMs) * 100;
+  const firstMeasurement =
+    MEASURED_LAYOUT_CARDS.map((card) => onLayoutMeasurements[card.id]).find(
       (measurement) => measurement?.layoutKey === layoutKey,
     ) ?? null;
-  const totalPreparedLines =
-    preparedLayout?.metrics.reduce(
+  const totalPreTextLines =
+    preTextMasonry?.metrics.reduce(
       (total, metric) => total + metric.lineCount,
       0,
     ) ?? null;
+  const onLayoutRenderPassCount = onLayoutReady ? 2 : 1;
+  const preTextRenderPassCount = preTextMasonry === null ? 0 : 1;
+  const onLayoutShiftCount = onLayoutReady ? 1 : 0;
+  const preTextShiftCount = 0;
 
   function handleReplay() {
     setRunIndex((current) => current + 1);
@@ -419,22 +430,22 @@ export function MeasuredLayoutComparisonScreen() {
 
   return (
     <ExamplePageShell
-      description="This page models a layout that cannot place visible cards until each text block reports width and height. The baseline uses a hidden onLayout measurement pass, then renders the board. The prepared path asks native text layout for metrics first and renders the board directly."
-      lineCount={totalPreparedLines}
-      prepareMs={prepared?.stats.totalMs ?? null}
+      description="This page models a layout that cannot place visible cards until text width and height are known. The left path uses hidden RN Text plus onLayout. The right path asks PreText for native text metrics before render, then uses ordinary RN views and Text for the visible surface."
+      lineCount={totalPreTextLines}
+      prepareMs={preTextPrepared?.stats.totalMs ?? null}
       routeLabel="examples/measured-layout"
       selectedWidth={selectedWidth}
       setSelectedWidth={(width) => {
         setRunIndex((current) => current + 1);
         setSelectedWidth(width);
       }}
-      title="MeasureLayout-style two-pass UI versus prepared paragraph layout"
+      title="onLayout measurement versus PreText layout"
       widths={widths}
     >
       <SliteCard
-        description="The board uses absolute masonry positions. That means a single unknown text height blocks every card placed after it. Plain React Native Text discovers that height through onLayout; prepared paragraph metadata returns it before visible render."
-        eyebrow="Why this matters"
-        title="Height and width are layout inputs, not afterthoughts"
+        description="The board uses absolute masonry positions. One unknown text height blocks every card placed after it, so a MeasureLayout-style flow needs a hidden measurement pass. PreText returns height from native engines before the visible board mounts."
+        eyebrow="Complex Layout"
+        title="Height is a first-class layout input"
       >
         <View style={localStyles.actionRow}>
           <PrimaryButton
@@ -452,12 +463,12 @@ export function MeasuredLayoutComparisonScreen() {
         </View>
         <View style={localStyles.statGrid}>
           <KeyStatRow
-            label="Baseline current"
-            value={formatMilliseconds(baselineElapsedMs)}
+            label="onLayout path time"
+            value={formatMilliseconds(onLayoutPathMs)}
           />
           <KeyStatRow
-            label="Prepared current"
-            value={formatMilliseconds(preparedLayout?.elapsedMs ?? null)}
+            label="PreText layout path time"
+            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
           />
           <KeyStatRow
             label="Current improvement"
@@ -473,9 +484,9 @@ export function MeasuredLayoutComparisonScreen() {
       <View style={sharedStyles.heroCard}>
         <Text style={sharedStyles.eyebrow}>Visual timing</Text>
         <Text style={sharedStyles.subtitle}>
-          Baseline waits for hidden Text nodes to report onLayout before the
-          board can be positioned. Prepared layout produces card positions from
-          native metrics in the same interaction.
+          The onLayout path needs a hidden text render pass before the visible
+          board can stabilize. The PreText path computes height first and then
+          renders the same RN card surface once.
         </Text>
         <View style={sharedStyles.metricRow}>
           <MetricPill
@@ -486,92 +497,106 @@ export function MeasuredLayoutComparisonScreen() {
           <MetricPill label="Text width" value={formatPixel(textWidth)} />
         </View>
         <TimingBars
-          baselineMs={baselineElapsedMs}
-          preparedMs={preparedLayout?.elapsedMs ?? null}
+          onLayoutMs={onLayoutPathMs}
+          preTextMs={preTextMasonry?.elapsedMs ?? null}
         />
       </View>
 
       <SurfaceSection
-        description="The measurement layer renders the same text invisibly, waits for every onLayout callback, stores width and height, then renders the visible masonry board from those measurements."
-        title="Baseline: hidden Text measurement pass"
+        description="This path renders hidden RN Text nodes, waits for every onLayout callback, stores width and height, then renders the visible masonry board from those measurements."
+        title="onLayout measurement path"
       >
         <SurfaceLabel
           subtitle="The board is blocked until the measurement layer finishes."
-          title="React Native Text + onLayout"
+          title="Hidden RN Text + onLayout"
         />
         <View style={sharedStyles.summaryMetricList}>
           <SummaryMetric
-            label="onLayout callbacks"
-            value={`${baselineMeasuredCount}/${MEASURED_LAYOUT_CARDS.length}`}
+            label="Render pass count"
+            value={String(onLayoutRenderPassCount)}
+          />
+          <SummaryMetric
+            label="First stable height"
+            value={formatMilliseconds(onLayoutPathMs)}
+          />
+          <SummaryMetric
+            label="Layout shift count"
+            value={String(onLayoutShiftCount)}
+          />
+          <SummaryMetric
+            label="Callbacks"
+            value={`${onLayoutMeasuredCount}/${MEASURED_LAYOUT_CARDS.length}`}
           />
           <SummaryMetric
             label="Measured text box"
             value={
-              baselineFirstMeasurement === null
-                ? "—"
-                : `${formatPixel(baselineFirstMeasurement.width)} x ${formatPixel(
-                    baselineFirstMeasurement.height,
+              firstMeasurement === null
+                ? "-"
+                : `${formatPixel(firstMeasurement.width)} x ${formatPixel(
+                    firstMeasurement.height,
                   )}`
             }
           />
           <SummaryMetric
-            label="Median usable layout"
-            value={formatMilliseconds(baselineMedianMs)}
-          />
-          <SummaryMetric
-            label="p95 usable layout"
-            value={formatMilliseconds(percentile(baselineSamples, 0.95))}
+            label="Median"
+            value={formatMilliseconds(onLayoutMedianMs)}
           />
         </View>
-        <BaselineMasonryBoard
+        <OnLayoutMasonryBoard
           boardWidth={boardWidth}
-          layout={baselineLayout}
+          layout={onLayoutMasonry}
           layoutKey={layoutKey}
-          measuredCount={baselineMeasuredCount}
-          onBaselineVisibleLayout={handleBaselineVisibleLayout}
+          measuredCount={onLayoutMeasuredCount}
+          onBoardVisible={handleOnLayoutBoardVisible}
           onMeasuredTextLayout={handleMeasuredTextLayout}
           textWidth={textWidth}
         />
       </SurfaceSection>
 
       <SurfaceSection
-        description="The prepared path calculates paragraph metrics from Android MeasuredText/LineBreaker or iOS Core Text before mounting the visible renderer, so the same board can be positioned immediately."
-        title="Prepared: native metrics before visible render"
+        description="This path calls PreText.layout() first. PreText does not render anything; the visible board below is still ordinary RN View and Text, placed with the returned native text metrics."
+        title="PreText layout path"
       >
         <SurfaceLabel
-          subtitle="Card positions are produced directly from prepared paragraph metadata."
-          title="PreparedParagraphView + layoutParagraphsMetadata"
+          subtitle="Card positions are available before the visible RN surface mounts."
+          title="PreText.layout + RN View/Text"
         />
         <View style={sharedStyles.summaryMetricList}>
           <SummaryMetric
-            label="Metadata hot path"
-            value={formatMilliseconds(preparedLayout?.elapsedMs ?? null)}
+            label="Render pass count"
+            value={String(preTextRenderPassCount)}
           />
           <SummaryMetric
-            label="Median hot path"
-            value={formatMilliseconds(preparedMedianMs)}
+            label="First stable height"
+            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
           />
           <SummaryMetric
-            label="p95 hot path"
-            value={formatMilliseconds(percentile(preparedSamples, 0.95))}
+            label="Layout shift count"
+            value={String(preTextShiftCount)}
           />
           <SummaryMetric
-            label="Delta vs baseline"
-            value={formatMilliseconds(currentDeltaMs)}
+            label="Layout path time"
+            value={formatMilliseconds(preTextMasonry?.elapsedMs ?? null)}
+          />
+          <SummaryMetric
+            label="Median"
+            value={formatMilliseconds(preTextMedianMs)}
+          />
+          <SummaryMetric
+            label="p95"
+            value={formatMilliseconds(percentile(preTextSamples, 0.95))}
           />
         </View>
-        {prepared === null || preparedLayout === null ? (
+        {preTextMasonry === null ? (
           <View style={localStyles.placeholder}>
             <Text style={sharedStyles.summaryDescription}>
-              Preparing paragraph state...
+              Preparing PreText layout state...
             </Text>
           </View>
         ) : (
-          <PreparedMasonryBoard
+          <PreTextMasonryBoard
             boardWidth={boardWidth}
-            layout={preparedLayout.layout}
-            metrics={preparedLayout.metrics}
-            prepared={prepared}
+            layout={preTextMasonry.layout}
           />
         )}
       </SurfaceSection>
@@ -580,27 +605,27 @@ export function MeasuredLayoutComparisonScreen() {
 }
 
 function TimingBars({
-  baselineMs,
-  preparedMs,
+  onLayoutMs,
+  preTextMs,
 }: {
-  baselineMs: number | null;
-  preparedMs: number | null;
+  onLayoutMs: number | null;
+  preTextMs: number | null;
 }) {
-  const maxMs = Math.max(baselineMs ?? 0, preparedMs ?? 0, 1);
+  const maxMs = Math.max(onLayoutMs ?? 0, preTextMs ?? 0, 1);
 
   return (
     <View style={localStyles.timingStack}>
       <TimingBar
-        label="Baseline"
-        tone="baseline"
-        valueMs={baselineMs}
-        widthPercent={((baselineMs ?? 0) / maxMs) * 100}
+        label="onLayout"
+        tone="onLayout"
+        valueMs={onLayoutMs}
+        widthPercent={((onLayoutMs ?? 0) / maxMs) * 100}
       />
       <TimingBar
-        label="Prepared"
-        tone="prepared"
-        valueMs={preparedMs}
-        widthPercent={((preparedMs ?? 0) / maxMs) * 100}
+        label="PreText"
+        tone="preText"
+        valueMs={preTextMs}
+        widthPercent={((preTextMs ?? 0) / maxMs) * 100}
       />
     </View>
   );
@@ -613,7 +638,7 @@ function TimingBar({
   widthPercent,
 }: {
   label: string;
-  tone: "baseline" | "prepared";
+  tone: "onLayout" | "preText";
   valueMs: number | null;
   widthPercent: number;
 }) {
@@ -628,9 +653,9 @@ function TimingBar({
         <View
           style={[
             localStyles.timingFill,
-            tone === "baseline"
-              ? localStyles.timingFillBaseline
-              : localStyles.timingFillPrepared,
+            tone === "onLayout"
+              ? localStyles.timingFillOnLayout
+              : localStyles.timingFillPreText,
             { width: resolvedWidth },
           ]}
         />
@@ -640,12 +665,12 @@ function TimingBar({
   );
 }
 
-function BaselineMasonryBoard({
+function OnLayoutMasonryBoard({
   boardWidth,
   layout,
   layoutKey,
   measuredCount,
-  onBaselineVisibleLayout,
+  onBoardVisible,
   onMeasuredTextLayout,
   textWidth,
 }: {
@@ -653,7 +678,7 @@ function BaselineMasonryBoard({
   layout: MasonryLayout | null;
   layoutKey: string;
   measuredCount: number;
-  onBaselineVisibleLayout: () => void;
+  onBoardVisible: () => void;
   onMeasuredTextLayout: (cardId: string, event: LayoutChangeEvent) => void;
   textWidth: number;
 }) {
@@ -670,7 +695,7 @@ function BaselineMasonryBoard({
       {layout === null ? (
         <View style={localStyles.measureWaiting}>
           <Text style={localStyles.measureWaitingTitle}>
-            Measuring hidden Text nodes
+            Measuring hidden RN Text
           </Text>
           <Text style={localStyles.measureWaitingText}>
             {measuredCount}/{MEASURED_LAYOUT_CARDS.length} boxes reported
@@ -679,10 +704,11 @@ function BaselineMasonryBoard({
         </View>
       ) : (
         layout.cards.map((card, index) => (
-          <BaselineCard
-            key={`baseline-card-${card.id}`}
+          <TextCard
+            key={`on-layout-card-${card.id}`}
             card={card}
-            onLayout={index === 0 ? onBaselineVisibleLayout : undefined}
+            footerLabel="Visible after measure"
+            onLayout={index === 0 ? onBoardVisible : undefined}
           />
         ))
       )}
@@ -708,16 +734,12 @@ function BaselineMasonryBoard({
   );
 }
 
-function PreparedMasonryBoard({
+function PreTextMasonryBoard({
   boardWidth,
   layout,
-  metrics,
-  prepared,
 }: {
   boardWidth: number;
   layout: MasonryLayout;
-  metrics: LaidOutParagraphMetrics[];
-  prepared: PreparedParagraphResult;
 }) {
   return (
     <View
@@ -730,23 +752,27 @@ function PreparedMasonryBoard({
       ]}
     >
       {layout.cards.map((card) => (
-        <PreparedCard
-          key={`prepared-card-${card.id}`}
+        <TextCard
+          key={`pretext-card-${card.id}`}
           card={card}
-          lineCount={metrics[card.paragraphIndex]?.lineCount ?? null}
-          prepared={prepared}
+          footerLabel="Positioned before render"
+          textHeight={card.paragraphHeight}
         />
       ))}
     </View>
   );
 }
 
-function BaselineCard({
+function TextCard({
   card,
+  footerLabel,
   onLayout,
+  textHeight,
 }: {
   card: PositionedCard;
+  footerLabel: string;
   onLayout?: () => void;
+  textHeight?: number;
 }) {
   return (
     <View
@@ -762,53 +788,23 @@ function BaselineCard({
         },
       ]}
     >
-      <CardChrome card={card} label={`Column ${card.columnIndex + 1}`} />
+      <CardChrome
+        card={card}
+        label={`Column ${card.columnIndex + 1}`}
+      />
       <Text
         allowFontScaling={false}
-        style={[localStyles.bodyCopy, { width: card.textWidth }]}
+        style={[
+          localStyles.bodyCopy,
+          {
+            height: textHeight,
+            width: card.textWidth,
+          },
+        ]}
       >
         {card.text}
       </Text>
-      <CardFooter label="Visible after measure" />
-    </View>
-  );
-}
-
-function PreparedCard({
-  card,
-  lineCount,
-  prepared,
-}: {
-  card: PositionedCard;
-  lineCount: number | null;
-  prepared: PreparedParagraphResult;
-}) {
-  return (
-    <View
-      style={[
-        localStyles.layoutCard,
-        getToneCardStyle(card.tone),
-        {
-          height: card.cardHeight,
-          left: card.x,
-          top: card.y,
-          width: card.cardWidth,
-        },
-      ]}
-    >
-      <CardChrome
-        card={card}
-        label={lineCount === null ? "Native metrics" : `${lineCount} lines`}
-      />
-      <PreparedParagraphView
-        layoutWidth={card.textWidth}
-        paragraphHeight={card.paragraphHeight}
-        paragraphIndex={card.paragraphIndex}
-        paragraphStyle={MEASURED_LAYOUT_STYLE}
-        prepared={prepared.prepared}
-        style={{ width: card.textWidth }}
-      />
-      <CardFooter label="Positioned before render" />
+      <CardFooter label={footerLabel} />
     </View>
   );
 }
@@ -869,9 +865,8 @@ const localStyles = StyleSheet.create({
     position: "relative",
   },
   bodyCopy: {
-    color: "#221f1c",
-    fontSize: MEASURED_LAYOUT_STYLE.fontSize,
-    lineHeight: MEASURED_LAYOUT_STYLE.lineHeight,
+    ...TEXT_RENDER_STYLE,
+    overflow: "hidden",
   },
   cardChip: {
     backgroundColor: "rgba(31, 39, 37, 0.1)",
@@ -967,8 +962,8 @@ const localStyles = StyleSheet.create({
     borderColor: "#e6ddcd",
     borderRadius: 22,
     borderWidth: 1,
-    minHeight: 240,
     justifyContent: "center",
+    minHeight: 240,
     padding: 20,
   },
   roseCard: {
@@ -982,11 +977,11 @@ const localStyles = StyleSheet.create({
     borderRadius: 999,
     height: 12,
   },
-  timingFillBaseline: {
+  timingFillOnLayout: {
     backgroundColor: "#d66c3d",
   },
-  timingFillPrepared: {
-    backgroundColor: "#63b38f",
+  timingFillPreText: {
+    backgroundColor: "#0f8f68",
   },
   timingLabel: {
     color: "#f7f2e9",
