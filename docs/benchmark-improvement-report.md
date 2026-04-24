@@ -88,7 +88,9 @@ data than `metrics`; use them only when that data is needed.
 
 ## Reproducing
 
-Use release builds on the same device class when comparing numbers.
+Benchmarks are intentionally manual and are not part of CI because simulator
+startup, Metro, and Maestro make the job too slow for every pull request. Use
+release builds on the same device class when comparing numbers.
 
 ```sh
 yarn benchmark:ios
