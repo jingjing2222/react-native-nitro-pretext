@@ -262,6 +262,8 @@ describe("react-native-nitro-pretext", () => {
         lineHeight: 24,
         letterSpacing: 0,
         locale: "ko-KR",
+        includeFontPadding: false,
+        textDirection: "rtl",
       }),
     ).toEqual({
       id: 7,
@@ -277,6 +279,8 @@ describe("react-native-nitro-pretext", () => {
         lineHeight: 24,
         letterSpacing: 0,
         locale: "ko-KR",
+        includeFontPadding: false,
+        textDirection: "rtl",
       },
     ]);
   });

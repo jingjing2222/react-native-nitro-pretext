@@ -8,6 +8,9 @@ internal let whiteSpacePre = "pre"
 internal let wordBreakNormal = "normal"
 internal let wordBreakBreakAll = "break-all"
 internal let breakBehaviorNever = "never"
+internal let layoutEngineIosCoreText = "ios_core_text"
+internal let layoutEngineIosManualTokenFallback = "ios_manual_token_fallback"
+internal let fallbackReasonManualHeightEstimate = "manual_height_estimate"
 
 internal struct NativeTokenDescriptor {
     let text: String
@@ -126,6 +129,32 @@ internal struct NativeLineLayout {
     let height: Double
     let ascent: Double
     let descent: Double
+    let layoutEngine: String
+    let fallbackReason: String?
+
+    init(
+        textStartUTF16: Int,
+        textEndUTF16: Int,
+        width: Double,
+        left: Double,
+        top: Double,
+        height: Double,
+        ascent: Double,
+        descent: Double,
+        layoutEngine: String = layoutEngineIosManualTokenFallback,
+        fallbackReason: String? = fallbackReasonManualHeightEstimate
+    ) {
+        self.textStartUTF16 = textStartUTF16
+        self.textEndUTF16 = textEndUTF16
+        self.width = width
+        self.left = left
+        self.top = top
+        self.height = height
+        self.ascent = ascent
+        self.descent = descent
+        self.layoutEngine = layoutEngine
+        self.fallbackReason = fallbackReason
+    }
 }
 
 internal struct NativePreparedLineRange {
@@ -201,7 +230,9 @@ internal final class PretextShared {
                 letterSpacing: 0,
                 locale: "",
                 fontWeight: "",
-                fontStyle: fontStyleNormal
+                fontStyle: fontStyleNormal,
+                includeFontPadding: true,
+                textDirection: .auto
             )
         ).width
     }
@@ -214,7 +245,9 @@ internal final class PretextShared {
             letterSpacing: 0,
             locale: "",
             fontWeight: "",
-            fontStyle: fontStyleNormal
+            fontStyle: fontStyleNormal,
+            includeFontPadding: true,
+            textDirection: .auto
         )
         return texts.map { measureToken($0, style: style).width }
     }
@@ -635,7 +668,9 @@ internal final class PretextShared {
             String(style.letterSpacing),
             style.locale,
             style.fontWeight,
-            style.fontStyle
+            style.fontStyle,
+            String(style.includeFontPadding),
+            style.textDirection.stringValue
         ].joined(separator: "\u{1F}")
     }
 
@@ -794,7 +829,9 @@ internal final class PretextShared {
                         top: top,
                         height: lineHeight,
                         ascent: 0,
-                        descent: lineHeight
+                        descent: lineHeight,
+                        layoutEngine: layoutEngineIosCoreText,
+                        fallbackReason: nil
                     )
                 )
                 top += lineHeight
@@ -852,7 +889,9 @@ internal final class PretextShared {
                     top: top,
                     height: effectiveLineHeight,
                     ascent: ascent,
-                    descent: descent
+                    descent: descent,
+                    layoutEngine: layoutEngineIosCoreText,
+                    fallbackReason: nil
                 )
             )
 
@@ -874,7 +913,9 @@ internal final class PretextShared {
                     top: 0,
                     height: lineHeight,
                     ascent: 0,
-                    descent: lineHeight
+                    descent: lineHeight,
+                    layoutEngine: layoutEngineIosCoreText,
+                    fallbackReason: nil
                 )
             ]
         }

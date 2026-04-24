@@ -1,5 +1,7 @@
 import type { HybridObject } from "react-native-nitro-modules";
 
+export type ParagraphTextDirection = "auto" | "ltr" | "rtl";
+
 export interface ParagraphStyle {
   fontFamily: string;
   fontSize: number;
@@ -8,6 +10,8 @@ export interface ParagraphStyle {
   locale: string;
   fontWeight?: string;
   fontStyle?: string;
+  includeFontPadding?: boolean;
+  textDirection?: ParagraphTextDirection;
 }
 
 export interface PrepareParagraphStats {

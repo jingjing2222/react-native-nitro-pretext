@@ -13,6 +13,8 @@ internal struct NativeTextStyle: Equatable {
     let locale: String
     let fontWeight: String
     let fontStyle: String
+    let includeFontPadding: Bool
+    let textDirection: ParagraphTextDirection
 }
 
 internal struct NativeTextRun {
@@ -36,7 +38,9 @@ internal func defaultTextStyle(from style: ParagraphStyle) -> NativeTextStyle {
         letterSpacing: style.letterSpacing,
         locale: style.locale,
         fontWeight: style.fontWeight ?? "",
-        fontStyle: style.fontStyle ?? fontStyleNormal
+        fontStyle: style.fontStyle ?? fontStyleNormal,
+        includeFontPadding: style.includeFontPadding ?? true,
+        textDirection: style.textDirection ?? .auto
     )
 }
 
@@ -51,7 +55,9 @@ internal func resolveTextStyle(
         letterSpacing: segment.letterSpacing ?? baseStyle.letterSpacing,
         locale: segment.locale ?? baseStyle.locale,
         fontWeight: segment.fontWeight ?? baseStyle.fontWeight,
-        fontStyle: segment.fontStyle ?? baseStyle.fontStyle
+        fontStyle: segment.fontStyle ?? baseStyle.fontStyle,
+        includeFontPadding: baseStyle.includeFontPadding,
+        textDirection: baseStyle.textDirection
     )
 }
 
@@ -106,14 +112,21 @@ internal func measureToken(
     style: NativeTextStyle
 ) -> NativeTokenMetrics {
     let font = resolveFont(style: style)
-    let width = (token as NSString).size(withAttributes: textAttributes(for: style, font: font)).width
-    let descent = max(0, Double(abs(font.descender)))
-    let ascent = max(0, Double(font.ascender))
+    let attributedText = NSAttributedString(
+        string: token,
+        attributes: textAttributes(for: style, font: font)
+    )
+    let line = CTLineCreateWithAttributedString(attributedText)
+    var ascent: CGFloat = 0
+    var descent: CGFloat = 0
+    var leading: CGFloat = 0
+    let width = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
+    let actualHeight = max(0, Double(ascent + descent + leading))
     return NativeTokenMetrics(
         width: width,
-        lineHeight: resolvedLineHeightValue(style.lineHeight, font: font),
-        ascent: ascent,
-        descent: descent
+        lineHeight: max(resolvedLineHeightValue(style.lineHeight, font: font), actualHeight),
+        ascent: max(0, Double(ascent)),
+        descent: max(0, Double(descent))
     )
 }
 

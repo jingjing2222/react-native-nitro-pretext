@@ -44,6 +44,7 @@ export type {
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
+  ParagraphTextDirection,
   PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,

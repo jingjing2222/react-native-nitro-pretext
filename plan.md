@@ -74,18 +74,18 @@ Result:
 
 ## Plan 02: Canonical Engine Alignment
 
-- [ ] Keep Android minSdk 24, but mark API 24-28 as `android_legacy_fallback`.
-- [ ] On Android API 29+, route normal prepared layout to `MeasuredText + LineBreaker` before any `StaticLayout` branch.
-- [ ] Keep `StaticLayout` only as named compat/fallback path.
-- [ ] Keep a `StaticLayout` RN Text compatibility height path with matching `TextPaint`, `includePad`, break strategy, hyphenation, locale, and text direction.
-- [ ] Add `includeFontPadding?: boolean` to `ParagraphStyle`.
-- [ ] Default Android `includeFontPadding` to `true`.
-- [ ] Apply padding policy to Android line metrics and diagnostics, using native ascent/descent/top/bottom metrics instead of `fontSize`.
-- [ ] Add `textDirection?: "auto" | "ltr" | "rtl"` to `ParagraphStyle`.
-- [ ] Keep iOS layout on `CTTypesetterCreateLine` + `CTLineGetTypographicBounds`.
-- [ ] Ensure iOS line height uses Core Text typographic bounds and fallback glyph metrics, with explicit `lineHeight` applied over those metrics.
-- [ ] Mark manual token layout as degraded fallback with `fallbackReason`.
-- [ ] Mark any manual/token height estimate as degraded with `fallbackReason: "manual_height_estimate"`.
+- [x] Keep Android minSdk 24, but mark API 24-28 as `android_legacy_fallback`.
+- [x] On Android API 29+, route normal prepared layout to `MeasuredText + LineBreaker` before any `StaticLayout` branch.
+- [x] Keep `StaticLayout` only as named compat/fallback path.
+- [x] Keep a `StaticLayout` RN Text compatibility height path with matching `TextPaint`, `includePad`, break strategy, hyphenation, locale, and text direction.
+- [x] Add `includeFontPadding?: boolean` to `ParagraphStyle`.
+- [x] Default Android `includeFontPadding` to `true`.
+- [x] Apply padding policy to Android line metrics and diagnostics, using native ascent/descent/top/bottom metrics instead of `fontSize`.
+- [x] Add `textDirection?: "auto" | "ltr" | "rtl"` to `ParagraphStyle`.
+- [x] Keep iOS layout on `CTTypesetterCreateLine` + `CTLineGetTypographicBounds`.
+- [x] Ensure iOS line height uses Core Text typographic bounds and fallback glyph metrics, with explicit `lineHeight` applied over those metrics.
+- [x] Mark manual token layout as degraded fallback with `fallbackReason`.
+- [x] Mark any manual/token height estimate as degraded with `fallbackReason: "manual_height_estimate"`.
 
 Acceptance:
 
@@ -94,6 +94,19 @@ Acceptance:
 - No canonical line or paragraph height is computed from `fontSize` alone.
 - `agent-device` fixture or benchmark verification confirms canonical engine metadata on affected platforms.
 - Local CI passes before Plan 03 begins.
+
+Result:
+
+- Added `ParagraphStyle.includeFontPadding?: boolean` and `ParagraphStyle.textDirection?: "auto" | "ltr" | "rtl"` to the Nitro API.
+- Android API 29+ now checks the `MeasuredText + LineBreaker` path before `StaticLayout`, while API 24-28/manual token paths are marked as degraded fallback with `fallbackReason: "manual_height_estimate"`.
+- Android `StaticLayout` remains as compatibility/fallback only and now receives explicit `includePad` and text-direction policy.
+- Android line heights now use native ascent/descent plus first/last-line `includeFontPadding` policy, with explicit `lineHeight` applied as a floor rather than a font-size shortcut.
+- iOS layout remains on `CTTypesetterCreateLine` and `CTLineGetTypographicBounds`; token fallback measurement now uses `CTLineGetTypographicBounds` so fallback glyph/emoji metrics can raise line height.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; `yarn benchmark:ios` passed and reported prepared compute/render `layoutEngine: ios_core_text` with `heightMetricSource: platform_text_engine_metrics`.
+- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`.
+- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
 
 ## Plan 03: Canonical Native Rendering
 

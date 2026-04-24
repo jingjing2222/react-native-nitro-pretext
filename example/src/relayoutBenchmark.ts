@@ -22,6 +22,8 @@ export const BENCHMARK_STYLE: ParagraphStyle = {
   lineHeight: 28,
   letterSpacing: 0,
   locale: "ko-KR",
+  includeFontPadding: true,
+  textDirection: "auto",
 };
 
 export type BenchmarkMode = "baseline" | "pretext-render" | "pretext-compute";

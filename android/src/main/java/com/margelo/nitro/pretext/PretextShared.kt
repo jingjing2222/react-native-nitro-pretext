@@ -7,7 +7,6 @@ import android.graphics.text.MeasuredText
 import android.os.Build
 import android.text.Layout
 import android.text.StaticLayout
-import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import java.text.BreakIterator
 import java.util.Locale
@@ -15,6 +14,7 @@ import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.math.ceil
 import kotlin.math.max
+import kotlin.math.min
 
 internal object PretextShared {
   private val nextPreparedCorpusId = AtomicLong(1)
@@ -33,6 +33,8 @@ internal object PretextShared {
         locale = "",
         fontWeight = "",
         fontStyle = FONT_STYLE_NORMAL,
+        includeFontPadding = true,
+        textDirection = ParagraphTextDirection.AUTO,
       ),
     ).width
   }
@@ -47,6 +49,8 @@ internal object PretextShared {
         locale = "",
         fontWeight = "",
         fontStyle = FONT_STYLE_NORMAL,
+        includeFontPadding = true,
+        textDirection = ParagraphTextDirection.AUTO,
       )
     return DoubleArray(texts.size) { index ->
       measureToken(texts[index], style).width
@@ -142,6 +146,8 @@ internal object PretextShared {
         paragraphs = preparedParagraphs,
         lineHeight = lineHeight,
         textPaint = basePaint,
+        includeFontPadding = baseStyle.includeFontPadding,
+        textDirection = baseStyle.textDirection,
         lineBreaker =
           if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             Api29LineLayout.createLineBreaker()
@@ -536,6 +542,8 @@ internal object PretextShared {
       style.locale,
       style.fontWeight,
       style.fontStyle,
+      style.includeFontPadding.toString(),
+      style.textDirection.name,
     ).joinToString(separator = "\u001F")
   }
 
@@ -735,17 +743,6 @@ internal object PretextShared {
         request.wordBreak == WORD_BREAK_NORMAL &&
         !prepared.forceTokenLayout
 
-    if (canUseStaticLayout) {
-      return StaticLayoutLineLayout.layoutLineLayouts(
-        text = prepared.styledText,
-        textPaint = corpus.textPaint,
-        runs = prepared.runs,
-        width = request.width,
-        left = request.left,
-        defaultLineHeight = corpus.lineHeight,
-      )
-    }
-
     val lineBreaker = corpus.lineBreaker
     val measuredText = prepared.measuredText
     val canUsePlatformLineBreaker =
@@ -762,10 +759,25 @@ internal object PretextShared {
         text = prepared.text,
         measuredText = measuredText,
         lineBreaker = lineBreaker,
+        textPaint = corpus.textPaint,
         runs = prepared.runs,
         width = request.width,
         left = request.left,
         defaultLineHeight = corpus.lineHeight,
+        includeFontPadding = corpus.includeFontPadding,
+      )
+    }
+
+    if (canUseStaticLayout) {
+      return StaticLayoutLineLayout.layoutLineLayouts(
+        text = prepared.styledText,
+        textPaint = corpus.textPaint,
+        runs = prepared.runs,
+        width = request.width,
+        left = request.left,
+        defaultLineHeight = corpus.lineHeight,
+        includeFontPadding = corpus.includeFontPadding,
+        textDirection = corpus.textDirection,
       )
     }
 
@@ -818,30 +830,32 @@ internal object PretextShared {
 
       if (start == end) {
         val position = units[start].start
+        val metrics = fallbackLineMetrics(units, start, end, defaultLineHeight)
         lines += NativeLineLayout(
           textStart = position,
           textEnd = position,
           width = 0.0,
           left = constraint.left,
           top = top,
-          height = defaultLineHeight,
-          ascent = 0.0,
-          descent = defaultLineHeight,
+          height = metrics.lineHeight,
+          ascent = metrics.ascent,
+          descent = metrics.descent,
         )
       } else {
+        val metrics = fallbackLineMetrics(units, start, end, defaultLineHeight)
         lines += NativeLineLayout(
           textStart = units[start].start,
           textEnd = units[end - 1].end,
           width = sumWidths(units, start, end),
           left = constraint.left,
           top = top,
-          height = defaultLineHeight,
-          ascent = 0.0,
-          descent = defaultLineHeight,
+          height = metrics.lineHeight,
+          ascent = metrics.ascent,
+          descent = metrics.descent,
         )
       }
 
-      top += defaultLineHeight
+      top += lines.last().height
       if (end >= units.size) {
         break
       }
@@ -924,7 +938,7 @@ internal object PretextShared {
         val hasVisibleText = fallback.text.trim().isNotEmpty()
         val fallbackLineHeight =
           if (fallback.lineHeight > 0.0) {
-            max(defaultLineHeight, fallback.lineHeight)
+            max(defaultLineHeight, max(fallback.lineHeight, fallback.descent - fallback.ascent))
           } else {
             defaultLineHeight
           }
@@ -936,7 +950,7 @@ internal object PretextShared {
           top = top,
           height = fallbackLineHeight,
           ascent = fallback.ascent,
-          descent = fallback.descent,
+          descent = max(fallback.descent, fallbackLineHeight + fallback.ascent),
         )
         top += fallbackLineHeight
         cursor += 1
@@ -1057,20 +1071,20 @@ internal object PretextShared {
     }
 
     var maxLineHeight = defaultLineHeight
-    var maxAscent = 0.0
+    var minAscent = 0.0
     var maxDescent = 0.0
     for (index in start until end) {
       val token = tokens[index]
       maxLineHeight = max(maxLineHeight, token.lineHeight)
-      maxAscent = max(maxAscent, token.ascent)
+      minAscent = min(minAscent, token.ascent)
       maxDescent = max(maxDescent, token.descent)
     }
 
-    maxLineHeight = max(maxLineHeight, maxAscent + maxDescent)
+    maxLineHeight = max(maxLineHeight, maxDescent - minAscent)
     return NativeTokenMetrics(
       width = sumWidths(tokens, start, end),
       lineHeight = maxLineHeight,
-      ascent = maxAscent,
+      ascent = minAscent,
       descent = maxDescent,
     )
   }
@@ -1101,14 +1115,43 @@ private object Api29LineLayout {
       .build()
   }
 
+  private fun resolveLineFontPadding(
+    textPaint: TextPaint,
+    runs: List<NativeTextRun>,
+    start: Int,
+    end: Int,
+  ): NativeLineFontPadding {
+    var topPadding = 0.0
+    var bottomPadding = 0.0
+
+    fun absorbMetrics(metrics: Paint.FontMetricsInt) {
+      topPadding = max(topPadding, (metrics.ascent - metrics.top).toDouble())
+      bottomPadding = max(bottomPadding, (metrics.bottom - metrics.descent).toDouble())
+    }
+
+    absorbMetrics(textPaint.fontMetricsInt)
+    runs.forEach { run ->
+      if (run.end > start && run.start < end) {
+        absorbMetrics(createTextPaint(run.style).fontMetricsInt)
+      }
+    }
+
+    return NativeLineFontPadding(
+      top = topPadding,
+      bottom = bottomPadding,
+    )
+  }
+
   fun layoutLineLayouts(
     text: String,
     measuredText: Any,
     lineBreaker: Any,
+    textPaint: TextPaint,
     runs: List<NativeTextRun>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
+    includeFontPadding: Boolean,
   ): List<NativeLineLayout> {
     val measuredParagraph = measuredText as MeasuredText
     val breaker = lineBreaker as LineBreaker
@@ -1127,6 +1170,8 @@ private object Api29LineLayout {
           height = defaultLineHeight,
           ascent = 0.0,
           descent = defaultLineHeight,
+          layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+          fallbackReason = null,
         ),
       )
     }
@@ -1136,8 +1181,18 @@ private object Api29LineLayout {
     var start = 0
     for (lineIndex in 0 until result.lineCount) {
       val end = result.getLineBreakOffset(lineIndex)
-      val ascent = result.getLineAscent(lineIndex).toDouble()
-      val descent = result.getLineDescent(lineIndex).toDouble()
+      val includeTopPadding = includeFontPadding && lineIndex == 0
+      val includeBottomPadding = includeFontPadding && lineIndex == result.lineCount - 1
+      val linePadding = resolveLineFontPadding(
+        textPaint = textPaint,
+        runs = runs,
+        start = start,
+        end = end,
+      )
+      val ascent = result.getLineAscent(lineIndex).toDouble() -
+        if (includeTopPadding) linePadding.top else 0.0
+      val descent = result.getLineDescent(lineIndex).toDouble() +
+        if (includeBottomPadding) linePadding.bottom else 0.0
       val actualHeight = max(0.0, descent - ascent)
       val lineHeight =
         max(
@@ -1153,6 +1208,8 @@ private object Api29LineLayout {
         height = lineHeight,
         ascent = ascent,
         descent = descent,
+        layoutEngine = LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER,
+        fallbackReason = null,
       )
       top += lineHeight
       start = end
@@ -1170,6 +1227,8 @@ private object StaticLayoutLineLayout {
     width: Double,
     left: Double,
     defaultLineHeight: Double,
+    includeFontPadding: Boolean,
+    textDirection: ParagraphTextDirection,
   ): List<NativeLineLayout> {
     val layout =
       StaticLayout.Builder.obtain(
@@ -1181,8 +1240,8 @@ private object StaticLayoutLineLayout {
       )
         .setAlignment(Layout.Alignment.ALIGN_NORMAL)
         .setLineSpacing(0f, 1f)
-        .setIncludePad(true)
-        .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+        .setIncludePad(includeFontPadding)
+        .setTextDirection(resolveTextDirectionHeuristic(textDirection))
         .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
         .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
         .apply {
@@ -1203,6 +1262,8 @@ private object StaticLayoutLineLayout {
           height = defaultLineHeight,
           ascent = 0.0,
           descent = defaultLineHeight,
+          layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
+          fallbackReason = null,
         ),
       )
     }
@@ -1213,7 +1274,12 @@ private object StaticLayoutLineLayout {
     for (lineIndex in 0 until layout.lineCount) {
       val start = layout.getLineStart(lineIndex)
       val end = layout.getLineVisibleEnd(lineIndex)
-      val actualHeight = max(0.0, (layout.getLineBottom(lineIndex) - layout.getLineTop(lineIndex)).toDouble())
+      val lineTop = layout.getLineTop(lineIndex).toDouble()
+      val lineBottom = layout.getLineBottom(lineIndex).toDouble()
+      val baseline = layout.getLineBaseline(lineIndex).toDouble()
+      val ascent = lineTop - baseline
+      val descent = lineBottom - baseline
+      val actualHeight = max(0.0, descent - ascent)
       val lineHeight =
         max(
           PretextShared.maxRequestedLineHeight(runs, defaultLineHeight, start, end),
@@ -1226,8 +1292,10 @@ private object StaticLayoutLineLayout {
         left = left,
         top = top,
         height = lineHeight,
-        ascent = 0.0,
-        descent = lineHeight,
+        ascent = ascent,
+        descent = descent,
+        layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
+        fallbackReason = null,
       )
       top += lineHeight
     }
@@ -1278,6 +1346,8 @@ internal class NativePreparedCorpus(
   val paragraphs: List<NativePreparedParagraph>,
   val lineHeight: Double,
   val textPaint: TextPaint,
+  val includeFontPadding: Boolean,
+  val textDirection: ParagraphTextDirection,
   val lineBreaker: Any?,
 ) {
   private val layoutCacheLock = Any()
@@ -1324,6 +1394,13 @@ internal data class NativeLineLayout(
   val height: Double,
   val ascent: Double,
   val descent: Double,
+  val layoutEngine: String = LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK,
+  val fallbackReason: String? = FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE,
+)
+
+internal data class NativeLineFontPadding(
+  val top: Double,
+  val bottom: Double,
 )
 
 internal data class NativePreparedLineRange(
@@ -1380,3 +1457,8 @@ internal const val WHITE_SPACE_PRE = "pre"
 internal const val WORD_BREAK_NORMAL = "normal"
 internal const val WORD_BREAK_BREAK_ALL = "break-all"
 internal const val BREAK_BEHAVIOR_NEVER = "never"
+internal const val LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER =
+  "android_measured_text_line_breaker"
+internal const val LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT = "android_static_layout_compat"
+internal const val LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK = "android_legacy_fallback"
+internal const val FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE = "manual_height_estimate"

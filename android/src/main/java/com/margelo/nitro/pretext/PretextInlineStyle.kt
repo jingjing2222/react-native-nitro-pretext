@@ -5,6 +5,7 @@ import android.graphics.Typeface
 import android.os.Build
 import android.text.SpannableString
 import android.text.Spanned
+import android.text.TextDirectionHeuristic
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import android.text.style.MetricAffectingSpan
@@ -21,6 +22,8 @@ internal data class NativeTextStyle(
   val locale: String,
   val fontWeight: String,
   val fontStyle: String,
+  val includeFontPadding: Boolean,
+  val textDirection: ParagraphTextDirection,
 )
 
 internal data class NativeTextRun(
@@ -45,6 +48,8 @@ internal fun defaultTextStyle(style: ParagraphStyle): NativeTextStyle {
     locale = style.locale,
     fontWeight = style.fontWeight ?: "",
     fontStyle = style.fontStyle ?: FONT_STYLE_NORMAL,
+    includeFontPadding = style.includeFontPadding ?: true,
+    textDirection = style.textDirection ?: ParagraphTextDirection.AUTO,
   )
 }
 
@@ -57,6 +62,8 @@ internal fun resolveTextStyle(segment: InlineSegment, baseStyle: NativeTextStyle
     locale = segment.locale ?: baseStyle.locale,
     fontWeight = segment.fontWeight ?: baseStyle.fontWeight,
     fontStyle = segment.fontStyle ?: baseStyle.fontStyle,
+    includeFontPadding = baseStyle.includeFontPadding,
+    textDirection = baseStyle.textDirection,
   )
 }
 
@@ -74,11 +81,12 @@ internal fun createTextPaint(style: NativeTextStyle): TextPaint {
 internal fun measureToken(token: String, style: NativeTextStyle): NativeTokenMetrics {
   val paint = createTextPaint(style)
   val metrics = paint.fontMetrics
-  val ascent = kotlin.math.abs(metrics.ascent.toDouble())
+  val ascent = metrics.ascent.toDouble()
   val descent = kotlin.math.max(0.0, metrics.descent.toDouble())
+  val actualHeight = kotlin.math.max(0.0, descent - ascent)
   return NativeTokenMetrics(
     width = paint.measureText(token).toDouble(),
-    lineHeight = resolveLineHeightValue(style.lineHeight, paint),
+    lineHeight = kotlin.math.max(resolveLineHeightValue(style.lineHeight, paint), actualHeight),
     ascent = ascent,
     descent = descent,
   )
@@ -106,7 +114,7 @@ internal fun buildStyledText(text: String, runs: List<NativeTextRun>): CharSeque
 
 internal fun buildMeasuredText(text: String, runs: List<NativeTextRun>): Any {
   val builder = android.graphics.text.MeasuredText.Builder(text.toCharArray())
-    .setComputeLayout(false)
+    .setComputeLayout(true)
 
   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
     builder.setComputeHyphenation(android.graphics.text.MeasuredText.Builder.HYPHENATION_MODE_NONE)
@@ -120,11 +128,22 @@ internal fun buildMeasuredText(text: String, runs: List<NativeTextRun>): Any {
       continue
     }
     val paint = createTextPaint(run.style)
-    val isRtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, run.start, run.end - run.start)
+    val isRtl = resolveTextDirectionHeuristic(run.style.textDirection)
+      .isRtl(text, run.start, run.end - run.start)
     builder.appendStyleRun(paint, run.end - run.start, isRtl)
   }
 
   return builder.build()
+}
+
+internal fun resolveTextDirectionHeuristic(
+  textDirection: ParagraphTextDirection,
+): TextDirectionHeuristic {
+  return when (textDirection) {
+    ParagraphTextDirection.LTR -> TextDirectionHeuristics.LTR
+    ParagraphTextDirection.RTL -> TextDirectionHeuristics.RTL
+    ParagraphTextDirection.AUTO -> TextDirectionHeuristics.FIRSTSTRONG_LTR
+  }
 }
 
 internal fun resolveLineHeightValue(lineHeight: Double, paint: Paint): Double {

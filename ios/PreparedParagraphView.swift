@@ -161,7 +161,9 @@ final class PreparedParagraphView: UIView {
             letterSpacing: letterSpacing.doubleValue,
             locale: "",
             fontWeight: fontWeight as String,
-            fontStyle: fontStyle as String
+            fontStyle: fontStyle as String,
+            includeFontPadding: true,
+            textDirection: .auto
         )
         cachedFont = resolveFont(style: resolvedStyle)
 

@@ -193,6 +193,8 @@ internal class PreparedParagraphView(context: Context) : View(context) {
           locale = "",
           fontWeight = fontWeight,
           fontStyle = fontStyle,
+          includeFontPadding = true,
+          textDirection = ParagraphTextDirection.AUTO,
         ),
       )
     paint.color = textColor
