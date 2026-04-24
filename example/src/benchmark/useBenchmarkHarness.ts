@@ -16,9 +16,9 @@ import {
   BENCHMARK_SAMPLE_SIZE,
   BENCHMARK_WARMUP_RUNS,
   createWidthSequence,
-  layoutCorpusPoC,
-  layoutCorpusMetadataPoC,
-  layoutCorpusSampleLineTextsPoC,
+  layoutBenchmarkCorpus,
+  layoutBenchmarkCorpusMetadata,
+  layoutBenchmarkCorpusSampleLineTexts,
   now,
 } from "../relayoutBenchmark";
 import {
@@ -216,7 +216,7 @@ export function useBenchmarkHarness({
           );
 
           if (mode === "pretext-render") {
-            const layoutResult = layoutCorpusPoC(
+            const layoutResult = layoutBenchmarkCorpus(
               preparedParagraphs!,
               layoutWidth,
             );
@@ -233,7 +233,7 @@ export function useBenchmarkHarness({
           }
 
           if (mode === "pretext-compute") {
-            const layoutResult = layoutCorpusMetadataPoC(
+            const layoutResult = layoutBenchmarkCorpusMetadata(
               preparedParagraphs!,
               layoutWidth,
             );
@@ -241,7 +241,7 @@ export function useBenchmarkHarness({
             expectedLineCounts = layoutResult.paragraphs.map(
               (paragraph) => paragraph.lineCount,
             );
-            expectedLineTexts = layoutCorpusSampleLineTextsPoC(
+            expectedLineTexts = layoutBenchmarkCorpusSampleLineTexts(
               preparedParagraphs!,
               layoutWidth,
             );

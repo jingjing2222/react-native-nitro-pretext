@@ -76,6 +76,21 @@ const metrics = PreText.layout(prepared, width);
 const height = metrics.height;
 ```
 
+Use the object form when layout needs positioning rules:
+
+```ts
+const lines = layout(prepared, {
+  width: 280,
+  left: 12,
+  output: "lines",
+  shapeSlices: [{ top: 0, height: 96, left: 24, width: 256 }],
+});
+```
+
+Rich inline boxes are prepared with inline segment paragraphs and caller-owned
+box metrics, then read with `output: "rich"`. See the
+[API Reference](docs/api.md) for the segment shape.
+
 ## What It Does Not Do
 
 - No public renderer component.
@@ -160,6 +175,7 @@ Node filesystem watcher.
 ## Development
 
 ```sh
+yarn nitrogen
 yarn typecheck
 yarn lint
 yarn fmt:check

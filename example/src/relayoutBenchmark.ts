@@ -40,8 +40,8 @@ const CORPUS_LEADS = [
   "같은 문단을 여러 폭으로 반복 relayout 할 때 병목이 엔진인지 렌더러인지 분리해서 보고 싶다.",
   "지금 단계에서는 완전한 native paragraph view 보다 width 변화 배치의 hot path 를 먼저 보는 편이 맞다.",
   "벤치 기준은 첫 mount 가 아니라 폭 변경 한 번당 총비용과 jank 여부다.",
-  "줄마다 노드를 쪼개면 line breaker 비교가 아니라 view count 비교가 되기 때문에 이번 PoC 에서는 제외한다.",
-  "measureBatch 를 한 번에 호출하고 JS 에서 greedy break 를 반복하면 prepare 과 layout 비용을 분리하기 쉽다.",
+  "줄마다 노드를 쪼개면 line breaker 비교가 아니라 view count 비교가 되기 때문에 벤치마크에서는 제외한다.",
+  "prepare 이후 layout 을 반복 호출하면 prepare 비용과 hot layout 비용을 분리해서 읽기 쉽다.",
   "같은 폰트와 같은 style 로 corpus 를 고정해 두어야 baseline 과 pretext 결과를 공정하게 읽을 수 있다.",
 ];
 
@@ -104,7 +104,7 @@ export function now(): number {
   return perf.performance?.now() ?? Date.now();
 }
 
-export function prepareCorpusPoC(texts: string[]): {
+export function prepareBenchmarkCorpus(texts: string[]): {
   prepareMs: number;
   prepareStats: PreTextPrepareStats;
   prepared: PreTextPrepared;
@@ -118,7 +118,7 @@ export function prepareCorpusPoC(texts: string[]): {
   };
 }
 
-export function layoutCorpusPoC(
+export function layoutBenchmarkCorpus(
   prepared: PreTextPrepared,
   maxWidth: number,
 ): {
@@ -138,7 +138,7 @@ export function layoutCorpusPoC(
   };
 }
 
-export function layoutCorpusMetadataPoC(
+export function layoutBenchmarkCorpusMetadata(
   prepared: PreTextPrepared,
   maxWidth: number,
 ): {
@@ -156,7 +156,7 @@ export function layoutCorpusMetadataPoC(
   };
 }
 
-export function layoutCorpusSampleLineTextsPoC(
+export function layoutBenchmarkCorpusSampleLineTexts(
   prepared: PreTextPrepared,
   maxWidth: number,
 ): string[][] {
@@ -182,7 +182,9 @@ export function layoutCorpusSampleLineTextsPoC(
     });
 }
 
-export function disposePreparedCorpusPoC(prepared: PreTextPrepared): void {
+export function disposePreparedBenchmarkCorpus(
+  prepared: PreTextPrepared,
+): void {
   prepared.release();
 }
 

@@ -98,6 +98,13 @@ Use `layout(prepared, width)` for the common height-before-render path. Use the
 object form when you need line data, diagnostics, rich inline boxes, or custom
 rules.
 
+```ts
+const rich = layout(preparedInlineParagraphs, {
+  width: 320,
+  output: "rich",
+});
+```
+
 `PreTextLayoutOptions`:
 
 | Prop          | Type                                              | Default     | Description                                                  |
@@ -257,6 +264,9 @@ Return value:
 | `isPreparing`    | `boolean`                       | `true` while the hook is preparing current inputs. |
 | `error`          | `unknown \| null`               | Error thrown by native prepare or layout, if any.  |
 
+The hook catches native prepare/layout exceptions and returns them in `error`.
+It does not rethrow during render. When `error` is non-null, `layout` is null.
+
 Keep `text` arrays, inline segment arrays, `shapeSlices`, and other non-style
 object/array inputs stable with `useMemo` when they are created inside a
 component. Plain style objects are normalized by value, so an inline style
@@ -278,6 +288,8 @@ implementation.
 
 ## Types
 
+The type helpers in this section are exported from the package root.
+
 ### `PreTextSource`
 
 ```ts
@@ -289,6 +301,14 @@ type PreTextSource =
 
 String sources prepare plain paragraphs. Inline segment sources prepare styled
 runs and optional atomic boxes.
+
+### `PreTextLayoutInput`
+
+```ts
+type PreTextLayoutInput = number | PreTextLayoutOptions;
+```
+
+The number shorthand is equivalent to `{ width, output: "metrics" }`.
 
 ### `PreTextStyle`
 

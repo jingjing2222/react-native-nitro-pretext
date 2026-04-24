@@ -1,7 +1,7 @@
 {
   "name": "react-native-nitro-pretext",
   "version": "0.0.1",
-  "description": "React Native port of pretext with native text measurement backends for accurate multiline layout",
+  "description": "Layout-only PreText engine for React Native text geometry before render",
   "keywords": [
     "android",
     "ios",

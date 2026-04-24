@@ -49,19 +49,19 @@ You can use various commands from the root directory to work with the project.
 To start the packager:
 
 ```sh
-yarn example start
+yarn workspace react-native-nitro-pretext-example start
 ```
 
 To run the example app on Android:
 
 ```sh
-yarn example android
+yarn example:android
 ```
 
 To run the example app on iOS:
 
 ```sh
-yarn example ios
+yarn example:ios
 ```
 
 To confirm that the app is running with the new architecture, you can check the Metro logs for a message like this:
@@ -96,13 +96,17 @@ The `package.json` file contains various scripts for common tasks:
 
 - `yarn`: setup project by installing dependencies.
 - `yarn build`: build the package with Bob and regenerate Nitro outputs.
+- `yarn nitrogen`: regenerate Nitro bridge files.
 - `yarn typecheck`: type-check files with TypeScript.
+- `yarn lint`: lint the package with Oxlint.
+- `yarn fmt:check`: verify formatting with Oxfmt.
 - `yarn test`: run unit tests with [Jest](https://jestjs.io/).
 - `yarn changeset`: create a release note and version bump entry for publishable changes.
-- `yarn version-packages`: apply pending Changesets locally.
-- `yarn example start`: start the Metro server for the example app.
-- `yarn example android`: run the example app on Android.
-- `yarn example ios`: run the example app on iOS.
+- `yarn workspace react-native-nitro-pretext-example start`: start the Metro server for the example app.
+- `yarn example:android`: run the example app on Android.
+- `yarn example:ios`: run the example app on iOS.
+- `yarn benchmark:android`: run the Android Maestro benchmark against an installed example app.
+- `yarn benchmark:ios`: run the iOS Maestro benchmark against an installed example app.
 
 ### Releases
 

@@ -15,8 +15,8 @@ import {
   BENCHMARK_MEASURED_RUNS,
   BENCHMARK_WARMUP_RUNS,
   createWidthSequence,
-  layoutCorpusMetadataPoC,
-  layoutCorpusSampleLineTextsPoC,
+  layoutBenchmarkCorpusMetadata,
+  layoutBenchmarkCorpusSampleLineTexts,
   now,
   type PreTextParagraphMetrics,
 } from "../relayoutBenchmark";
@@ -122,7 +122,7 @@ export function usePreTextLayoutBenchmarkHarness({
 
         return [
           width,
-          layoutCorpusSampleLineTextsPoC(preparedParagraphs, layoutWidth),
+          layoutBenchmarkCorpusSampleLineTexts(preparedParagraphs, layoutWidth),
         ];
       }),
     ) as Record<number, string[][]>;
@@ -146,7 +146,10 @@ export function usePreTextLayoutBenchmarkHarness({
       1,
       initialParagraphWidth - PARAGRAPH_HORIZONTAL_PADDING * 2,
     );
-    const preview = layoutCorpusMetadataPoC(preparedParagraphs, layoutWidth);
+    const preview = layoutBenchmarkCorpusMetadata(
+      preparedParagraphs,
+      layoutWidth,
+    );
     setParagraphMetrics(preview.paragraphs);
     setParagraphWidth(initialParagraphWidth);
   }, [initialParagraphWidth, isRunning, preparedParagraphs]);
@@ -244,7 +247,7 @@ export function usePreTextLayoutBenchmarkHarness({
             1,
             width - PARAGRAPH_HORIZONTAL_PADDING * 2,
           );
-          const layoutResult = layoutCorpusMetadataPoC(
+          const layoutResult = layoutBenchmarkCorpusMetadata(
             preparedParagraphs,
             layoutWidth,
           );

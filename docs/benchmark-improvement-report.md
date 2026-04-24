@@ -76,12 +76,12 @@ every debug run.
 
 ## API-Level Performance Meaning
 
-| API                    | Performance expectation                                                         |
-| ---------------------- | ------------------------------------------------------------------------------- |
-| `prepare(text, style)` | Cold step. Native measurement dominates and should be amortized across layouts. |
-| `layout(prepared)`     | Hot step. Use `output: "metrics"` when height is all the UI needs.              |
-| `usePreTextLayout()`   | Same native work as `prepare()` plus `layout()`, with automatic release.        |
-| `PreText.*`            | Namespace wrapper over the same functions. No additional cost.                  |
+| API                                                      | Performance expectation                                                         |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| `prepare(text, style)`                                   | Cold step. Native measurement dominates and should be amortized across layouts. |
+| `layout(prepared, width)` or `layout(prepared, options)` | Hot step. Use `output: "metrics"` when height is all the UI needs.              |
+| `usePreTextLayout()`                                     | Same native work as `prepare()` plus `layout()`, with automatic release.        |
+| `PreText.*`                                              | Namespace wrapper over the same functions. No additional cost.                  |
 
 `output: "lines"`, `output: "diagnostics"`, and `output: "rich"` return more
 data than `metrics`; use them only when that data is needed.
@@ -92,18 +92,28 @@ Benchmarks are intentionally manual and are not part of CI because simulator
 startup, Metro, and Maestro make the job too slow for every pull request. Use
 release builds on the same device class when comparing numbers.
 
+The benchmark scripts drive an already installed example app. They do not
+build, install, or boot Metro for you. Before running them, generate the Nitro
+bridge, start Metro for debug builds, and install the app on the target device:
+
 ```sh
-yarn benchmark:ios
-yarn benchmark:android
+yarn nitrogen
+yarn workspace react-native-nitro-pretext-example start
+yarn example:ios
+yarn example:android
 ```
 
-Environment overrides:
+Then run the target benchmark with an explicit device id:
 
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
-MAESTRO_ANDROID_DEVICE_ID=<adb-serial> yarn benchmark:android
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios
 ```
+
+Android canonical benchmark claims require API 29+ because the canonical
+Android engine is `MeasuredText + LineBreaker`. API 24-28 runs exercise the
+legacy fallback path only.
 
 The gate checks timing, line-count parity, sampled line-text parity, layout
 engine, renderer kind, parity role, Android `includeFontPadding`, and height

@@ -2,8 +2,8 @@ import { startTransition, useEffect, useState } from "react";
 
 import {
   BENCHMARK_CORPUS,
-  disposePreparedCorpusPoC,
-  prepareCorpusPoC,
+  disposePreparedBenchmarkCorpus,
+  prepareBenchmarkCorpus,
 } from "../relayoutBenchmark";
 import type { PreTextPrepareStats } from "../relayoutBenchmark";
 import type { PreTextPreparedCorpus } from "./types";
@@ -26,9 +26,9 @@ export function usePreTextPreparedCorpus(): {
     let cancelled = false;
     let preparedForCleanup: PreTextPreparedCorpus | null = null;
     const frameId = requestAnimationFrame(() => {
-      const nextPrepared = prepareCorpusPoC(BENCHMARK_CORPUS);
+      const nextPrepared = prepareBenchmarkCorpus(BENCHMARK_CORPUS);
       if (cancelled) {
-        disposePreparedCorpusPoC(nextPrepared.prepared);
+        disposePreparedBenchmarkCorpus(nextPrepared.prepared);
         return;
       }
 
@@ -45,7 +45,7 @@ export function usePreTextPreparedCorpus(): {
       cancelled = true;
       cancelAnimationFrame(frameId);
       if (preparedForCleanup !== null) {
-        disposePreparedCorpusPoC(preparedForCleanup);
+        disposePreparedBenchmarkCorpus(preparedForCleanup);
       }
     };
   }, []);

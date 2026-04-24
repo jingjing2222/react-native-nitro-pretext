@@ -1,5 +1,16 @@
 export { layout, prepare, PreText, usePreTextLayout } from "./PreText";
 export type {
+  InlineBoxFrame,
+  InlineSegment,
+  LaidOutParagraphLines,
+  LaidOutParagraphLinesWithDiagnostics,
+  LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
+  ParagraphLineRange,
+  ParagraphShapeSlice,
+  PrepareParagraphStats,
+} from "./Pretext.nitro";
+export type {
   PreTextDiagnosticsLayout,
   PreTextLayoutInput,
   PreTextLayout,

@@ -1,124 +1,73 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# PreText Example App
 
-# Getting Started
+This workspace demonstrates the layout-only PreText API inside a real React
+Native app. The main example compares hidden RN `<Text onLayout>` measurement
+with `PreText.layout()` height calculation before render.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Setup
 
-## Step 1: Start Metro
-
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
-
-To start the Metro dev server, run the following command from the root of your React Native project:
+Run from the repository root:
 
 ```sh
-# Using npm
-npm start
-
-# OR using Yarn
-yarn start
+yarn
+yarn nitrogen
 ```
 
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+Start Metro in one terminal:
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+yarn workspace react-native-nitro-pretext-example start
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+Run the app in another terminal:
 
 ```sh
-bundle install
+yarn example:ios
+yarn example:android
 ```
 
-Then, and every time you update your native dependencies, run:
+Native code changes require rebuilding the example app. TypeScript-only library
+changes usually update through Metro.
+
+## Screens
+
+- `examples/measured-layout`: hidden RN `<Text onLayout>` measurement versus
+  `PreText.layout()` before render.
+- `benchmark/base-text`: RN `<Text>` compatibility baseline.
+- `benchmark/pretext`: PreText layout benchmark screens.
+- `benchmark/results`: benchmark summary and parity diagnostics.
+
+## Native Builds
+
+Use these commands when you need a build without launching the CLI run command:
 
 ```sh
-bundle exec pod install
+yarn workspace react-native-nitro-pretext-example build:ios
+yarn workspace react-native-nitro-pretext-example build:android
 ```
 
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
+For iOS device signing, see the scripts in `example/package.json`. Simulator
+runs default to `iPhone 16`; set `IOS_SIMULATOR` when you need another target.
+
+## Benchmarks
+
+The benchmark scripts are Maestro drivers. They expect the example app to
+already be installed and, for debug builds, Metro to already be running.
 
 ```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 ```
 
-If you need device signing, this example also includes a minimal `fastlane match` setup.
-Recommended storage is a separate private git repository dedicated to match assets, not this source repository.
+Android canonical benchmark claims require API 29+ because the canonical
+Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use the legacy
+fallback path only.
 
-To sync signing locally:
+## Useful Commands
 
 ```sh
-yarn ios:signing
+yarn typecheck
+yarn lint
+yarn fmt:check
+yarn test
 ```
-
-The example now reads signing values from `example/.env`.
-Useful commands:
-
-```sh
-yarn ios:signing
-yarn ios:signing:write
-yarn ios:match
-yarn start
-yarn ios
-yarn ios:device
-```
-
-Run `yarn start` in one terminal first, then run `yarn ios` in another terminal.
-The `ios` script always targets a simulator and defaults to `iPhone 16`.
-If you want a different simulator, set `IOS_SIMULATOR` first.
-Use `yarn ios:device` only when you intentionally want to install on a connected device.
-The iOS scripts use `--no-packager`, so they won't try to open a new terminal window for Metro.
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
