@@ -13,10 +13,14 @@ import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { createExampleRoutePlaceholder } from "./screens/examples/ExampleRoutePlaceholderScreen";
 import { apiExampleManifest } from "./screens/examples/apiExampleManifest";
 import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
+import { ExampleNonUseCaseLayoutLinesScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen";
 import { ExampleNonUseCaseLayoutMetricsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen";
+import { ExampleNonUseCaseLayoutOptionsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutOptionsScreen";
 import { ExampleNonUseCasePrepareScreen } from "./screens/examples/non-use-case/ExampleNonUseCasePrepareScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
+import { ExampleUseCaseLayoutLinesScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutLinesScreen";
 import { ExampleUseCaseLayoutMetricsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen";
+import { ExampleUseCaseLayoutOptionsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutOptionsScreen";
 import { ExampleUseCasePrepareScreen } from "./screens/examples/use-case/ExampleUseCasePrepareScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -32,12 +36,6 @@ function getExampleEntry(routeName: keyof AppStackParamList) {
   return entry;
 }
 
-const ExampleUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseLayoutOptions"),
-);
-const ExampleUseCaseLayoutLinesScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseLayoutLines"),
-);
 const ExampleUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseDiagnostics"),
 );
@@ -49,12 +47,6 @@ const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
 );
 const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
-);
-const ExampleNonUseCaseLayoutOptionsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseLayoutOptions"),
-);
-const ExampleNonUseCaseLayoutLinesScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseLayoutLines"),
 );
 const ExampleNonUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleNonUseCaseDiagnostics"),
