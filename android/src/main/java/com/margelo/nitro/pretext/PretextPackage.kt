@@ -12,10 +12,7 @@ class PretextPackage : BaseReactPackage() {
     }
 
     override fun getViewManagers(reactContext: ReactApplicationContext): List<ModuleSpec> {
-        return listOf(
-            PreparedParagraphViewManager.createModuleSpec(),
-            PreparedParagraphsViewManager.createModuleSpec(),
-        )
+        return emptyList()
     }
 
     override fun getReactModuleInfoProvider(): ReactModuleInfoProvider {
