@@ -110,19 +110,35 @@ Result:
 
 ## Plan 03: Canonical Native Rendering
 
-- [ ] iOS `PreparedParagraphView` primary path uses `CTLineDraw`.
-- [ ] iOS stops using `NSString.draw` / `NSAttributedString.draw` for canonical rendering.
-- [ ] Android primary rendering stops using per-line `StaticLayout`.
-- [ ] Android primary rendering uses MeasuredText/LineBreaker line records and direct native drawing.
-- [ ] `PreparedParagraphLinesView` removes hardcoded `includeFontPadding: false`; make it explicit compat prop.
-- [ ] Cache one platform line record for geometry, drawing, hit testing, height metrics, and later selection.
-- [ ] Render using the same line box top/baseline/descent data returned by the native metric engine.
+- [x] iOS `PreparedParagraphView` primary path uses `CTLineDraw`.
+- [x] iOS stops using `NSString.draw` / `NSAttributedString.draw` for canonical rendering.
+- [x] Android primary rendering stops using per-line `StaticLayout`.
+- [x] Android primary rendering uses MeasuredText/LineBreaker line records and direct native drawing.
+- [x] `PreparedParagraphLinesView` removes hardcoded `includeFontPadding: false`; make it explicit compat prop.
+- [x] Cache one platform line record for geometry, drawing, hit testing, height metrics, and later selection.
+- [x] Render using the same line box top/baseline/descent data returned by the native metric engine.
 
 Acceptance:
 
 - Native render output uses the same engine artifacts and height metrics as layout.
 - `agent-device` visual verification captures iOS and Android prepared native render output.
 - Local CI passes before Plan 04 begins.
+
+Result:
+
+- iOS `PreparedParagraphView` now renders prepared lines with `CTLineDraw` from the Core Text line record generated during layout.
+- iOS canonical rendering no longer uses `NSString.draw` or `NSAttributedString.draw`; fallback line creation still produces a `CTLine` before drawing.
+- Android `PreparedParagraphView` no longer builds per-line `StaticLayout` instances for canonical rendering.
+- Android canonical rendering now draws styled run segments directly with `Canvas.drawTextRun`, using `MeasuredText` advances and the prepared LineBreaker line ranges.
+- `PreparedParagraphLinesView` now exposes `includeFontPadding?: boolean` as an explicit compatibility prop instead of hardcoding `includeFontPadding: false`.
+- Platform line records now carry the canonical drawing artifact needed by layout, drawing, hit testing, height metrics, and later selection work.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; `yarn benchmark:ios` passed with prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_view`, `parityRole: canonical_prepared_native_render`, and `heightMetricSource: platform_text_engine_metrics`.
+- iOS benchmark median results: BaseText 229.69 ms, Prepared View render 74.07 ms, layout-only 0.18 ms.
+- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
+- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
+- Note: the iOS simulator showed an RN debugger warning badge during visual verification; it did not affect benchmark completion or report generation.
 
 ## Plan 04: Batched Native Renderer
 

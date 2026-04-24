@@ -4,12 +4,9 @@ import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
-import android.text.Layout
-import android.text.StaticLayout
-import android.text.TextDirectionHeuristics
-import android.text.TextPaint
+import android.graphics.text.MeasuredText
+import android.os.Build
 import android.view.View
-import kotlin.math.ceil
 
 internal class PreparedParagraphView(context: Context) : View(context) {
   private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -18,9 +15,9 @@ internal class PreparedParagraphView(context: Context) : View(context) {
   private var layoutWidth: Double = 0.0
   private var layoutRequest: NativeLayoutRequest? = null
   private var text: String = ""
-  private var styledText: CharSequence = ""
   private var lines: List<NativePreparedLineRange> = emptyList()
-  private var hasStyledRuns: Boolean = false
+  private var measuredText: Any? = null
+  private var runs: List<NativeTextRun> = emptyList()
   private var fontFamily: String = "System"
   private var fontWeight: String = ""
   private var fontStyle: String = "normal"
@@ -155,30 +152,95 @@ internal class PreparedParagraphView(context: Context) : View(context) {
       val effectiveLineHeight = if (line.height > 0.0) line.height else lineHeight
       val actualHeight = maxOf(0.0, line.descent - line.ascent)
       val centeredTop = contentInsetTop + line.top + maxOf(0.0, (effectiveLineHeight - actualHeight) / 2.0)
-      if (hasStyledRuns) {
-        val lineText = styledText.subSequence(line.textStart, line.textEnd)
-        val layout =
-          StaticLayout.Builder.obtain(
-            lineText,
-            0,
-            lineText.length,
-            TextPaint(paint),
-            maxOf(1, ceil(maxOf(line.width, layoutWidth) + 4.0).toInt()),
-          )
-            .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-            .setLineSpacing(0f, 1f)
-            .setIncludePad(false)
-            .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
-            .build()
-        canvas.save()
-        canvas.translate(x, centeredTop.toFloat())
-        layout.draw(canvas)
-        canvas.restore()
-      } else {
-        val baseline = (centeredTop - line.ascent).toFloat()
-        canvas.drawText(text, line.textStart, line.textEnd, x, baseline, paint)
+      val baseline = (centeredTop - line.ascent).toFloat()
+      drawLine(canvas, line, x, baseline)
+    }
+  }
+
+  private fun drawLine(
+    canvas: Canvas,
+    line: NativePreparedLineRange,
+    x: Float,
+    baseline: Float,
+  ) {
+    var drewRun = false
+    runs.forEach { run ->
+      val segmentStart = maxOf(line.textStart, run.start)
+      val segmentEnd = minOf(line.textEnd, run.end)
+      if (segmentEnd <= segmentStart) {
+        return@forEach
+      }
+
+      val segmentPaint = createTextPaint(run.style).apply {
+        color = textColor
+      }
+      val segmentX = x + resolveAdvance(line.textStart, segmentStart)
+      val isRtl = resolveTextDirectionHeuristic(run.style.textDirection)
+        .isRtl(text, segmentStart, segmentEnd - segmentStart)
+      canvas.drawTextRun(
+        text,
+        segmentStart,
+        segmentEnd,
+        line.textStart,
+        line.textEnd,
+        segmentX,
+        baseline,
+        isRtl,
+        segmentPaint,
+      )
+      drewRun = true
+    }
+
+    if (!drewRun) {
+      canvas.drawTextRun(
+        text,
+        line.textStart,
+        line.textEnd,
+        line.textStart,
+        line.textEnd,
+        x,
+        baseline,
+        false,
+        paint,
+      )
+    }
+  }
+
+  private fun resolveAdvance(start: Int, end: Int): Float {
+    if (end <= start) {
+      return 0f
+    }
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      val measuredParagraph = measuredText as? MeasuredText
+      if (measuredParagraph != null) {
+        return measuredParagraph.getWidth(start, end)
       }
     }
+
+    return measureRangeWithRuns(start, end).toFloat()
+  }
+
+  private fun measureRangeWithRuns(start: Int, end: Int): Double {
+    var width = 0.0
+    var cursor = start
+    runs.forEach { run ->
+      val segmentStart = maxOf(cursor, run.start)
+      val segmentEnd = minOf(end, run.end)
+      val gapEnd = minOf(end, segmentStart)
+      if (gapEnd > cursor) {
+        width += paint.measureText(text, cursor, gapEnd).toDouble()
+        cursor = gapEnd
+      }
+      if (segmentEnd > segmentStart) {
+        width += createTextPaint(run.style).measureText(text, segmentStart, segmentEnd).toDouble()
+        cursor = segmentEnd
+      }
+    }
+    if (cursor < end) {
+      width += paint.measureText(text, cursor, end).toDouble()
+    }
+    return width
   }
 
   private fun updatePaint() {
@@ -222,9 +284,9 @@ internal class PreparedParagraphView(context: Context) : View(context) {
       request = resolvedRequest,
     )
     text = drawing?.text.orEmpty()
-    styledText = drawing?.styledText ?: ""
     lines = drawing?.lines ?: emptyList()
-    hasStyledRuns = drawing?.hasStyledRuns == true
+    measuredText = drawing?.measuredText
+    runs = drawing?.runs ?: emptyList()
     invalidate()
   }
 

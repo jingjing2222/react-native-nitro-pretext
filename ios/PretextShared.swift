@@ -131,6 +131,7 @@ internal struct NativeLineLayout {
     let descent: Double
     let layoutEngine: String
     let fallbackReason: String?
+    let ctLine: CTLine?
 
     init(
         textStartUTF16: Int,
@@ -142,7 +143,8 @@ internal struct NativeLineLayout {
         ascent: Double,
         descent: Double,
         layoutEngine: String = layoutEngineIosManualTokenFallback,
-        fallbackReason: String? = fallbackReasonManualHeightEstimate
+        fallbackReason: String? = fallbackReasonManualHeightEstimate,
+        ctLine: CTLine? = nil
     ) {
         self.textStartUTF16 = textStartUTF16
         self.textEndUTF16 = textEndUTF16
@@ -154,6 +156,7 @@ internal struct NativeLineLayout {
         self.descent = descent
         self.layoutEngine = layoutEngine
         self.fallbackReason = fallbackReason
+        self.ctLine = ctLine
     }
 }
 
@@ -166,6 +169,7 @@ internal struct NativePreparedLineRange {
     let height: Double
     let ascent: Double
     let descent: Double
+    let ctLine: CTLine?
 }
 
 internal struct NativeParagraphDrawing {
@@ -724,7 +728,8 @@ internal final class PretextShared {
                 width: line.width,
                 height: line.height,
                 ascent: line.ascent,
-                descent: line.descent
+                descent: line.descent,
+                ctLine: line.ctLine
             )
         }
     }
@@ -891,7 +896,8 @@ internal final class PretextShared {
                     ascent: ascent,
                     descent: descent,
                     layoutEngine: layoutEngineIosCoreText,
-                    fallbackReason: nil
+                    fallbackReason: nil,
+                    ctLine: line
                 )
             )
 

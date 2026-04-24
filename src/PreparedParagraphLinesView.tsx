@@ -29,6 +29,7 @@ const EMPTY_PARAGRAPH_LINES = {
 export type PreparedParagraphLinesViewProps = ViewProps & {
   contentInsetHorizontal?: number;
   contentInsetVertical?: number;
+  includeFontPadding?: boolean;
   layoutRequest?: Partial<ParagraphLayoutRequest>;
   layoutWidth: number;
   lineTextProps?: Omit<TextProps, "children" | "style">;
@@ -44,6 +45,7 @@ export type PreparedParagraphLinesViewProps = ViewProps & {
 export function PreparedParagraphLinesView({
   contentInsetHorizontal = 0,
   contentInsetVertical = 0,
+  includeFontPadding = false,
   layoutRequest,
   layoutWidth,
   lineTextProps,
@@ -74,7 +76,7 @@ export function PreparedParagraphLinesView({
       fontFamily: paragraphStyle.fontFamily,
       fontSize: paragraphStyle.fontSize,
       fontWeight: "400",
-      includeFontPadding: false,
+      includeFontPadding,
       left: 0,
       letterSpacing: paragraphStyle.letterSpacing,
       lineHeight: paragraphStyle.lineHeight,
@@ -89,6 +91,7 @@ export function PreparedParagraphLinesView({
       paragraphStyle.fontSize,
       paragraphStyle.letterSpacing,
       paragraphStyle.lineHeight,
+      includeFontPadding,
       textColor,
     ],
   );

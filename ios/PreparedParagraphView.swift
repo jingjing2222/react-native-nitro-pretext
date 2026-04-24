@@ -1,3 +1,4 @@
+import CoreText
 import UIKit
 
 @objc(PreparedParagraphView)
@@ -96,9 +97,6 @@ final class PreparedParagraphView: UIView {
     private var resolvedText: NSString = ""
     private var resolvedAttributedText: NSAttributedString = NSAttributedString(string: "")
     private var resolvedLines: [NativePreparedLineRange] = []
-    private var hasStyledRuns = false
-    private var cachedFont: UIFont = .systemFont(ofSize: 14)
-    private var cachedAttributes: [NSAttributedString.Key: Any] = [:]
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -119,6 +117,10 @@ final class PreparedParagraphView: UIView {
         let resolvedLineHeight = CGFloat(truncating: lineHeight)
         let originX = CGFloat(truncating: contentInsetLeft)
         let originY = CGFloat(truncating: contentInsetTop)
+        guard let context = UIGraphicsGetCurrentContext() else {
+            return
+        }
+        context.setFillColor(textColor.cgColor)
 
         for line in resolvedLines {
             guard
@@ -129,58 +131,32 @@ final class PreparedParagraphView: UIView {
                 continue
             }
 
-            let lineRect = CGRect(
-                x: originX + CGFloat(line.left),
-                y: originY + CGFloat(line.top)
-                    + max(0, (CGFloat(line.height) - max(0, CGFloat(line.descent - line.ascent))) / 2),
-                width: max(CGFloat(line.width), 1),
-                height: max(CGFloat(line.height), resolvedLineHeight)
-            )
-            let range = NSRange(
-                location: line.textStartUTF16,
-                length: line.textEndUTF16 - line.textStartUTF16
-            )
-            if hasStyledRuns {
-                resolvedAttributedText.attributedSubstring(from: range).draw(
-                    with: lineRect,
-                    options: [.usesLineFragmentOrigin, .usesFontLeading],
-                    context: nil
-                )
-            } else {
-                let lineText = resolvedText.substring(with: range) as NSString
-                lineText.draw(in: lineRect, withAttributes: cachedAttributes)
-            }
+            let ctLine = line.ctLine ?? makeFallbackLine(for: line)
+            let actualHeight = max(0, CGFloat(line.ascent + line.descent))
+            let effectiveLineHeight = max(CGFloat(line.height), resolvedLineHeight)
+            let centerOffset = max(0, (effectiveLineHeight - actualHeight) / 2)
+            let baselineY = originY + CGFloat(line.top) + centerOffset + CGFloat(line.ascent)
+
+            context.saveGState()
+            context.textMatrix = .identity
+            context.translateBy(x: originX + CGFloat(line.left), y: baselineY)
+            context.scaleBy(x: 1, y: -1)
+            context.textPosition = .zero
+            CTLineDraw(ctLine, context)
+            context.restoreGState()
         }
     }
 
     private func updateTextAttributes() {
-        let resolvedStyle = NativeTextStyle(
-            fontFamily: fontFamily as String,
-            fontSize: fontSize.doubleValue,
-            lineHeight: lineHeight.doubleValue,
-            letterSpacing: letterSpacing.doubleValue,
-            locale: "",
-            fontWeight: fontWeight as String,
-            fontStyle: fontStyle as String,
-            includeFontPadding: true,
-            textDirection: .auto
-        )
-        cachedFont = resolveFont(style: resolvedStyle)
-
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineBreakMode = .byClipping
-
-        var attributes: [NSAttributedString.Key: Any] = [
-            .font: cachedFont,
-            .foregroundColor: textColor,
-            .paragraphStyle: paragraphStyle,
-        ]
-        let resolvedLetterSpacing = CGFloat(truncating: letterSpacing)
-        if resolvedLetterSpacing != 0 {
-            attributes[.kern] = resolvedLetterSpacing
-        }
-        cachedAttributes = attributes
         setNeedsDisplay()
+    }
+
+    private func makeFallbackLine(for line: NativePreparedLineRange) -> CTLine {
+        let range = NSRange(
+            location: line.textStartUTF16,
+            length: line.textEndUTF16 - line.textStartUTF16
+        )
+        return CTLineCreateWithAttributedString(resolvedAttributedText.attributedSubstring(from: range))
     }
 
     private func rebuildLayout() {
@@ -203,7 +179,6 @@ final class PreparedParagraphView: UIView {
         resolvedText = drawing?.text ?? ("" as NSString)
         resolvedAttributedText = drawing?.attributedText ?? NSAttributedString(string: "")
         resolvedLines = drawing?.lines ?? []
-        hasStyledRuns = drawing?.hasStyledRuns ?? false
         setNeedsDisplay()
     }
 

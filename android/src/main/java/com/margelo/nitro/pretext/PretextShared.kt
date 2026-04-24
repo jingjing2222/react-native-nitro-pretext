@@ -341,6 +341,8 @@ internal object PretextShared {
       text = paragraph.text,
       styledText = paragraph.styledText,
       hasStyledRuns = paragraph.hasStyledRuns,
+      measuredText = paragraph.measuredText,
+      runs = paragraph.runs,
       lines = buildNativeParagraphLineRanges(lineLayouts),
     )
   }
@@ -1418,6 +1420,8 @@ internal data class NativeParagraphDrawing(
   val text: String,
   val styledText: CharSequence,
   val hasStyledRuns: Boolean,
+  val measuredText: Any?,
+  val runs: List<NativeTextRun>,
   val lines: List<NativePreparedLineRange>,
 )
 
