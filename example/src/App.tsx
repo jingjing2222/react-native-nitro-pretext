@@ -12,11 +12,13 @@ import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutB
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { createExampleRoutePlaceholder } from "./screens/examples/ExampleRoutePlaceholderScreen";
 import { apiExampleManifest } from "./screens/examples/apiExampleManifest";
+import { ExampleNonUseCaseDiagnosticsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen";
 import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
 import { ExampleNonUseCaseLayoutLinesScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen";
 import { ExampleNonUseCaseLayoutMetricsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen";
 import { ExampleNonUseCaseLayoutOptionsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutOptionsScreen";
 import { ExampleNonUseCasePrepareScreen } from "./screens/examples/non-use-case/ExampleNonUseCasePrepareScreen";
+import { ExampleUseCaseDiagnosticsScreen } from "./screens/examples/use-case/ExampleUseCaseDiagnosticsScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
 import { ExampleUseCaseLayoutLinesScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutLinesScreen";
 import { ExampleUseCaseLayoutMetricsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen";
@@ -36,9 +38,6 @@ function getExampleEntry(routeName: keyof AppStackParamList) {
   return entry;
 }
 
-const ExampleUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseDiagnostics"),
-);
 const ExampleUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseLayoutRich"),
 );
@@ -47,9 +46,6 @@ const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
 );
 const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
-);
-const ExampleNonUseCaseDiagnosticsScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseDiagnostics"),
 );
 const ExampleNonUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleNonUseCaseLayoutRich"),
