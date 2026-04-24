@@ -1472,13 +1472,12 @@ internal object PretextShared {
           break
         }
 
-        if (allowBreakAfterEveryUnit || isNonNewlineWhitespace(token.text)) {
-          lastBreakAfter = end + 1
-        }
-
         if (currentWidth + token.width <= constraint.width || end == cursor) {
           currentWidth += token.width
           end += 1
+          if (allowBreakAfterEveryUnit || isNonNewlineWhitespace(token.text)) {
+            lastBreakAfter = end
+          }
           continue
         }
 
@@ -2155,7 +2154,10 @@ private object StaticLayoutLineLayout {
 
     for (lineIndex in 0 until layout.lineCount) {
       val start = layout.getLineStart(lineIndex)
-      val end = layout.getLineVisibleEnd(lineIndex)
+      var end = layout.getLineEnd(lineIndex)
+      while (end > start && text[end - 1] == '\n') {
+        end -= 1
+      }
       val lineTop = layout.getLineTop(lineIndex).toDouble()
       val lineBottom = layout.getLineBottom(lineIndex).toDouble()
       val baseline = layout.getLineBaseline(lineIndex).toDouble()

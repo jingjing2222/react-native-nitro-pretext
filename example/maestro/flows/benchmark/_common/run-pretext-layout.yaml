@@ -12,7 +12,7 @@ appId: pretext.example
 - tapOn: "Open benchmark/pretext-layout"
 - assertVisible: "Run Pretext layout before the visible RN text surface\\."
 - assertVisible:
-    text: "AUTOMATION_STATUS::benchmark/pretext-layout::(ready|completed)::.*"
+    text: "AUTOMATION_STATUS::benchmark/pretext-layout::(preparing|ready|completed)::.*"
 - extendedWaitUntil:
     visible:
       text: "Run Pretext Layout Benchmark"

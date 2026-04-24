@@ -274,14 +274,20 @@ export function usePretextLayout({
     () => parseSourceSignature(sourceSignature),
     [sourceSignature],
   );
+  const preparedSignature = useMemo(
+    () => createPreparedSignature(sourceSignature, normalizedStyle),
+    [sourceSignature, normalizedStyle],
+  );
   const [state, setState] = useState<{
     error: unknown | null;
     isPreparing: boolean;
     prepared: PretextPrepared | null;
+    signature: string | null;
   }>({
     error: null,
     isPreparing: false,
     prepared: null,
+    signature: null,
   });
 
   useEffect(() => {
@@ -290,6 +296,7 @@ export function usePretextLayout({
         error: null,
         isPreparing: false,
         prepared: null,
+        signature: null,
       });
       return;
     }
@@ -299,6 +306,7 @@ export function usePretextLayout({
       error: null,
       isPreparing: true,
       prepared: null,
+      signature: preparedSignature,
     });
 
     try {
@@ -307,25 +315,31 @@ export function usePretextLayout({
         error: null,
         isPreparing: false,
         prepared,
+        signature: preparedSignature,
       });
     } catch (error) {
       setState({
         error,
         isPreparing: false,
         prepared: null,
+        signature: preparedSignature,
       });
     }
 
     return () => {
       prepared?.release();
     };
-  }, [enabled, normalizedStyle, normalizedSource]);
+  }, [enabled, normalizedStyle, normalizedSource, preparedSignature]);
 
   const resolvedLayout = useMemo<{
     error: unknown | null;
     layout: PretextLayout | null;
   }>(() => {
-    if (!enabled || state.prepared === null) {
+    if (
+      !enabled ||
+      state.prepared === null ||
+      state.signature !== preparedSignature
+    ) {
       return {
         error: null,
         layout: null,
@@ -354,19 +368,27 @@ export function usePretextLayout({
     enabled,
     left,
     output,
+    preparedSignature,
     shapeSlices,
     whiteSpace,
     width,
     wordBreak,
     state.prepared,
+    state.signature,
   ]);
+  const hasCurrentPrepared =
+    enabled && state.prepared !== null && state.signature === preparedSignature;
+  const isPreparingCurrentInput =
+    state.isPreparing || (enabled && state.signature !== preparedSignature);
 
   return {
     error: state.error ?? resolvedLayout.error,
-    isPreparing: state.isPreparing,
+    isPreparing: isPreparingCurrentInput,
     layout: resolvedLayout.layout,
-    paragraphCount: state.prepared?.paragraphCount ?? 0,
-    stats: state.prepared?.stats ?? null,
+    paragraphCount: hasCurrentPrepared
+      ? (state.prepared?.paragraphCount ?? 0)
+      : 0,
+    stats: hasCurrentPrepared ? (state.prepared?.stats ?? null) : null,
   };
 }
 
@@ -410,6 +432,13 @@ function parseSourceSignature(signature: string): PretextSource {
   return signature.startsWith("text:")
     ? signature.slice("text:".length)
     : (JSON.parse(signature.slice("json:".length)) as PretextSource);
+}
+
+function createPreparedSignature(
+  sourceSignature: string,
+  style: ParagraphStyle,
+): string {
+  return `${sourceSignature}\nstyle:${JSON.stringify(style)}`;
 }
 
 function toMutableInlineParagraphs(

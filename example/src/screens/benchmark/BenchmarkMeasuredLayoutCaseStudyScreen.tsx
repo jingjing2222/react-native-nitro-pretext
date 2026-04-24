@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   useCallback,
   useEffect,
@@ -7,7 +8,15 @@ import {
   useState,
 } from "react";
 import type { LayoutChangeEvent, TextStyle } from "react-native";
-import { StyleSheet, Text, View } from "react-native";
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   layout,
   prepare,
@@ -17,6 +26,7 @@ import {
 
 import {
   formatMilliseconds,
+  PARAGRAPH_HORIZONTAL_PADDING,
   styles as sharedStyles,
 } from "../../benchmark/constants";
 import {
@@ -25,13 +35,6 @@ import {
   SummaryMetric,
 } from "../../components/BenchmarkComponents";
 import { median, now, percentile } from "../../relayoutBenchmark";
-import { ExamplePageShell, useExampleWidthSelection } from "../examples/shared";
-import {
-  KeyStatRow,
-  SliteCard,
-  SurfaceLabel,
-  SurfaceSection,
-} from "../examples/slites/shared";
 
 type LayoutCard = {
   id: string;
@@ -244,9 +247,175 @@ function pushSample(current: number[], next: number): number[] {
   return [...current.slice(-(SAMPLE_LIMIT - 1)), next];
 }
 
+function useBenchmarkWidthSelection() {
+  const { width: windowWidth } = useWindowDimensions();
+  const widths = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [340, 300, 260, 220].map((width) =>
+            Math.max(200, Math.min(width, Math.max(220, windowWidth - 48))),
+          ),
+        ),
+      ),
+    [windowWidth],
+  );
+  const [selectedWidth, setSelectedWidth] = useState<number>(widths[0] ?? 220);
+
+  useEffect(() => {
+    setSelectedWidth(widths[0] ?? 220);
+  }, [widths]);
+
+  return {
+    layoutWidth: Math.max(1, selectedWidth - PARAGRAPH_HORIZONTAL_PADDING * 2),
+    selectedWidth,
+    setSelectedWidth,
+    widths,
+  };
+}
+
+function BenchmarkCaseStudyShell({
+  children,
+  description,
+  lineCount,
+  prepareMs,
+  routeLabel,
+  selectedWidth,
+  setSelectedWidth,
+  title,
+  widths,
+}: {
+  children: ReactNode;
+  description: string;
+  lineCount: number | null;
+  prepareMs: number | null;
+  routeLabel: string;
+  selectedWidth: number;
+  setSelectedWidth: (width: number) => void;
+  title: string;
+  widths: number[];
+}) {
+  const insets = useSafeAreaInsets();
+
+  return (
+    <View style={sharedStyles.appShell}>
+      <ScrollView
+        contentContainerStyle={[
+          sharedStyles.scrollContent,
+          { paddingBottom: 56 + insets.bottom },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={sharedStyles.heroCard}>
+          <Text style={sharedStyles.eyebrow}>{routeLabel}</Text>
+          <Text style={sharedStyles.title}>{title}</Text>
+          <Text style={sharedStyles.subtitle}>{description}</Text>
+
+          <View style={sharedStyles.metricRow}>
+            <MetricPill label="Prepare" value={formatMilliseconds(prepareMs)} />
+            <MetricPill label="Width" value={`${selectedWidth}px`} />
+            <MetricPill
+              label="Lines"
+              value={lineCount === null ? "-" : String(Math.round(lineCount))}
+            />
+          </View>
+
+          <View style={sharedStyles.optionRow}>
+            {widths.map((width) => (
+              <Pressable
+                key={width}
+                onPress={() => setSelectedWidth(width)}
+                style={[
+                  sharedStyles.optionChip,
+                  selectedWidth === width && sharedStyles.optionChipActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    sharedStyles.optionChipText,
+                    selectedWidth === width &&
+                      sharedStyles.optionChipTextActive,
+                  ]}
+                >
+                  {width}px
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        </View>
+
+        <View style={sharedStyles.exampleStack}>{children}</View>
+      </ScrollView>
+    </View>
+  );
+}
+
+function CaseStudyCard({
+  children,
+  description,
+  eyebrow,
+  title,
+}: {
+  children?: ReactNode;
+  description: string;
+  eyebrow: string;
+  title: string;
+}) {
+  return (
+    <View style={sharedStyles.summaryCard}>
+      <Text style={localStyles.eyebrow}>{eyebrow}</Text>
+      <Text style={sharedStyles.summaryLabel}>{title}</Text>
+      <Text style={sharedStyles.summaryDescription}>{description}</Text>
+      {children}
+    </View>
+  );
+}
+
+function KeyStatRow({ label, value }: { label: string; value: string }) {
+  return (
+    <View style={sharedStyles.summaryMetricRow}>
+      <Text style={sharedStyles.summaryMetricLabel}>{label}</Text>
+      <Text style={sharedStyles.summaryMetricValue}>{value}</Text>
+    </View>
+  );
+}
+
+function SurfaceSection({
+  children,
+  description,
+  title,
+}: {
+  children: ReactNode;
+  description: string;
+  title: string;
+}) {
+  return (
+    <View style={sharedStyles.summaryCard}>
+      <Text style={sharedStyles.summaryLabel}>{title}</Text>
+      <Text style={sharedStyles.summaryDescription}>{description}</Text>
+      <View style={localStyles.surfaceBody}>{children}</View>
+    </View>
+  );
+}
+
+function SurfaceLabel({
+  subtitle,
+  title,
+}: {
+  subtitle: string;
+  title: string;
+}) {
+  return (
+    <View style={localStyles.surfaceHeader}>
+      <Text style={localStyles.surfaceTitle}>{title}</Text>
+      <Text style={localStyles.surfaceSubtitle}>{subtitle}</Text>
+    </View>
+  );
+}
+
 export function BenchmarkMeasuredLayoutCaseStudyScreen() {
   const { selectedWidth, setSelectedWidth, widths } =
-    useExampleWidthSelection();
+    useBenchmarkWidthSelection();
   const [runIndex, setRunIndex] = useState(0);
   const [pretextPrepared, setPretextPrepared] =
     useState<PretextPrepared | null>(null);
@@ -431,7 +600,7 @@ export function BenchmarkMeasuredLayoutCaseStudyScreen() {
   }
 
   return (
-    <ExamplePageShell
+    <BenchmarkCaseStudyShell
       description="This page models a layout that cannot place visible cards until text width and height are known. The left path uses hidden RN Text plus onLayout. The right path asks Pretext for native text metrics before render, then uses ordinary RN views and Text for the visible surface."
       lineCount={totalPretextLines}
       prepareMs={pretextPrepared?.stats.totalMs ?? null}
@@ -444,7 +613,7 @@ export function BenchmarkMeasuredLayoutCaseStudyScreen() {
       title="onLayout measurement versus Pretext layout"
       widths={widths}
     >
-      <SliteCard
+      <CaseStudyCard
         description="The board uses absolute masonry positions. One unknown text height blocks every card placed after it, so a MeasureLayout-style flow needs a hidden measurement pass. Pretext returns height from native engines before the visible board mounts."
         eyebrow="Complex Layout"
         title="Height is a first-class layout input"
@@ -481,7 +650,7 @@ export function BenchmarkMeasuredLayoutCaseStudyScreen() {
             value={formatPercent(medianImprovement)}
           />
         </View>
-      </SliteCard>
+      </CaseStudyCard>
 
       <View style={sharedStyles.heroCard}>
         <Text style={sharedStyles.eyebrow}>Visual timing</Text>
@@ -602,7 +771,7 @@ export function BenchmarkMeasuredLayoutCaseStudyScreen() {
           />
         )}
       </SurfaceSection>
-    </ExamplePageShell>
+    </BenchmarkCaseStudyShell>
   );
 }
 
@@ -867,6 +1036,13 @@ const localStyles = StyleSheet.create({
     ...TEXT_RENDER_STYLE,
     overflow: "hidden",
   },
+  eyebrow: {
+    color: "#8a7d66",
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.9,
+    textTransform: "uppercase",
+  },
   cardChip: {
     backgroundColor: "rgba(31, 39, 37, 0.1)",
     borderRadius: 999,
@@ -971,6 +1147,22 @@ const localStyles = StyleSheet.create({
   },
   statGrid: {
     gap: 8,
+  },
+  surfaceBody: {
+    gap: 14,
+  },
+  surfaceHeader: {
+    gap: 4,
+  },
+  surfaceSubtitle: {
+    color: "#6e6454",
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  surfaceTitle: {
+    color: "#1f2725",
+    fontSize: 16,
+    fontWeight: "800",
   },
   timingFill: {
     borderRadius: 999,

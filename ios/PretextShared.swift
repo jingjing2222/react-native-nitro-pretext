@@ -1409,6 +1409,14 @@ internal final class PretextShared {
         request: NativeLayoutRequest
     ) -> [NativeLineLayout] {
         guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout else {
+            if request.whiteSpace == whiteSpacePre {
+                return layoutPreformattedLineLayoutsFallback(
+                    prepared.breakUnits,
+                    lineHeight: lineHeight,
+                    request: request
+                )
+            }
+
             let tokens = request.wordBreak == wordBreakBreakAll ? prepared.breakUnits : prepared.tokens
             return layoutLineLayoutsFallback(tokens, lineHeight: lineHeight, request: request)
         }
@@ -1540,6 +1548,97 @@ internal final class PretextShared {
         return lines
     }
 
+    private func layoutPreformattedLineLayoutsFallback(
+        _ tokens: [NativePreparedToken],
+        lineHeight: Double,
+        request: NativeLayoutRequest
+    ) -> [NativeLineLayout] {
+        guard !tokens.isEmpty else {
+            let constraint = resolveLineConstraint(request: request, top: 0)
+            return [
+                NativeLineLayout(
+                    textStartUTF16: 0,
+                    textEndUTF16: 0,
+                    width: 0,
+                    left: constraint.left,
+                    top: 0,
+                    height: lineHeight,
+                    ascent: 0,
+                    descent: lineHeight
+                )
+            ]
+        }
+
+        var lines: [NativeLineLayout] = []
+        var start = 0
+        var top = 0.0
+
+        while start < tokens.count {
+            let constraint = resolveLineConstraint(request: request, top: top)
+            var end = start
+            while end < tokens.count && tokens[end].text != newlineToken {
+                end += 1
+            }
+
+            if start == end {
+                let position = tokens[start].startUTF16
+                let metrics = fallbackLineMetrics(tokens, start: start, end: end, defaultLineHeight: lineHeight)
+                lines.append(
+                    NativeLineLayout(
+                        textStartUTF16: position,
+                        textEndUTF16: position,
+                        width: 0,
+                        left: constraint.left,
+                        top: top,
+                        height: metrics.lineHeight,
+                        ascent: metrics.ascent,
+                        descent: metrics.descent
+                    )
+                )
+            } else {
+                let metrics = fallbackLineMetrics(tokens, start: start, end: end, defaultLineHeight: lineHeight)
+                lines.append(
+                    NativeLineLayout(
+                        textStartUTF16: tokens[start].startUTF16,
+                        textEndUTF16: tokens[end - 1].endUTF16,
+                        width: sumWidths(tokens, start: start, end: end),
+                        left: constraint.left,
+                        top: top,
+                        height: metrics.lineHeight,
+                        ascent: metrics.ascent,
+                        descent: metrics.descent
+                    )
+                )
+            }
+
+            top += lines.last?.height ?? lineHeight
+            if end == tokens.count - 1 && tokens[end].text == newlineToken {
+                let newline = tokens[end]
+                let trailingHeight = max(lineHeight, newline.lineHeight)
+                let trailingConstraint = resolveLineConstraint(request: request, top: top)
+                lines.append(
+                    NativeLineLayout(
+                        textStartUTF16: newline.endUTF16,
+                        textEndUTF16: newline.endUTF16,
+                        width: 0,
+                        left: trailingConstraint.left,
+                        top: top,
+                        height: trailingHeight,
+                        ascent: 0,
+                        descent: trailingHeight
+                    )
+                )
+                break
+            }
+            if end >= tokens.count {
+                break
+            }
+            start = end + 1
+        }
+
+        return lines
+    }
+
     private func layoutLineLayoutsFallback(
         _ tokens: [NativePreparedToken],
         lineHeight: Double,
@@ -1602,13 +1701,12 @@ internal final class PretextShared {
                     break
                 }
 
-                if breakAnywhere || isNonNewlineWhitespace(token.text) {
-                    lastBreakAfter = end + 1
-                }
-
                 if currentWidth + token.width <= constraint.width || end == cursor {
                     currentWidth += token.width
                     end += 1
+                    if breakAnywhere || isNonNewlineWhitespace(token.text) {
+                        lastBreakAfter = end
+                    }
                     continue
                 }
 
