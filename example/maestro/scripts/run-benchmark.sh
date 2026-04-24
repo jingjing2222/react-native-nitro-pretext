@@ -221,6 +221,37 @@ ensure_ios_app_ready() {
   xcrun simctl launch "$device_id" "$APP_ID" >/dev/null
 }
 
+resolve_ios_device_id() {
+  if [[ -n "${MAESTRO_IOS_DEVICE_ID:-}" ]]; then
+    echo "$MAESTRO_IOS_DEVICE_ID"
+    return
+  fi
+
+  local simulator_name="${IOS_SIMULATOR:-iPhone 16}"
+  local device_id
+  device_id="$(
+    IOS_SIMULATOR_NAME="$simulator_name" xcrun simctl list -j devices available | node -e '
+const fs = require("node:fs");
+const requestedName = process.env.IOS_SIMULATOR_NAME;
+const payload = JSON.parse(fs.readFileSync(0, "utf8"));
+const devices = Object.values(payload.devices ?? {}).flat();
+const bootedByName = devices.find((device) => device.name === requestedName && device.state === "Booted");
+const booted = devices.find((device) => device.state === "Booted");
+const named = devices.find((device) => device.name === requestedName);
+const selected = bootedByName ?? booted ?? named;
+if (selected?.udid) {
+  process.stdout.write(selected.udid);
+}
+'
+  )"
+
+  if [[ -z "$device_id" ]]; then
+    die "No available iOS simulator found. Set MAESTRO_IOS_DEVICE_ID or IOS_SIMULATOR."
+  fi
+
+  echo "$device_id"
+}
+
 ensure_android_app_ready() {
   local device_id="$1"
 
@@ -271,7 +302,7 @@ run_ios_benchmark() {
 case "$PLATFORM_NAME" in
   ios)
     DEBUG_DIR="$APP_ROOT_DIR/.maestro-artifacts/ios-$FLOW_KEY"
-    IOS_DEVICE_ID="${MAESTRO_IOS_DEVICE_ID:-2BDA24D2-3694-46CA-9CF5-2EA46D0445DE}"
+    IOS_DEVICE_ID="$(resolve_ios_device_id)"
     ensure_ios_app_ready "$IOS_DEVICE_ID"
     log_step "Running Maestro flow $FLOW_NAME on iOS"
     log_step "Waiting for the XCTest driver can take a while even when the app is already installed."

@@ -1304,6 +1304,22 @@ internal object PretextShared {
       }
 
       top += lines.last().height
+      if (end == units.size - 1 && units[end].text == NEWLINE_TOKEN) {
+        val newline = units[end]
+        val newlineHeight = max(defaultLineHeight, newline.lineHeight)
+        val trailingConstraint = resolveLineConstraint(request, top)
+        lines += NativeLineLayout(
+          textStart = newline.end,
+          textEnd = newline.end,
+          width = 0.0,
+          left = trailingConstraint.left,
+          top = top,
+          height = newlineHeight,
+          ascent = 0.0,
+          descent = newlineHeight,
+        )
+        break
+      }
       if (end >= units.size) {
         break
       }
@@ -1339,6 +1355,21 @@ internal object PretextShared {
         )
         top += max(defaultLineHeight, newline.lineHeight)
         cursor += 1
+        if (cursor == units.size) {
+          val trailingHeight = max(defaultLineHeight, newline.lineHeight)
+          val trailingConstraint = resolveLineConstraint(request, top)
+          lines += NativeLineLayout(
+            textStart = newline.end,
+            textEnd = newline.end,
+            width = 0.0,
+            left = trailingConstraint.left,
+            top = top,
+            height = trailingHeight,
+            ascent = 0.0,
+            descent = trailingHeight,
+          )
+          top += trailingHeight
+        }
         continue
       }
 
@@ -1419,7 +1450,23 @@ internal object PretextShared {
       }
 
       if (hitForcedBreak && cursor < units.size && units[cursor].text == NEWLINE_TOKEN) {
+        val newline = units[cursor]
         cursor += 1
+        if (cursor == units.size) {
+          val trailingHeight = max(defaultLineHeight, newline.lineHeight)
+          val trailingConstraint = resolveLineConstraint(request, top)
+          lines += NativeLineLayout(
+            textStart = newline.end,
+            textEnd = newline.end,
+            width = 0.0,
+            left = trailingConstraint.left,
+            top = top,
+            height = trailingHeight,
+            ascent = 0.0,
+            descent = trailingHeight,
+          )
+          top += trailingHeight
+        }
       }
     }
 
@@ -2021,7 +2068,7 @@ private object StaticLayoutLineLayout {
           ascent = 0.0,
           descent = defaultLineHeight,
           layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
-          fallbackReason = null,
+          fallbackReason = FALLBACK_REASON_STATIC_LAYOUT_COMPAT,
         ),
       )
     }
@@ -2065,7 +2112,7 @@ private object StaticLayoutLineLayout {
         ascent = ascent,
         descent = descent,
         layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
-        fallbackReason = null,
+        fallbackReason = FALLBACK_REASON_STATIC_LAYOUT_COMPAT,
       )
       top += lineHeight
     }
@@ -2233,6 +2280,7 @@ internal const val LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER =
 internal const val LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT = "android_static_layout_compat"
 internal const val LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK = "android_legacy_fallback"
 internal const val FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE = "manual_height_estimate"
+internal const val FALLBACK_REASON_STATIC_LAYOUT_COMPAT = "static_layout_compat"
 internal const val HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS =
   "platform_text_engine_metrics"
 internal const val RULE_LAYER_PRETEXT_NATIVE = "pretext_native_rules"

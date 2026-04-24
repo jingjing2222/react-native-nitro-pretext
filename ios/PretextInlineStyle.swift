@@ -130,7 +130,7 @@ internal func measureToken(
     return NativeTokenMetrics(
         width: width,
         lineHeight: max(resolvedLineHeightValue(style.lineHeight, font: font), actualHeight),
-        ascent: max(0, Double(ascent)),
+        ascent: -max(0, Double(ascent)),
         descent: max(0, Double(descent))
     )
 }

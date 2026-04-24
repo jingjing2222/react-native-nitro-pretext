@@ -122,7 +122,8 @@ When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
 Diagnostics may report `android_static_layout_compat` or
 `android_legacy_fallback` on Android fallback paths, and
-`ios_manual_token_fallback` on degraded iOS fallback paths.
+`ios_manual_token_fallback` on degraded iOS fallback paths. Android API 24-28
+StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
 ## Performance Snapshot
 
@@ -170,8 +171,6 @@ Run it locally:
 ```sh
 yarn example:ios
 yarn example:android
-yarn examples:ios
-yarn examples:android
 ```
 
 If local Watchman is broken, the example Metro config already falls back to the
@@ -193,6 +192,14 @@ yarn fmt:check
 yarn test
 yarn verify:api-examples
 yarn build
+yarn verify:package-exports
+```
+
+Example Maestro validation:
+
+```sh
+yarn examples:ios
+yarn examples:android
 ```
 
 Example native builds:

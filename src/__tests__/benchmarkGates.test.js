@@ -165,4 +165,12 @@ describe("benchmark parity contract gates", () => {
       runGate({ renderHeightMetricSource: "font_size_only" }),
     ).toThrow();
   });
+
+  it("fails when Pretext surface median regresses past the ratio gate", () => {
+    expect(() => runGate({ renderInteractionMedianMs: 120 })).toThrow();
+  });
+
+  it("fails when Pretext surface p95 regresses past the ratio gate", () => {
+    expect(() => runGate({ renderInteractionP95Ms: 150 })).toThrow();
+  });
 });

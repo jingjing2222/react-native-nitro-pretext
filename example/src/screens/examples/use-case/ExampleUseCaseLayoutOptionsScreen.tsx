@@ -275,7 +275,10 @@ const lines = layout(prepared, {
         <View
           style={[
             localStyles.preview,
-            { minHeight: Math.max(150, optionParagraphHeight + 24), width },
+            {
+              minHeight: Math.max(150, optionParagraphHeight),
+              width: width + left,
+            },
           ]}
         >
           {shapeEnabled ? <View style={localStyles.obstacle} /> : null}
@@ -287,8 +290,8 @@ const lines = layout(prepared, {
                 localStyles.lineBand,
                 {
                   height: Math.max(4, line.height),
-                  left: 12 + line.left,
-                  top: 12 + line.top,
+                  left: line.left,
+                  top: line.top,
                   width: line.width,
                 },
               ]}
@@ -299,7 +302,7 @@ const lines = layout(prepared, {
               localStyles.previewText,
               {
                 marginLeft: left,
-                width: width - left,
+                width,
               },
             ]}
           >
@@ -491,7 +494,7 @@ const localStyles = StyleSheet.create({
     borderWidth: 1,
     maxWidth: "100%",
     minHeight: 150,
-    padding: 12,
+    overflow: "hidden",
   },
   previewText: {
     color: "#1f2725",

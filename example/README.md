@@ -24,12 +24,17 @@ Run the app in another terminal:
 ```sh
 yarn example:ios
 yarn example:android
-yarn examples:ios
-yarn examples:android
 ```
 
 Native code changes require rebuilding the example app. TypeScript-only library
 changes usually update through Metro.
+
+Run the example Maestro flows after the app is installed and Metro is running:
+
+```sh
+yarn examples:ios
+yarn examples:android
+```
 
 ## Screens
 

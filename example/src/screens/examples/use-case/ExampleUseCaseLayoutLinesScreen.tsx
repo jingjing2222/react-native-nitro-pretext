@@ -158,7 +158,7 @@ export function ExampleUseCaseLayoutLinesScreen() {
         <View
           style={[
             localStyles.preview,
-            { minHeight: Math.max(96, paragraphHeight + 24), width },
+            { minHeight: Math.max(96, paragraphHeight), width: width + 12 },
           ]}
         >
           {lines.map((line, index) => (
@@ -169,8 +169,8 @@ export function ExampleUseCaseLayoutLinesScreen() {
                 localStyles.lineBand,
                 {
                   height: Math.max(4, line.height),
-                  left: 12 + line.left,
-                  top: 12 + line.top,
+                  left: line.left,
+                  top: line.top,
                   width: line.width,
                 },
               ]}
@@ -181,7 +181,7 @@ export function ExampleUseCaseLayoutLinesScreen() {
               localStyles.previewText,
               {
                 marginLeft: 12,
-                width: width - 12,
+                width,
               },
             ]}
           >
@@ -362,7 +362,7 @@ const localStyles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     maxWidth: "100%",
-    padding: 12,
+    overflow: "hidden",
   },
   previewText: {
     color: "#1f2725",

@@ -692,7 +692,7 @@ internal final class PretextShared {
                 endUTF16: token.endUTF16,
                 width: box.width,
                 lineHeight: box.height,
-                ascent: box.baseline,
+                ascent: -box.baseline,
                 descent: max(0, box.height - box.baseline)
             )
         }
@@ -803,9 +803,9 @@ internal final class PretextShared {
             }
 
             let line = lineLayouts[lineIndex]
-            let actualHeight = max(0, line.ascent + line.descent)
+            let actualHeight = max(0, line.descent - line.ascent)
             let centerOffset = max(0, (line.height - actualHeight) / 2)
-            let baseline = line.top + centerOffset + line.ascent
+            let baseline = line.top + centerOffset - line.ascent
             let visualRange = resolveVisualRangeForTextRange(
                 paragraph: paragraph,
                 line: line,
@@ -1328,26 +1328,34 @@ internal final class PretextShared {
         var top = 0.0
         let length = prepared.text.length
 
+        func appendEmptyLine(at position: Int) {
+            let constraint = resolveLineConstraint(request: request, top: top)
+            lines.append(
+                NativeLineLayout(
+                    textStartUTF16: position,
+                    textEndUTF16: position,
+                    width: 0,
+                    left: constraint.left,
+                    top: top,
+                    height: lineHeight,
+                    ascent: 0,
+                    descent: lineHeight,
+                    layoutEngine: layoutEngineIosCoreText,
+                    fallbackReason: nil
+                )
+            )
+            top += lineHeight
+        }
+
         while start < length {
             let constraint = resolveLineConstraint(request: request, top: top)
 
             if prepared.text.character(at: start) == 0x0A {
-                lines.append(
-                    NativeLineLayout(
-                        textStartUTF16: start,
-                        textEndUTF16: start,
-                        width: 0,
-                        left: constraint.left,
-                        top: top,
-                        height: lineHeight,
-                        ascent: 0,
-                        descent: lineHeight,
-                        layoutEngine: layoutEngineIosCoreText,
-                        fallbackReason: nil
-                    )
-                )
-                top += lineHeight
+                appendEmptyLine(at: start)
                 start += 1
+                if start == length {
+                    appendEmptyLine(at: start)
+                }
                 continue
             }
 
@@ -1381,6 +1389,8 @@ internal final class PretextShared {
             var leading: CGFloat = 0
             let typographicWidth = CTLineGetTypographicBounds(line, &ascent, &descent, &leading)
             let actualHeight = max(0, Double(ascent + descent + leading))
+            let normalizedAscent = -max(0, Double(ascent))
+            let normalizedDescent = max(0, Double(descent))
             let lineHeightFloor = max(
                 lineHeight,
                 maxRequestedLineHeight(
@@ -1401,8 +1411,8 @@ internal final class PretextShared {
                     left: constraint.left,
                     top: top,
                     height: effectiveLineHeight,
-                    ascent: ascent,
-                    descent: descent,
+                    ascent: normalizedAscent,
+                    descent: normalizedDescent,
                     layoutEngine: layoutEngineIosCoreText,
                     fallbackReason: nil,
                     ctLine: line
@@ -1413,6 +1423,9 @@ internal final class PretextShared {
             start += count
             if start < length && prepared.text.character(at: start) == 0x0A {
                 start += 1
+                if start == length {
+                    appendEmptyLine(at: start)
+                }
             }
         }
 
@@ -1446,26 +1459,34 @@ internal final class PretextShared {
         var cursor = 0
         var top = 0.0
 
+        func appendEmptyFallbackLine(at position: Int, height: Double) {
+            let constraint = resolveLineConstraint(request: request, top: top)
+            lines.append(
+                NativeLineLayout(
+                    textStartUTF16: position,
+                    textEndUTF16: position,
+                    width: 0,
+                    left: constraint.left,
+                    top: top,
+                    height: height,
+                    ascent: 0,
+                    descent: height
+                )
+            )
+            top += height
+        }
+
         while cursor < tokens.count {
             let constraint = resolveLineConstraint(request: request, top: top)
 
             if tokens[cursor].text == newlineToken {
                 let newline = tokens[cursor]
                 let newlineHeight = max(lineHeight, newline.lineHeight)
-                lines.append(
-                    NativeLineLayout(
-                        textStartUTF16: newline.startUTF16,
-                        textEndUTF16: newline.startUTF16,
-                        width: 0,
-                        left: constraint.left,
-                        top: top,
-                        height: newlineHeight,
-                        ascent: newline.ascent,
-                        descent: max(newline.descent, newlineHeight - newline.ascent)
-                    )
-                )
-                top += newlineHeight
+                appendEmptyFallbackLine(at: newline.startUTF16, height: newlineHeight)
                 cursor += 1
+                if cursor == tokens.count {
+                    appendEmptyFallbackLine(at: newline.endUTF16, height: newlineHeight)
+                }
                 continue
             }
 
@@ -1513,6 +1534,7 @@ internal final class PretextShared {
                 let fallbackRange = fallback.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     ? fallback.startUTF16..<fallback.startUTF16
                     : fallback.startUTF16..<fallback.endUTF16
+                let fallbackLineHeight = fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight
                 lines.append(
                     NativeLineLayout(
                         textStartUTF16: fallbackRange.lowerBound,
@@ -1520,12 +1542,12 @@ internal final class PretextShared {
                         width: fallback.width,
                         left: constraint.left,
                         top: top,
-                        height: fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight,
+                        height: fallbackLineHeight,
                         ascent: fallback.ascent,
-                        descent: fallback.descent
+                        descent: max(fallback.descent, fallbackLineHeight + fallback.ascent)
                     )
                 )
-                top += fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight
+                top += fallbackLineHeight
                 cursor += 1
             } else {
                 let metrics = fallbackLineMetrics(tokens, start: cursor, end: trimmedEnd, defaultLineHeight: lineHeight)
@@ -1547,7 +1569,14 @@ internal final class PretextShared {
             }
 
             if hitForcedBreak && cursor < tokens.count && tokens[cursor].text == newlineToken {
+                let newline = tokens[cursor]
                 cursor += 1
+                if cursor == tokens.count {
+                    appendEmptyFallbackLine(
+                        at: newline.endUTF16,
+                        height: max(lineHeight, newline.lineHeight)
+                    )
+                }
             }
         }
 
@@ -1823,12 +1852,12 @@ internal final class PretextShared {
         var descent = 0.0
         var lineHeight = defaultLineHeight
         for token in tokens[start..<end] {
-            ascent = max(ascent, token.ascent)
+            ascent = min(ascent, token.ascent)
             descent = max(descent, token.descent)
             lineHeight = max(lineHeight, token.lineHeight)
         }
 
-        lineHeight = max(lineHeight, ascent + descent)
+        lineHeight = max(lineHeight, descent - ascent)
         return (lineHeight, ascent, descent)
     }
 

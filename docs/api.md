@@ -188,16 +188,16 @@ type PretextLinesLayout = {
 
 `ParagraphLineRange`:
 
-| Field       | Type     | Description                 |
-| ----------- | -------- | --------------------------- |
-| `textStart` | `number` | Source UTF-16 start offset. |
-| `textEnd`   | `number` | Source UTF-16 end offset.   |
-| `top`       | `number` | Line top.                   |
-| `left`      | `number` | Line x offset.              |
-| `width`     | `number` | Line width.                 |
-| `height`    | `number` | Line height.                |
-| `ascent`    | `number` | Native ascent.              |
-| `descent`   | `number` | Native descent.             |
+| Field       | Type     | Description                                   |
+| ----------- | -------- | --------------------------------------------- |
+| `textStart` | `number` | Source UTF-16 start offset.                   |
+| `textEnd`   | `number` | Source UTF-16 end offset.                     |
+| `top`       | `number` | Line top.                                     |
+| `left`      | `number` | Line x offset.                                |
+| `width`     | `number` | Line width.                                   |
+| `height`    | `number` | Line height.                                  |
+| `ascent`    | `number` | Native ascent as a negative baseline offset.  |
+| `descent`   | `number` | Native descent as a positive baseline offset. |
 
 ### `output: "diagnostics"`
 
@@ -224,7 +224,7 @@ Important diagnostics fields:
 | `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                                                                      |
 | `layoutEngine`            | `android_measured_text_line_breaker`, `android_static_layout_compat`, `android_legacy_fallback`, `ios_core_text`, or `ios_manual_token_fallback`. |
 | `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                          |
-| `fallbackReason`          | Present when a degraded fallback path was used.                                                                                                   |
+| `fallbackReason`          | Present when a fallback path was used, for example `static_layout_compat` or `manual_height_estimate`.                                            |
 | `driftKinds`              | `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`, and related classes.                                                   |
 | `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                          |
 | `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                           |

@@ -119,7 +119,8 @@ Android canonical benchmark claims require API 29+ because the canonical
 Android engine is `MeasuredText + LineBreaker`. API 24-28 runs exercise the
 `android_static_layout_compat` or `android_legacy_fallback` path only. iOS
 canonical runs report `ios_core_text`; degraded fallback diagnostics may report
-`ios_manual_token_fallback`.
+`ios_manual_token_fallback`. StaticLayout compat diagnostics include
+`fallbackReason: "static_layout_compat"`.
 
 The gate checks timing, line-count parity, sampled line-text parity, layout
 engine, renderer kind, parity role, Android `includeFontPadding`, and height

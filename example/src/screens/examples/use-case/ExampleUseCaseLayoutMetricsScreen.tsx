@@ -176,22 +176,31 @@ const metrics = layout(prepared, {
           />
         </View>
 
-        <View
-          style={[
-            localStyles.visibleCard,
-            { height: precomputedCardHeight, width },
-          ]}
-        >
-          <Text style={localStyles.cardKicker}>VISIBLE RN OUTPUT</Text>
-          {METRICS_TEXT.map((paragraph) => (
-            <Text key={paragraph} style={TEXT_RENDER_STYLE}>
-              {paragraph}
+        {metrics === null ? (
+          <View style={[localStyles.visibleCard, { width }]}>
+            <Text style={localStyles.cardKicker}>WAITING FOR METRICS</Text>
+            <Text style={localStyles.cardFooter}>
+              Visible text is not mounted until Pretext returns height.
             </Text>
-          ))}
-          <Text style={localStyles.cardFooter}>
-            Height reserved from Pretext metrics.
-          </Text>
-        </View>
+          </View>
+        ) : (
+          <View
+            style={[
+              localStyles.visibleCard,
+              { height: precomputedCardHeight, width },
+            ]}
+          >
+            <Text style={localStyles.cardKicker}>VISIBLE RN OUTPUT</Text>
+            {METRICS_TEXT.map((paragraph) => (
+              <Text key={paragraph} style={TEXT_RENDER_STYLE}>
+                {paragraph}
+              </Text>
+            ))}
+            <Text style={localStyles.cardFooter}>
+              Height reserved from Pretext metrics.
+            </Text>
+          </View>
+        )}
 
         <View style={localStyles.panel}>
           <Text style={localStyles.panelTitle}>Paragraph metrics</Text>
