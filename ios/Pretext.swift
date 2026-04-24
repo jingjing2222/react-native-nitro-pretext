@@ -1,31 +1,6 @@
 import Foundation
 
 class Pretext: HybridPretextSpec {
-    public func measure(text: String, fontFamily: String, fontSize: Double) throws -> Double {
-        PretextShared.shared.measure(text: text, fontFamily: fontFamily, fontSize: fontSize)
-    }
-
-    public func measureBatch(texts: [String], fontFamily: String, fontSize: Double) throws -> [Double] {
-        PretextShared.shared.measureBatch(texts: texts, fontFamily: fontFamily, fontSize: fontSize)
-    }
-
-    public func prepareParagraphs(
-        texts: [String],
-        style: ParagraphStyle
-    ) throws -> PreparedParagraphState {
-        try prepareParagraphsWithStats(texts: texts, style: style).prepared
-    }
-
-    public func prepareInlineParagraphSegments(
-        paragraphsPayload: String,
-        style: ParagraphStyle
-    ) throws -> PreparedParagraphState {
-        try prepareInlineParagraphSegmentsWithStats(
-            paragraphsPayload: paragraphsPayload,
-            style: style
-        ).prepared
-    }
-
     public func prepareParagraphsWithStats(
         texts: [String],
         style: ParagraphStyle
@@ -41,34 +16,6 @@ class Pretext: HybridPretextSpec {
             paragraphs: try materializeInlineParagraphs(paragraphsPayload: paragraphsPayload),
             style: style
         )
-    }
-
-    public func layoutParagraphs(
-        preparedId: Double,
-        width: Double
-    ) throws -> [LaidOutParagraph] {
-        try PretextShared.shared.layoutParagraphs(preparedId: preparedId, width: width)
-    }
-
-    public func layoutParagraphsMetadata(
-        preparedId: Double,
-        width: Double
-    ) throws -> [LaidOutParagraphMetrics] {
-        try PretextShared.shared.layoutParagraphsMetadata(preparedId: preparedId, width: width)
-    }
-
-    public func layoutParagraphLines(
-        preparedId: Double,
-        width: Double
-    ) throws -> [LaidOutParagraphLines] {
-        try PretextShared.shared.layoutParagraphLines(preparedId: preparedId, width: width)
-    }
-
-    public func layoutParagraphsWithRequest(
-        preparedId: Double,
-        request: ParagraphLayoutRequest
-    ) throws -> [LaidOutParagraph] {
-        try PretextShared.shared.layoutParagraphs(preparedId: preparedId, request: request)
     }
 
     public func layoutParagraphsMetadataWithRequest(
@@ -103,84 +50,6 @@ class Pretext: HybridPretextSpec {
             preparedId: preparedId,
             request: request
         )
-    }
-
-    public func hitTestPreparedTextPosition(
-        preparedId: Double,
-        paragraphIndex: Double,
-        request: ParagraphLayoutRequest,
-        x: Double,
-        y: Double
-    ) throws -> PreparedTextPosition {
-        try PretextShared.shared.hitTestPreparedTextPosition(
-            preparedId: preparedId,
-            paragraphIndex: paragraphIndex,
-            request: request,
-            x: x,
-            y: y
-        )
-    }
-
-    public func layoutPreparedTextSelectionRects(
-        preparedId: Double,
-        range: PreparedTextRange,
-        request: ParagraphLayoutRequest
-    ) throws -> [PreparedTextSelectionRect] {
-        try PretextShared.shared.layoutPreparedTextSelectionRects(
-            preparedId: preparedId,
-            range: range,
-            request: request
-        )
-    }
-
-    public func selectAllPreparedText(
-        preparedId: Double,
-        paragraphIndex: Double
-    ) throws -> PreparedTextRange {
-        try PretextShared.shared.selectAllPreparedText(
-            preparedId: preparedId,
-            paragraphIndex: paragraphIndex
-        )
-    }
-
-    public func getPreparedTextSelection(
-        preparedId: Double,
-        range: PreparedTextRange
-    ) throws -> String {
-        try PretextShared.shared.getPreparedTextSelection(
-            preparedId: preparedId,
-            range: range
-        )
-    }
-
-    public func copyPreparedTextSelection(
-        preparedId: Double,
-        range: PreparedTextRange
-    ) throws -> String {
-        try PretextShared.shared.copyPreparedTextSelection(
-            preparedId: preparedId,
-            range: range
-        )
-    }
-
-    public func createParagraphLineCursor(
-        preparedId: Double,
-        paragraphIndex: Double,
-        request: ParagraphLayoutRequest
-    ) throws -> ParagraphLineCursorState {
-        try PretextShared.shared.createParagraphLineCursor(
-            preparedId: preparedId,
-            paragraphIndex: paragraphIndex,
-            request: request
-        )
-    }
-
-    public func nextParagraphLine(cursorId: Double) throws -> ParagraphLineCursorStep {
-        PretextShared.shared.nextParagraphLine(cursorId: cursorId)
-    }
-
-    public func releaseParagraphLineCursor(cursorId: Double) throws {
-        PretextShared.shared.releaseParagraphLineCursor(cursorId: cursorId)
     }
 
     public func releaseParagraphs(preparedId: Double) throws {

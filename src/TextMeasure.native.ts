@@ -1,32 +1,27 @@
 import { NitroModules } from "react-native-nitro-modules";
 import type {
   InlineSegment,
-  LaidOutRichParagraphLines,
-  ParagraphLineCursorState,
-  ParagraphLineCursorStep,
-  ParagraphLayoutRequest,
-  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
-  LaidOutParagraph,
+  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
   ParagraphBoundaryMap,
   ParagraphComplexShapeCounters,
+  ParagraphLayoutRequest,
   ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
-  PreparedTextPosition,
-  PreparedTextRange,
-  PreparedTextSelectionRect,
-  Pretext as NitroPretext,
-  PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
+  PrepareParagraphStats,
+  Pretext as NitroPretext,
 } from "./Pretext.nitro";
 import type { Pretext } from "./PublicTypes";
 import { serializeInlineParagraphs } from "./inlineParagraphSegments";
 
 const NativeParagraphEngine =
   NitroModules.createHybridObject<NitroPretext>("Pretext");
+
 export const ParagraphEngine: Pretext = {
   get name() {
     return NativeParagraphEngine.name;
@@ -42,21 +37,6 @@ export const ParagraphEngine: Pretext = {
   dispose() {
     NativeParagraphEngine.dispose();
   },
-  measure(text, fontFamily, fontSize) {
-    return NativeParagraphEngine.measure(text, fontFamily, fontSize);
-  },
-  measureBatch(texts, fontFamily, fontSize) {
-    return NativeParagraphEngine.measureBatch(texts, fontFamily, fontSize);
-  },
-  prepareParagraphs(texts, style) {
-    return NativeParagraphEngine.prepareParagraphs(texts, style);
-  },
-  prepareInlineParagraphs(paragraphs, style) {
-    return NativeParagraphEngine.prepareInlineParagraphSegments(
-      serializeInlineParagraphs(paragraphs),
-      style,
-    );
-  },
   prepareParagraphsWithStats(texts, style) {
     return NativeParagraphEngine.prepareParagraphsWithStats(texts, style);
   },
@@ -64,21 +44,6 @@ export const ParagraphEngine: Pretext = {
     return NativeParagraphEngine.prepareInlineParagraphSegmentsWithStats(
       serializeInlineParagraphs(paragraphs),
       style,
-    );
-  },
-  layoutParagraphs(preparedId, width) {
-    return NativeParagraphEngine.layoutParagraphs(preparedId, width);
-  },
-  layoutParagraphsMetadata(preparedId, width) {
-    return NativeParagraphEngine.layoutParagraphsMetadata(preparedId, width);
-  },
-  layoutParagraphLines(preparedId, width) {
-    return NativeParagraphEngine.layoutParagraphLines(preparedId, width);
-  },
-  layoutParagraphsWithRequest(preparedId, request) {
-    return NativeParagraphEngine.layoutParagraphsWithRequest(
-      preparedId,
-      request,
     );
   },
   layoutParagraphsMetadataWithRequest(preparedId, request) {
@@ -102,81 +67,23 @@ export const ParagraphEngine: Pretext = {
   layoutRichParagraphLines(preparedId, request) {
     return NativeParagraphEngine.layoutRichParagraphLines(preparedId, request);
   },
-  hitTestPreparedTextPosition(preparedId, paragraphIndex, request, x, y) {
-    return NativeParagraphEngine.hitTestPreparedTextPosition(
-      preparedId,
-      paragraphIndex,
-      request,
-      x,
-      y,
-    );
-  },
-  layoutPreparedTextSelectionRects(preparedId, range, request) {
-    return NativeParagraphEngine.layoutPreparedTextSelectionRects(
-      preparedId,
-      range,
-      request,
-    );
-  },
-  selectAllPreparedText(preparedId, paragraphIndex) {
-    return NativeParagraphEngine.selectAllPreparedText(
-      preparedId,
-      paragraphIndex,
-    );
-  },
-  getPreparedTextSelection(preparedId, range) {
-    return NativeParagraphEngine.getPreparedTextSelection(preparedId, range);
-  },
-  copyPreparedTextSelection(preparedId, range) {
-    return NativeParagraphEngine.copyPreparedTextSelection(preparedId, range);
-  },
-  createParagraphLineCursor(preparedId, paragraphIndex, request) {
-    return NativeParagraphEngine.createParagraphLineCursor(
-      preparedId,
-      paragraphIndex,
-      request,
-    );
-  },
-  nextParagraphLine(cursorId) {
-    return NativeParagraphEngine.nextParagraphLine(cursorId);
-  },
-  releaseParagraphLineCursor(cursorId) {
-    NativeParagraphEngine.releaseParagraphLineCursor(cursorId);
-  },
   releaseParagraphs(preparedId) {
     NativeParagraphEngine.releaseParagraphs(preparedId);
   },
 };
 export const TextMeasure = ParagraphEngine;
 
-export function measure(
-  text: string,
-  fontFamily: string,
-  fontSize: number,
-): number {
-  return ParagraphEngine.measure(text, fontFamily, fontSize);
-}
-
-export function measureBatch(
-  texts: string[],
-  fontFamily: string,
-  fontSize: number,
-): number[] {
-  return ParagraphEngine.measureBatch(texts, fontFamily, fontSize);
-}
-
-export function prepareParagraphs(
-  texts: string[],
-  style: ParagraphStyle,
-): PreparedParagraphState {
-  return ParagraphEngine.prepareParagraphs(texts, style);
-}
-
-export function prepareInlineParagraphs(
-  paragraphs: InlineSegment[][],
-  style: ParagraphStyle,
-): PreparedParagraphState {
-  return ParagraphEngine.prepareInlineParagraphs(paragraphs, style);
+export function createParagraphLayoutRequest(
+  width: number,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): ParagraphLayoutRequest {
+  return {
+    width,
+    left: overrides.left ?? 0,
+    whiteSpace: overrides.whiteSpace ?? "normal",
+    wordBreak: overrides.wordBreak ?? "normal",
+    shapeSlices: overrides.shapeSlices ?? [],
+  };
 }
 
 export function prepareParagraphsWithStats(
@@ -191,34 +98,6 @@ export function prepareInlineParagraphsWithStats(
   style: ParagraphStyle,
 ): PreparedParagraphResult {
   return ParagraphEngine.prepareInlineParagraphsWithStats(paragraphs, style);
-}
-
-export function layoutParagraphs(
-  preparedId: number,
-  width: number,
-): LaidOutParagraph[] {
-  return ParagraphEngine.layoutParagraphs(preparedId, width);
-}
-
-export function layoutParagraphsMetadata(
-  preparedId: number,
-  width: number,
-): LaidOutParagraphMetrics[] {
-  return ParagraphEngine.layoutParagraphsMetadata(preparedId, width);
-}
-
-export function layoutParagraphLines(
-  preparedId: number,
-  width: number,
-): LaidOutParagraphLines[] {
-  return ParagraphEngine.layoutParagraphLines(preparedId, width);
-}
-
-export function layoutParagraphsWithRequest(
-  preparedId: number,
-  request: ParagraphLayoutRequest,
-): LaidOutParagraph[] {
-  return ParagraphEngine.layoutParagraphsWithRequest(preparedId, request);
 }
 
 export function layoutParagraphsMetadataWithRequest(
@@ -240,14 +119,8 @@ export function layoutParagraphLinesWithRequest(
 
 export function layoutParagraphLinesWithDiagnostics(
   preparedId: number,
-  widthOrRequest: number | ParagraphLayoutRequest,
-  overrides: Partial<ParagraphLayoutRequest> = {},
+  request: ParagraphLayoutRequest,
 ): LaidOutParagraphLinesWithDiagnostics[] {
-  const request =
-    typeof widthOrRequest === "number"
-      ? createParagraphLayoutRequest(widthOrRequest, overrides)
-      : widthOrRequest;
-
   return ParagraphEngine.layoutParagraphLinesWithDiagnostics(
     preparedId,
     request,
@@ -256,161 +129,30 @@ export function layoutParagraphLinesWithDiagnostics(
 
 export function layoutRichParagraphLines(
   preparedId: number,
-  widthOrRequest: number | ParagraphLayoutRequest,
-  overrides: Partial<ParagraphLayoutRequest> = {},
-): LaidOutRichParagraphLines[] {
-  const request =
-    typeof widthOrRequest === "number"
-      ? createParagraphLayoutRequest(widthOrRequest, overrides)
-      : widthOrRequest;
-
-  return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
-}
-
-export function hitTestPreparedTextPosition(
-  preparedId: number,
-  paragraphIndex: number,
-  widthOrRequest: number | ParagraphLayoutRequest,
-  x: number,
-  y: number,
-  overrides: Partial<ParagraphLayoutRequest> = {},
-): PreparedTextPosition {
-  const request =
-    typeof widthOrRequest === "number"
-      ? createParagraphLayoutRequest(widthOrRequest, overrides)
-      : widthOrRequest;
-
-  return ParagraphEngine.hitTestPreparedTextPosition(
-    preparedId,
-    paragraphIndex,
-    request,
-    x,
-    y,
-  );
-}
-
-export function layoutPreparedTextSelectionRects(
-  preparedId: number,
-  range: PreparedTextRange,
-  widthOrRequest: number | ParagraphLayoutRequest,
-  overrides: Partial<ParagraphLayoutRequest> = {},
-): PreparedTextSelectionRect[] {
-  const request =
-    typeof widthOrRequest === "number"
-      ? createParagraphLayoutRequest(widthOrRequest, overrides)
-      : widthOrRequest;
-
-  return ParagraphEngine.layoutPreparedTextSelectionRects(
-    preparedId,
-    range,
-    request,
-  );
-}
-
-export function selectAllPreparedText(
-  preparedId: number,
-  paragraphIndex: number,
-): PreparedTextRange {
-  return ParagraphEngine.selectAllPreparedText(preparedId, paragraphIndex);
-}
-
-export function getPreparedTextSelection(
-  preparedId: number,
-  range: PreparedTextRange,
-): string {
-  return ParagraphEngine.getPreparedTextSelection(preparedId, range);
-}
-
-export function copyPreparedTextSelection(
-  preparedId: number,
-  range: PreparedTextRange,
-): string {
-  return ParagraphEngine.copyPreparedTextSelection(preparedId, range);
-}
-
-export function createParagraphLayoutRequest(
-  width: number,
-  overrides: Partial<ParagraphLayoutRequest> = {},
-): ParagraphLayoutRequest {
-  return {
-    width,
-    left: overrides.left ?? 0,
-    whiteSpace: overrides.whiteSpace ?? "normal",
-    wordBreak: overrides.wordBreak ?? "normal",
-    shapeSlices: overrides.shapeSlices ?? [],
-  };
-}
-
-export function createParagraphLineCursor(
-  preparedId: number,
-  paragraphIndex: number,
   request: ParagraphLayoutRequest,
-): ParagraphLineCursorState {
-  return ParagraphEngine.createParagraphLineCursor(
-    preparedId,
-    paragraphIndex,
-    request,
-  );
-}
-
-export function nextParagraphLine(cursorId: number): ParagraphLineCursorStep {
-  return ParagraphEngine.nextParagraphLine(cursorId);
-}
-
-export function releaseParagraphLineCursor(cursorId: number): void {
-  ParagraphEngine.releaseParagraphLineCursor(cursorId);
+): LaidOutRichParagraphLines[] {
+  return ParagraphEngine.layoutRichParagraphLines(preparedId, request);
 }
 
 export function releaseParagraphs(preparedId: number): void {
   ParagraphEngine.releaseParagraphs(preparedId);
 }
 
-export function prepareBenchmarkCorpus(
-  texts: string[],
-  fontFamily: string,
-  fontSize: number,
-): PreparedParagraphState {
-  return prepareParagraphs(texts, {
-    fontFamily,
-    fontSize,
-    lineHeight: fontSize,
-    letterSpacing: 0,
-    locale: "",
-  });
-}
-
-export function layoutPreparedBenchmarkCorpus(
-  preparedId: number,
-  width: number,
-): LaidOutParagraph[] {
-  return layoutParagraphs(preparedId, width);
-}
+export default ParagraphEngine;
 
 export type {
   InlineSegment,
-  LaidOutRichParagraphLines,
-  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
-  LaidOutParagraph,
+  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
   ParagraphBoundaryMap,
   ParagraphComplexShapeCounters,
-  ParagraphLineRange,
-  ParagraphLineCursorState,
-  ParagraphLineCursorStep,
   ParagraphLayoutRequest,
+  ParagraphLineRange,
   ParagraphShapeSlice,
   ParagraphStyle,
-  PreparedTextPosition,
-  PreparedTextRange,
-  PreparedTextSelectionRect,
-  PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
+  PrepareParagraphStats,
 };
-
-export function releasePreparedBenchmarkCorpus(preparedId: number): void {
-  releaseParagraphs(preparedId);
-}
-
-export default ParagraphEngine;

@@ -1,11 +1,10 @@
 import type {
-  InlineSegment,
   InlineBoxFrame,
-  LaidOutParagraph,
+  InlineSegment,
   LaidOutParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
-  LaidOutRichParagraphLines,
   LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
   ParagraphAtomicSpan,
   ParagraphBoundaryMap,
   ParagraphBreakOpportunity,
@@ -14,27 +13,28 @@ import type {
   ParagraphLayoutDiagnostics,
   ParagraphLayoutRequest,
   ParagraphLineDiagnostics,
-  ParagraphLineCursorState,
-  ParagraphLineCursorStep,
   ParagraphStyle,
   ParagraphTextDirection,
-  PreparedTextPosition,
-  PreparedTextRange,
-  PreparedTextSelectionRect,
-  PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
+  PrepareParagraphStats,
   Pretext as NitroPretext,
 } from "./Pretext.nitro";
 
-export interface Pretext extends Omit<
+type NativeLayoutPretext = Pick<
   NitroPretext,
-  "prepareInlineParagraphSegments" | "prepareInlineParagraphSegmentsWithStats"
-> {
-  prepareInlineParagraphs(
-    paragraphs: InlineSegment[][],
-    style: ParagraphStyle,
-  ): PreparedParagraphState;
+  | "dispose"
+  | "equals"
+  | "layoutParagraphLinesWithDiagnostics"
+  | "layoutParagraphLinesWithRequest"
+  | "layoutParagraphsMetadataWithRequest"
+  | "layoutRichParagraphLines"
+  | "name"
+  | "prepareParagraphsWithStats"
+  | "releaseParagraphs"
+>;
+
+export interface Pretext extends NativeLayoutPretext {
   prepareInlineParagraphsWithStats(
     paragraphs: InlineSegment[][],
     style: ParagraphStyle,
@@ -42,13 +42,12 @@ export interface Pretext extends Omit<
 }
 
 export type {
-  InlineSegment,
   InlineBoxFrame,
-  LaidOutParagraph,
+  InlineSegment,
   LaidOutParagraphLines,
   LaidOutParagraphLinesWithDiagnostics,
-  LaidOutRichParagraphLines,
   LaidOutParagraphMetrics,
+  LaidOutRichParagraphLines,
   ParagraphAtomicSpan,
   ParagraphBoundaryMap,
   ParagraphBreakOpportunity,
@@ -57,14 +56,9 @@ export type {
   ParagraphLayoutDiagnostics,
   ParagraphLayoutRequest,
   ParagraphLineDiagnostics,
-  ParagraphLineCursorState,
-  ParagraphLineCursorStep,
   ParagraphStyle,
   ParagraphTextDirection,
-  PreparedTextPosition,
-  PreparedTextRange,
-  PreparedTextSelectionRect,
-  PrepareParagraphStats,
   PreparedParagraphResult,
   PreparedParagraphState,
+  PrepareParagraphStats,
 };

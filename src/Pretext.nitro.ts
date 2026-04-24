@@ -85,13 +85,6 @@ export interface ParagraphLayoutRequest {
   shapeSlices: ParagraphShapeSlice[];
 }
 
-export interface LaidOutParagraph {
-  brokenText: string;
-  lineCount: number;
-  height: number;
-  maxLineWidth: number;
-}
-
 export interface LaidOutParagraphMetrics {
   lineCount: number;
   height: number;
@@ -119,39 +112,6 @@ export interface InlineBoxFrame {
   accessibilityLabel?: string;
   accessibilityHint?: string;
   accessibilityRole?: string;
-}
-
-export interface PreparedTextPosition {
-  paragraphIndex: number;
-  lineIndex: number;
-  offset: number;
-  lineTextStart: number;
-  lineTextEnd: number;
-  x: number;
-  y: number;
-  layoutEngine: string;
-  heightMetricSource: string;
-  fallbackReason?: string;
-}
-
-export interface PreparedTextRange {
-  paragraphIndex: number;
-  textStart: number;
-  textEnd: number;
-}
-
-export interface PreparedTextSelectionRect {
-  paragraphIndex: number;
-  lineIndex: number;
-  textStart: number;
-  textEnd: number;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-  layoutEngine: string;
-  heightMetricSource: string;
-  fallbackReason?: string;
 }
 
 export interface ParagraphBreakOpportunity {
@@ -234,39 +194,10 @@ export interface LaidOutRichParagraphLines {
   diagnostics: ParagraphLayoutDiagnostics;
 }
 
-export interface ParagraphLineCursorState {
-  id: number;
-  paragraphIndex: number;
-  lineCount: number;
-  height: number;
-}
-
-export interface ParagraphLineCursorStep {
-  done: boolean;
-  textStart: number;
-  textEnd: number;
-  top: number;
-  left: number;
-  width: number;
-  height: number;
-  ascent: number;
-  descent: number;
-}
-
 export interface Pretext extends HybridObject<{
   ios: "swift";
   android: "kotlin";
 }> {
-  measure(text: string, fontFamily: string, fontSize: number): number;
-  measureBatch(texts: string[], fontFamily: string, fontSize: number): number[];
-  prepareParagraphs(
-    texts: string[],
-    style: ParagraphStyle,
-  ): PreparedParagraphState;
-  prepareInlineParagraphSegments(
-    paragraphsPayload: string,
-    style: ParagraphStyle,
-  ): PreparedParagraphState;
   prepareParagraphsWithStats(
     texts: string[],
     style: ParagraphStyle,
@@ -275,19 +206,6 @@ export interface Pretext extends HybridObject<{
     paragraphsPayload: string,
     style: ParagraphStyle,
   ): PreparedParagraphResult;
-  layoutParagraphs(preparedId: number, width: number): LaidOutParagraph[];
-  layoutParagraphsMetadata(
-    preparedId: number,
-    width: number,
-  ): LaidOutParagraphMetrics[];
-  layoutParagraphLines(
-    preparedId: number,
-    width: number,
-  ): LaidOutParagraphLines[];
-  layoutParagraphsWithRequest(
-    preparedId: number,
-    request: ParagraphLayoutRequest,
-  ): LaidOutParagraph[];
   layoutParagraphsMetadataWithRequest(
     preparedId: number,
     request: ParagraphLayoutRequest,
@@ -304,36 +222,5 @@ export interface Pretext extends HybridObject<{
     preparedId: number,
     request: ParagraphLayoutRequest,
   ): LaidOutRichParagraphLines[];
-  hitTestPreparedTextPosition(
-    preparedId: number,
-    paragraphIndex: number,
-    request: ParagraphLayoutRequest,
-    x: number,
-    y: number,
-  ): PreparedTextPosition;
-  layoutPreparedTextSelectionRects(
-    preparedId: number,
-    range: PreparedTextRange,
-    request: ParagraphLayoutRequest,
-  ): PreparedTextSelectionRect[];
-  selectAllPreparedText(
-    preparedId: number,
-    paragraphIndex: number,
-  ): PreparedTextRange;
-  getPreparedTextSelection(
-    preparedId: number,
-    range: PreparedTextRange,
-  ): string;
-  copyPreparedTextSelection(
-    preparedId: number,
-    range: PreparedTextRange,
-  ): string;
-  createParagraphLineCursor(
-    preparedId: number,
-    paragraphIndex: number,
-    request: ParagraphLayoutRequest,
-  ): ParagraphLineCursorState;
-  nextParagraphLine(cursorId: number): ParagraphLineCursorStep;
-  releaseParagraphLineCursor(cursorId: number): void;
   releaseParagraphs(preparedId: number): void;
 }
