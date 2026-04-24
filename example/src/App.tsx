@@ -17,12 +17,14 @@ import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/Ex
 import { ExampleNonUseCaseLayoutLinesScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen";
 import { ExampleNonUseCaseLayoutMetricsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutMetricsScreen";
 import { ExampleNonUseCaseLayoutOptionsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutOptionsScreen";
+import { ExampleNonUseCaseLayoutRichScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutRichScreen";
 import { ExampleNonUseCasePrepareScreen } from "./screens/examples/non-use-case/ExampleNonUseCasePrepareScreen";
 import { ExampleUseCaseDiagnosticsScreen } from "./screens/examples/use-case/ExampleUseCaseDiagnosticsScreen";
 import { ExampleUseCaseIndexScreen } from "./screens/examples/use-case/ExampleUseCaseIndexScreen";
 import { ExampleUseCaseLayoutLinesScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutLinesScreen";
 import { ExampleUseCaseLayoutMetricsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutMetricsScreen";
 import { ExampleUseCaseLayoutOptionsScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutOptionsScreen";
+import { ExampleUseCaseLayoutRichScreen } from "./screens/examples/use-case/ExampleUseCaseLayoutRichScreen";
 import { ExampleUseCasePrepareScreen } from "./screens/examples/use-case/ExampleUseCasePrepareScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
@@ -38,17 +40,11 @@ function getExampleEntry(routeName: keyof AppStackParamList) {
   return entry;
 }
 
-const ExampleUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleUseCaseLayoutRich"),
-);
 const ExampleUseCaseHookScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseHook"),
 );
 const ExampleUseCaseNamespaceAndTypesScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleUseCaseNamespaceAndTypes"),
-);
-const ExampleNonUseCaseLayoutRichScreen = createExampleRoutePlaceholder(
-  getExampleEntry("ExampleNonUseCaseLayoutRich"),
 );
 const ExampleNonUseCaseHookScreen = createExampleRoutePlaceholder(
   getExampleEntry("ExampleNonUseCaseHook"),
