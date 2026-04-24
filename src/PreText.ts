@@ -50,6 +50,9 @@ export type PreTextPrepared = {
 
 export type PreTextMetricsLayout = {
   readonly output: "metrics";
+  readonly height: number;
+  readonly lineCount: number;
+  readonly maxLineWidth: number;
   readonly paragraphs: LaidOutParagraphMetrics[];
 };
 
@@ -177,12 +180,15 @@ export function layout(
     };
   }
 
+  const paragraphs = layoutParagraphsMetadataWithRequest(
+    record.nativeState.id,
+    request,
+  );
+
   return {
     output: "metrics",
-    paragraphs: layoutParagraphsMetadataWithRequest(
-      record.nativeState.id,
-      request,
-    ),
+    ...summarizeMetrics(paragraphs),
+    paragraphs,
   };
 }
 
@@ -244,22 +250,34 @@ export function usePreTextLayout({
     };
   }, [enabled, style, text]);
 
-  const resolvedLayout = useMemo(() => {
+  const resolvedLayout = useMemo<{
+    error: unknown | null;
+    layout: PreTextLayout | null;
+  }>(() => {
     if (!enabled || state.prepared === null) {
-      return null;
+      return {
+        error: null,
+        layout: null,
+      };
     }
 
     try {
-      return layout(state.prepared, {
-        left,
-        output,
-        shapeSlices,
-        whiteSpace,
-        width,
-        wordBreak,
-      });
-    } catch {
-      return null;
+      return {
+        error: null,
+        layout: layout(state.prepared, {
+          left,
+          output,
+          shapeSlices,
+          whiteSpace,
+          width,
+          wordBreak,
+        }),
+      };
+    } catch (error) {
+      return {
+        error,
+        layout: null,
+      };
     }
   }, [
     enabled,
@@ -273,9 +291,9 @@ export function usePreTextLayout({
   ]);
 
   return {
-    error: state.error,
+    error: state.error ?? resolvedLayout.error,
     isPreparing: state.isPreparing,
-    layout: resolvedLayout,
+    layout: resolvedLayout.layout,
     paragraphCount: state.prepared?.paragraphCount ?? 0,
     stats: state.prepared?.stats ?? null,
   };
@@ -322,6 +340,23 @@ function createLayoutRequest(
     whiteSpace: options.whiteSpace,
     wordBreak: options.wordBreak,
   });
+}
+
+function summarizeMetrics(
+  paragraphs: LaidOutParagraphMetrics[],
+): Pick<PreTextMetricsLayout, "height" | "lineCount" | "maxLineWidth"> {
+  return paragraphs.reduce(
+    (summary, paragraph) => ({
+      height: summary.height + paragraph.height,
+      lineCount: summary.lineCount + paragraph.lineCount,
+      maxLineWidth: Math.max(summary.maxLineWidth, paragraph.maxLineWidth),
+    }),
+    {
+      height: 0,
+      lineCount: 0,
+      maxLineWidth: 0,
+    },
+  );
 }
 
 function resolvePreparedRecord(prepared: PreTextPrepared): PreparedRecord {

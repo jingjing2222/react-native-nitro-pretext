@@ -270,6 +270,9 @@ describe("react-native-nitro-pretext public API", () => {
 
     expect(PublicApi.layout(prepared, { width: 280, left: 20 })).toEqual({
       output: "metrics",
+      height: 48,
+      lineCount: 2,
+      maxLineWidth: 180,
       paragraphs: [
         {
           lineCount: 2,
@@ -292,6 +295,35 @@ describe("react-native-nitro-pretext public API", () => {
         shapeSlices: [],
       },
     ]);
+  });
+
+  it("summarizes metrics across prepared paragraphs", () => {
+    const prepared = PublicApi.prepare(["alpha", "beta"], {
+      fontFamily: "System",
+      fontSize: 16,
+      lineHeight: 24,
+    });
+    nativeParagraphEngineMock.layoutParagraphsMetadataWithRequest.mockReturnValueOnce(
+      [
+        {
+          lineCount: 2,
+          height: 48,
+          maxLineWidth: 180,
+        },
+        {
+          lineCount: 1,
+          height: 24,
+          maxLineWidth: 120,
+        },
+      ],
+    );
+
+    expect(PublicApi.layout(prepared, { width: 280 })).toMatchObject({
+      output: "metrics",
+      height: 72,
+      lineCount: 3,
+      maxLineWidth: 180,
+    });
   });
 
   it("supports lines, diagnostics, and rich layout outputs", () => {

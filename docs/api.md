@@ -82,6 +82,8 @@ const metrics = layout(prepared, {
   width: 320,
   output: "metrics",
 });
+
+const height = metrics.height;
 ```
 
 Parameters:
@@ -111,9 +113,16 @@ Default output. Use this for height-before-render placement.
 ```ts
 type PreTextMetricsLayout = {
   output: "metrics";
+  height: number;
+  lineCount: number;
+  maxLineWidth: number;
   paragraphs: LaidOutParagraphMetrics[];
 };
 ```
+
+The top-level fields are the convenience values for the common case. For a
+single paragraph, they match that paragraph. For multiple paragraphs, `height`
+and `lineCount` are summed and `maxLineWidth` is the widest paragraph.
 
 `LaidOutParagraphMetrics`:
 
@@ -241,7 +250,7 @@ Return value:
 | `stats`          | `PrepareParagraphStats \| null` | Prepare timing, or `null` before prepare finishes. |
 | `paragraphCount` | `number`                        | Prepared paragraph count.                          |
 | `isPreparing`    | `boolean`                       | `true` while the hook is preparing current inputs. |
-| `error`          | `unknown \| null`               | Error thrown by native prepare, if any.            |
+| `error`          | `unknown \| null`               | Error thrown by native prepare or layout, if any.  |
 
 Keep `text`, `style`, `shapeSlices`, and other object/array inputs stable with
 `useMemo` when they are created inside a component. Changed object identity
