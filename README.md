@@ -162,12 +162,29 @@ Latest local measured-layout case study:
 | iOS            | iPhone 16 simulator, debug, April 24 2026 |            `129.16 ms` |           `1.55 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
 | Android API 36 | Pixel_9_Pro AVD, debug, April 25 2026     |            `174.95 ms` |           `8.59 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
 
+Improvement headline:
+
+| Platform       | Stable-height path improved by | Time removed before visible UI is stable | Relative speedup |
+| -------------- | -----------------------------: | ---------------------------------------: | ---------------: |
+| iOS            |                        `98.8%` |                              `127.61 ms` |          `83.3x` |
+| Android API 36 |                        `95.1%` |                              `166.36 ms` |          `20.4x` |
+
+`Stable-height path improved by` is calculated as
+`(RN hidden measure time - Pretext layout time) / RN hidden measure time`.
+
 Latest local Maestro timing snapshot:
 
 | Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                |
 | -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ------------------------------------- |
 | iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Debug simulator suite passed          |
 | Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed |
+
+Hot relayout compute improvement:
+
+| Platform       | Hot layout compute vs RN `<Text>` median | Relative compute speedup |
+| -------------- | ---------------------------------------: | -----------------------: |
+| iOS            |                                  `99.9%` |                `1074.4x` |
+| Android API 36 |                                  `99.9%` |                 `909.2x` |
 
 The measured-layout case study is the render optimization claim: Pretext
 removes the hidden measurement `<Text>` surface, so the screen does not need a
