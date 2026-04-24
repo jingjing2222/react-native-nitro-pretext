@@ -166,7 +166,7 @@ function mockCreateParagraphEngine() {
                   source: "ios_core_text",
                 },
               ],
-              graphemeBoundaries: [0, 1, 2, 3, 4, 5],
+              graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
               atomicSpans: [
                 {
                   textStart: 0,
@@ -177,15 +177,15 @@ function mockCreateParagraphEngine() {
             },
             boundaryMap: {
               utf16Length: 6,
-              graphemeBoundaries: [0, 1, 2, 3, 4, 5],
-              runBoundaries: [0, 5],
+              graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
+              runBoundaries: [0, 5, 6],
               hardBreaks: [6],
               nativeSoftBreaks: [5],
               atomicSpanBoundaries: [0, 5],
               clusterViolationOffsets: [],
             },
             complexShapeCounters: {
-              bidiRunCount: 0,
+              bidiRunCount: 1,
               emojiClusterCount: 0,
               complexClusterCount: 0,
               clusterViolationCount: 0,
@@ -279,7 +279,7 @@ function mockCreateParagraphEngine() {
               clusterViolationOffsets: [],
             },
             complexShapeCounters: {
-              bidiRunCount: 0,
+              bidiRunCount: 1,
               emojiClusterCount: 0,
               complexClusterCount: 1,
               clusterViolationCount: 0,
@@ -849,7 +849,7 @@ describe("react-native-nitro-pretext", () => {
             kind: "native_soft_break",
           },
         ],
-        graphemeBoundaries: [0, 1, 2, 3, 4, 5],
+        graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
         atomicSpans: [
           {
             textStart: 0,
@@ -859,13 +859,15 @@ describe("react-native-nitro-pretext", () => {
       },
       boundaryMap: {
         utf16Length: 6,
-        runBoundaries: [0, 5],
+        graphemeBoundaries: [0, 1, 2, 3, 4, 5, 6],
+        runBoundaries: [0, 5, 6],
         hardBreaks: [6],
         nativeSoftBreaks: [5],
+        atomicSpanBoundaries: [0, 5],
         clusterViolationOffsets: [],
       },
       complexShapeCounters: {
-        bidiRunCount: 0,
+        bidiRunCount: 1,
         emojiClusterCount: 0,
         complexClusterCount: 0,
         clusterViolationCount: 0,

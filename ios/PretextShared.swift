@@ -82,7 +82,7 @@ private func isRtlScalar(_ scalar: UnicodeScalar) -> Bool {
 }
 
 private func isLtrScalar(_ scalar: UnicodeScalar) -> Bool {
-    CharacterSet.letters.contains(scalar) || CharacterSet.decimalDigits.contains(scalar)
+    CharacterSet.letters.contains(scalar)
 }
 
 internal struct NativeTokenDescriptor {
@@ -725,32 +725,21 @@ internal final class PretextShared {
                 return nil
             }
 
-            let startX = line.ctLine.map { ctLine in
-                Double(CTLineGetOffsetForStringIndex(ctLine, rectStart, nil))
-            } ?? measureParagraphAdvance(
+            let visualRange = resolveVisualRangeForTextRange(
                 paragraph: paragraph,
-                startUTF16: line.textStartUTF16,
-                endUTF16: rectStart
-            )
-            var endX = line.ctLine.map { ctLine in
-                Double(CTLineGetOffsetForStringIndex(ctLine, rectEnd, nil))
-            } ?? measureParagraphAdvance(
-                paragraph: paragraph,
-                startUTF16: line.textStartUTF16,
+                line: line,
+                startUTF16: rectStart,
                 endUTF16: rectEnd
             )
-            if endX <= startX {
-                endX = line.width
-            }
 
             return PreparedTextSelectionRect(
                 paragraphIndex: Double(paragraphIndex),
                 lineIndex: Double(lineIndex),
                 textStart: Double(rectStart),
                 textEnd: Double(rectEnd),
-                left: line.left + startX,
+                left: line.left + visualRange.left,
                 top: line.top,
-                width: max(1, endX - startX),
+                width: visualRange.width,
                 height: line.height,
                 layoutEngine: line.layoutEngine,
                 heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
@@ -1241,12 +1230,11 @@ internal final class PretextShared {
             let actualHeight = max(0, line.ascent + line.descent)
             let centerOffset = max(0, (line.height - actualHeight) / 2)
             let baseline = line.top + centerOffset + line.ascent
-            let lineOffset = line.ctLine.map { ctLine in
-                Double(CTLineGetOffsetForStringIndex(ctLine, box.startUTF16, nil))
-            } ?? measureParagraphAdvance(
+            let visualRange = resolveVisualRangeForTextRange(
                 paragraph: paragraph,
-                startUTF16: line.textStartUTF16,
-                endUTF16: box.startUTF16
+                line: line,
+                startUTF16: box.startUTF16,
+                endUTF16: box.endUTF16
             )
 
             return InlineBoxFrame(
@@ -1255,7 +1243,7 @@ internal final class PretextShared {
                 lineIndex: Double(lineIndex),
                 textStart: Double(box.startUTF16),
                 textEnd: Double(box.endUTF16),
-                left: line.left + lineOffset,
+                left: line.left + visualRange.left,
                 top: baseline - box.baseline,
                 width: box.width,
                 height: box.height,
@@ -1294,13 +1282,6 @@ internal final class PretextShared {
         }
 
         let targetX = x - line.left
-        if targetX <= 0 {
-            return line.textStartUTF16
-        }
-        if targetX >= line.width {
-            return line.textEndUTF16
-        }
-
         if let ctLine = line.ctLine {
             let index = CTLineGetStringIndexForPosition(
                 ctLine,
@@ -1309,6 +1290,13 @@ internal final class PretextShared {
             if index != kCFNotFound {
                 return min(max(index, line.textStartUTF16), line.textEndUTF16)
             }
+        }
+
+        if targetX <= 0 {
+            return line.textStartUTF16
+        }
+        if targetX >= line.width {
+            return line.textEndUTF16
         }
 
         var low = line.textStartUTF16
@@ -1397,6 +1385,37 @@ internal final class PretextShared {
         return width
     }
 
+    private func resolveVisualRangeForTextRange(
+        paragraph: NativePreparedParagraph,
+        line: NativeLineLayout,
+        startUTF16: Int,
+        endUTF16: Int
+    ) -> (left: Double, width: Double) {
+        if let ctLine = line.ctLine {
+            let startX = Double(CTLineGetOffsetForStringIndex(ctLine, startUTF16, nil))
+            let endX = Double(CTLineGetOffsetForStringIndex(ctLine, endUTF16, nil))
+            if startX.isFinite, endX.isFinite {
+                let left = min(startX, endX)
+                let right = max(startX, endX)
+                return (left, max(1, right - left))
+            }
+        }
+
+        let startX = measureParagraphAdvance(
+            paragraph: paragraph,
+            startUTF16: line.textStartUTF16,
+            endUTF16: startUTF16
+        )
+        let endX = measureParagraphAdvance(
+            paragraph: paragraph,
+            startUTF16: line.textStartUTF16,
+            endUTF16: endUTF16
+        )
+        let left = min(startX, endX)
+        let right = max(startX, endX)
+        return (left, max(1, right - left))
+    }
+
     private func buildParagraphLayoutDiagnostics(
         paragraph: NativePreparedParagraph,
         corpus: NativePreparedCorpus,
@@ -1483,7 +1502,7 @@ internal final class PretextShared {
             return ParagraphBreakOpportunity(
                 offset: Double(offset),
                 kind: breakKindNativeSoft,
-                source: layoutEngineIosCoreText
+                source: line.layoutEngine
             )
         }
 

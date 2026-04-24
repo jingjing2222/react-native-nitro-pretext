@@ -373,7 +373,7 @@ internal object PretextShared {
     val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[resolvedParagraphIndex]
     val lineIndex = resolveLineIndex(lineLayouts, y)
     val line = lineLayouts.getOrNull(lineIndex) ?: emptyLineLayout()
-    val offset = snapOffsetToNearestGraphemeBoundary(paragraph.text, resolveOffsetForX(paragraph, line, x))
+    val offset = snapOffsetToNearestGraphemeBoundary(paragraph, resolveOffsetForX(paragraph, line, x))
 
     return PreparedTextPosition(
       paragraphIndex = resolvedParagraphIndex.toDouble(),
@@ -399,7 +399,7 @@ internal object PretextShared {
     val paragraph = prepared.paragraphs[paragraphIndex]
     val lineLayouts = resolveParagraphLineLayouts(prepared, normalizeLayoutRequest(request))[paragraphIndex]
     val (textStart, textEnd) = normalizeSelectionRange(
-      paragraph.text,
+      paragraph,
       min(range.textStart, range.textEnd).toInt(),
       max(range.textStart, range.textEnd).toInt(),
     )
@@ -447,9 +447,10 @@ internal object PretextShared {
   ): String {
     val prepared = requirePreparedCorpus(preparedId)
     val paragraphIndex = resolveParagraphIndex(prepared, range.paragraphIndex.toInt())
-    val text = prepared.paragraphs[paragraphIndex].text
+    val paragraph = prepared.paragraphs[paragraphIndex]
+    val text = paragraph.text
     val (start, end) = normalizeSelectionRange(
-      text,
+      paragraph,
       min(range.textStart, range.textEnd).toInt(),
       max(range.textStart, range.textEnd).toInt(),
     )
@@ -1056,12 +1057,20 @@ internal object PretextShared {
   }
 
   private fun collectGraphemeBoundaries(paragraph: NativePreparedParagraph): List<Int> {
-    val text = paragraph.text
+    return collectGraphemeBoundariesForText(
+      paragraph.text,
+      paragraph.runs.firstOrNull()?.style?.locale ?: "",
+    )
+  }
+
+  private fun collectGraphemeBoundariesForText(
+    text: String,
+    locale: String = "",
+  ): List<Int> {
     if (text.isEmpty()) {
       return listOf(0)
     }
 
-    val locale = paragraph.runs.firstOrNull()?.style?.locale ?: ""
     val breaker = BreakIterator.getCharacterInstance(resolveTextLocale(locale))
     breaker.setText(text)
     val rawBoundaries = ArrayList<Int>()
@@ -1239,13 +1248,18 @@ internal object PretextShared {
     return runs
   }
 
-  private fun snapOffsetToNearestGraphemeBoundary(text: String, offset: Int): Int {
-    val boundaries = collectGraphemeBoundariesForText(text)
-    return snapOffsetToNearestBoundary(boundaries, text.length, offset)
+  private fun snapOffsetToNearestGraphemeBoundary(paragraph: NativePreparedParagraph, offset: Int): Int {
+    val boundaries = collectGraphemeBoundaries(paragraph)
+    return snapOffsetToNearestBoundary(boundaries, paragraph.text.length, offset)
   }
 
-  private fun normalizeSelectionRange(text: String, start: Int, end: Int): Pair<Int, Int> {
-    val boundaries = collectGraphemeBoundariesForText(text)
+  private fun normalizeSelectionRange(
+    paragraph: NativePreparedParagraph,
+    start: Int,
+    end: Int,
+  ): Pair<Int, Int> {
+    val text = paragraph.text
+    val boundaries = collectGraphemeBoundaries(paragraph)
     val clampedStart = start.coerceIn(0, text.length)
     val clampedEnd = end.coerceIn(0, text.length)
     if (clampedStart == clampedEnd) {
@@ -1262,23 +1276,6 @@ internal object PretextShared {
     val lower = boundaries.lastOrNull { it <= clamped } ?: 0
     val upper = boundaries.firstOrNull { it >= clamped } ?: textLength
     return if (clamped - lower <= upper - clamped) lower else upper
-  }
-
-  private fun collectGraphemeBoundariesForText(text: String): List<Int> {
-    return collectGraphemeBoundaries(
-      NativePreparedParagraph(
-        text = text,
-        styledText = text,
-        measuredText = null,
-        tokens = emptyList(),
-        breakUnits = emptyList(),
-        runs = emptyList(),
-        atomicSpans = emptyList(),
-        inlineBoxes = emptyList(),
-        forceTokenLayout = true,
-        hasStyledRuns = false,
-      ),
-    )
   }
 
   private fun collectLineDriftKinds(
@@ -1555,24 +1552,20 @@ internal object PretextShared {
       return emptyList()
     }
 
-    val breaker = BreakIterator.getCharacterInstance(resolveTextLocale(style.locale))
-    breaker.setText(text)
-    val units = ArrayList<NativeTokenDescriptor>()
-    var start = breaker.first()
-    var end = breaker.next()
-
-    while (end != BreakIterator.DONE) {
-      units += NativeTokenDescriptor(
-        text = text.substring(start, end),
-        start = start,
-        end = end,
-        style = style,
-      )
-      start = end
-      end = breaker.next()
-    }
-
-    return units
+    return collectGraphemeBoundariesForText(text, style.locale)
+      .zipWithNext()
+      .mapNotNull { (start, end) ->
+        if (end <= start) {
+          null
+        } else {
+          NativeTokenDescriptor(
+            text = text.substring(start, end),
+            start = start,
+            end = end,
+            style = style,
+          )
+        }
+      }
   }
 
   private fun appendInlineSegmentTokens(
