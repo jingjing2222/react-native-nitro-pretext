@@ -174,20 +174,37 @@ Result:
 
 ## Plan 05: Pretext-Compatible Rules Over Native Engines
 
-- [ ] Do not target browser canvas pixel parity.
-- [ ] Implement pretext-style rules as a rule layer over MeasuredText/LineBreaker and Core Text.
-- [ ] Add diagnostics: `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`.
-- [ ] Add diagnostics: `height_metric_drift`, `fallback_font_drift`, `emoji_metric_drift`, `locale_metric_drift`, `line_break_strategy_drift`.
-- [ ] Normalize request model: width, left, shapeSlices, whitespace, wordBreak, source UTF-16 offsets.
-- [ ] Add legal break tables for hard breaks, native soft breaks, grapheme boundaries, and atomic spans.
-- [ ] Keep public `textStart/textEnd` as source UTF-16 offsets.
-- [ ] Define pretext-compatible height rules as a policy layer over native line metrics, never as a font-size shortcut.
+- [x] Do not target browser canvas pixel parity.
+- [x] Implement pretext-style rules as a rule layer over MeasuredText/LineBreaker and Core Text.
+- [x] Add diagnostics: `engine_drift`, `renderer_drift`, `padding_drift`, `algorithm_rule_drift`.
+- [x] Add diagnostics: `height_metric_drift`, `fallback_font_drift`, `emoji_metric_drift`, `locale_metric_drift`, `line_break_strategy_drift`.
+- [x] Normalize request model: width, left, shapeSlices, whitespace, wordBreak, source UTF-16 offsets.
+- [x] Add legal break tables for hard breaks, native soft breaks, grapheme boundaries, and atomic spans.
+- [x] Keep public `textStart/textEnd` as source UTF-16 offsets.
+- [x] Define pretext-compatible height rules as a policy layer over native line metrics, never as a font-size shortcut.
 
 Acceptance:
 
 - Rule fixtures compare native diagnostic traces, including height metric sources, not browser canvas output.
 - `agent-device` benchmark verification shows drift categories in emitted reports.
 - Local CI passes before Plan 06 begins.
+
+Result:
+
+- Added `layoutParagraphLinesWithDiagnostics(...)` as the diagnostic API over normalized `ParagraphLayoutRequest`.
+- Diagnostic output now includes `ruleLayer: "pretext_native_rules"`, `canvasPixelParityTarget: false`, canonical `layoutEngine`, `heightMetricSource`, `fallbackReason`, `driftKinds`, `heightMetricDrivers`, per-line diagnostics, and legal break tables.
+- Android diagnostics are built from prepared `MeasuredText + LineBreaker` line records on API 29+ and from named legacy fallback records on API 24-28/manual paths.
+- iOS diagnostics are built from prepared Core Text `CTTypesetter`/`CTLine` line records.
+- Legal break tables expose hard breaks, native soft breaks, grapheme boundaries, and atomic inline spans while preserving public `textStart`/`textEnd` as source UTF-16 offsets.
+- Height remains sourced from platform text-engine metrics. Drift categories now cover engine, renderer, padding, algorithm rule, height metric, fallback font, emoji metric, locale metric, and line-break strategy effects.
+- Benchmark diagnostics now emit `line_break_strategy_drift` for line text drift and keep browser canvas pixel parity explicitly out of scope.
+- Local CI passed: `yarn typecheck`, `yarn lint`, `yarn fmt:check`, `yarn test --runInBand`.
+- Native builds passed: `yarn workspace react-native-nitro-pretext-example build:android`, `pod install`, `yarn workspace react-native-nitro-pretext-example build:ios`.
+- `agent-device` iOS verification passed on iPhone 16 simulator with `pretext.example`; the rebuilt app was installed, Metro was started for the debug bundle, and `yarn benchmark:ios` passed.
+- iOS benchmark median results: BaseText 231.35 ms, Prepared Batch render 67.08 ms, layout-only 0.18 ms.
+- iOS benchmark reported prepared render `layoutEngine: ios_core_text`, `rendererKind: prepared_native_batch`, `parityRole: canonical_prepared_native_render`, `heightMetricSource: platform_text_engine_metrics`, and drift categories including `height_metric_drift`, `algorithm_rule_drift`, `line_break_strategy_drift`, and `renderer_drift`.
+- Artifacts: `example/.maestro-artifacts/ios-suite/latest-summary.txt`, `example/.maestro-artifacts/ios-suite/latest-gate.txt`, `example/.maestro-artifacts/prepared-view-complete.png`, `example/.maestro-artifacts/benchmark-suite-complete.png`, `example/.maestro-artifacts/base-text-complete.png`.
+- Android device verification was attempted with `agent-device devices --platform android` and `yarn benchmark:android`, but `emulator-5554` was not connected.
 
 ## Plan 06: Rich Inline Boxes
 

@@ -80,6 +80,7 @@ internal object PretextShared {
           } else {
             emptyList()
           },
+        atomicSpans = emptyList(),
         textUnits = textUnits,
         forceTokenLayout = false,
         hasStyledRuns = false,
@@ -134,6 +135,7 @@ internal object PretextShared {
               prepareMeasuredToken(token, measurementCache)
             },
           runs = paragraph.runs,
+          atomicSpans = paragraph.atomicSpans,
           forceTokenLayout = paragraph.forceTokenLayout,
           hasStyledRuns = paragraph.hasStyledRuns,
         )
@@ -187,6 +189,7 @@ internal object PretextShared {
     val tokens = ArrayList<NativeTokenDescriptor>()
     val breakUnits = ArrayList<NativeTokenDescriptor>()
     val runs = ArrayList<NativeTextRun>()
+    val atomicSpans = ArrayList<NativeAtomicSpan>()
     var forceTokenLayout = false
     var hasStyledRuns = false
 
@@ -202,6 +205,14 @@ internal object PretextShared {
             end = end,
             style = resolvedStyle,
           )
+        if (segment.breakBehavior.lowercase() == BREAK_BEHAVIOR_NEVER) {
+          atomicSpans +=
+            NativeAtomicSpan(
+              start = start,
+              end = end,
+              source = "inline_break_never",
+            )
+        }
       }
       hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
       forceTokenLayout =
@@ -220,6 +231,7 @@ internal object PretextShared {
       tokens = tokens,
       breakUnits = breakUnits,
       runs = mergeAdjacentRuns(runs),
+      atomicSpans = atomicSpans,
       textUnits = textBuilder.length,
       forceTokenLayout = forceTokenLayout,
       hasStyledRuns = hasStyledRuns,
@@ -266,6 +278,16 @@ internal object PretextShared {
     request: ParagraphLayoutRequest,
   ): Array<LaidOutParagraphLines> {
     return layoutParagraphLinesInternal(preparedId, normalizeLayoutRequest(request)).toTypedArray()
+  }
+
+  fun layoutParagraphLinesWithDiagnostics(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphLinesWithDiagnostics> {
+    return layoutParagraphLinesWithDiagnosticsInternal(
+      preparedId,
+      normalizeLayoutRequest(request),
+    ).toTypedArray()
   }
 
   fun createParagraphLineCursor(
@@ -405,6 +427,29 @@ internal object PretextShared {
     }
   }
 
+  private fun layoutParagraphLinesWithDiagnosticsInternal(
+    preparedId: Double,
+    request: NativeLayoutRequest,
+  ): List<LaidOutParagraphLinesWithDiagnostics> {
+    val prepared = requirePreparedCorpus(preparedId)
+    val paragraphLineLayouts = resolveParagraphLineLayouts(prepared, request)
+    return prepared.paragraphs.mapIndexed { index, paragraph ->
+      val lineLayouts = paragraphLineLayouts[index]
+      LaidOutParagraphLinesWithDiagnostics(
+        lineCount = lineLayouts.size.toDouble(),
+        height = sumHeights(lineLayouts),
+        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        lines = buildPublicParagraphLineRanges(lineLayouts).toTypedArray(),
+        diagnostics = buildParagraphLayoutDiagnostics(
+          paragraph = paragraph,
+          corpus = prepared,
+          request = request,
+          lineLayouts = lineLayouts,
+        ),
+      )
+    }
+  }
+
   private fun requirePreparedCorpus(preparedId: Double): NativePreparedCorpus {
     val handle = preparedId.toLong()
     return preparedCorpora[handle]
@@ -474,6 +519,204 @@ internal object PretextShared {
       heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
       lines = buildNativeParagraphLineRanges(lineLayouts),
     )
+  }
+
+  private fun buildParagraphLayoutDiagnostics(
+    paragraph: NativePreparedParagraph,
+    corpus: NativePreparedCorpus,
+    request: NativeLayoutRequest,
+    lineLayouts: List<NativeLineLayout>,
+  ): ParagraphLayoutDiagnostics {
+    val canonicalLayoutEngine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER
+    } else {
+      LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK
+    }
+    val layoutEngine = lineLayouts.firstOrNull()?.layoutEngine ?: canonicalLayoutEngine
+    val fallbackReason = lineLayouts.firstNotNullOfOrNull { it.fallbackReason }
+    return ParagraphLayoutDiagnostics(
+      normalizedRequest = buildPublicLayoutRequest(request),
+      ruleLayer = RULE_LAYER_PRETEXT_NATIVE,
+      canvasPixelParityTarget = false,
+      layoutEngine = layoutEngine,
+      heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
+      fallbackReason = fallbackReason,
+      driftKinds = collectDriftKinds(
+        paragraph = paragraph,
+        corpus = corpus,
+        request = request,
+        lineLayouts = lineLayouts,
+      ).toTypedArray(),
+      heightMetricDrivers = HEIGHT_METRIC_DRIVERS,
+      breakTable = buildParagraphBreakTable(paragraph, lineLayouts),
+      lineDiagnostics = lineLayouts.map { line ->
+        ParagraphLineDiagnostics(
+          textStart = line.textStart.toDouble(),
+          textEnd = line.textEnd.toDouble(),
+          layoutEngine = line.layoutEngine,
+          heightMetricSource = HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS,
+          fallbackReason = line.fallbackReason,
+          driftKinds = collectLineDriftKinds(line, canonicalLayoutEngine).toTypedArray(),
+        )
+      }.toTypedArray(),
+    )
+  }
+
+  private fun buildPublicLayoutRequest(request: NativeLayoutRequest): ParagraphLayoutRequest {
+    return ParagraphLayoutRequest(
+      width = request.width,
+      left = request.left,
+      whiteSpace = request.whiteSpace,
+      wordBreak = request.wordBreak,
+      shapeSlices = request.shapeSlices.map { slice ->
+        ParagraphShapeSlice(
+          top = slice.top,
+          height = slice.height,
+          left = slice.left,
+          width = slice.width,
+        )
+      }.toTypedArray(),
+    )
+  }
+
+  private fun buildParagraphBreakTable(
+    paragraph: NativePreparedParagraph,
+    lineLayouts: List<NativeLineLayout>,
+  ): ParagraphBreakTable {
+    val hardBreaks = collectHardBreaks(paragraph.text)
+    val hardBreakOffsets = hardBreaks.map { it.offset.toInt() }.toSet()
+    val nativeSoftBreaks = lineLayouts
+      .dropLast(1)
+      .mapNotNull { line ->
+        val offset = line.textEnd
+        val nextCharIsHardBreak = paragraph.text.getOrNull(offset) == '\n'
+        if (
+          offset <= 0 ||
+          offset >= paragraph.text.length ||
+          hardBreakOffsets.contains(offset) ||
+          nextCharIsHardBreak
+        ) {
+          null
+        } else {
+          ParagraphBreakOpportunity(
+            offset = offset.toDouble(),
+            kind = BREAK_KIND_NATIVE_SOFT,
+            source = line.layoutEngine,
+          )
+        }
+      }
+    return ParagraphBreakTable(
+      hardBreaks = hardBreaks.toTypedArray(),
+      nativeSoftBreaks = nativeSoftBreaks.toTypedArray(),
+      graphemeBoundaries = collectGraphemeBoundaries(paragraph.text).map { it.toDouble() }.toDoubleArray(),
+      atomicSpans = paragraph.atomicSpans.map { span ->
+        ParagraphAtomicSpan(
+          textStart = span.start.toDouble(),
+          textEnd = span.end.toDouble(),
+          source = span.source,
+        )
+      }.toTypedArray(),
+    )
+  }
+
+  private fun collectHardBreaks(text: String): List<ParagraphBreakOpportunity> {
+    val breaks = ArrayList<ParagraphBreakOpportunity>()
+    var index = text.indexOf('\n')
+    while (index >= 0) {
+      breaks += ParagraphBreakOpportunity(
+        offset = (index + 1).toDouble(),
+        kind = BREAK_KIND_HARD,
+        source = "source_newline",
+      )
+      index = text.indexOf('\n', index + 1)
+    }
+    return breaks
+  }
+
+  private fun collectGraphemeBoundaries(text: String): List<Int> {
+    if (text.isEmpty()) {
+      return listOf(0)
+    }
+
+    val breaker = BreakIterator.getCharacterInstance()
+    breaker.setText(text)
+    val boundaries = ArrayList<Int>()
+    var boundary = breaker.first()
+    while (boundary != BreakIterator.DONE) {
+      boundaries += boundary
+      boundary = breaker.next()
+    }
+    return boundaries
+  }
+
+  private fun collectLineDriftKinds(
+    line: NativeLineLayout,
+    canonicalEngine: String,
+  ): List<String> {
+    val driftKinds = LinkedHashSet<String>()
+    if (line.layoutEngine != canonicalEngine || line.fallbackReason != null) {
+      driftKinds += DRIFT_ENGINE
+    }
+    if (line.fallbackReason != null) {
+      driftKinds += DRIFT_HEIGHT_METRIC
+    }
+    return driftKinds.toList()
+  }
+
+  private fun collectDriftKinds(
+    paragraph: NativePreparedParagraph,
+    corpus: NativePreparedCorpus,
+    request: NativeLayoutRequest,
+    lineLayouts: List<NativeLineLayout>,
+  ): List<String> {
+    val driftKinds = LinkedHashSet<String>()
+    val canonicalEngine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+      LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER
+    } else {
+      LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK
+    }
+    if (lineLayouts.any { it.layoutEngine != canonicalEngine || it.fallbackReason != null }) {
+      driftKinds += DRIFT_ENGINE
+    }
+    if (
+      request.whiteSpace != WHITE_SPACE_NORMAL ||
+      request.wordBreak != WORD_BREAK_NORMAL ||
+      request.shapeSlices.isNotEmpty() ||
+      paragraph.atomicSpans.isNotEmpty()
+    ) {
+      driftKinds += DRIFT_ALGORITHM_RULE
+      driftKinds += DRIFT_LINE_BREAK_STRATEGY
+    }
+    if (lineLayouts.any { it.fallbackReason != null }) {
+      driftKinds += DRIFT_HEIGHT_METRIC
+    }
+    if (!corpus.includeFontPadding) {
+      driftKinds += DRIFT_PADDING
+    }
+    if (paragraph.runs.any { it.style.locale.isNotBlank() }) {
+      driftKinds += DRIFT_LOCALE_METRIC
+    }
+    if (containsPotentialFallbackGlyph(paragraph.text)) {
+      driftKinds += DRIFT_FALLBACK_FONT
+    }
+    if (containsEmoji(paragraph.text)) {
+      driftKinds += DRIFT_EMOJI_METRIC
+    }
+    return driftKinds.toList()
+  }
+
+  private fun containsPotentialFallbackGlyph(text: String): Boolean {
+    return text.codePoints().anyMatch { codePoint ->
+      codePoint > 0x02AF
+    }
+  }
+
+  private fun containsEmoji(text: String): Boolean {
+    return text.codePoints().anyMatch { codePoint ->
+      codePoint in 0x1F000..0x1FAFF ||
+        codePoint in 0x2600..0x27BF ||
+        codePoint == 0xFE0F
+    }
   }
 
   private fun defaultLayoutRequest(width: Double): NativeLayoutRequest {
@@ -1335,6 +1578,7 @@ internal data class NativePreparedParagraphSeed(
   val tokens: List<NativeTokenDescriptor>,
   val breakUnits: List<NativeTokenDescriptor>,
   val runs: List<NativeTextRun>,
+  val atomicSpans: List<NativeAtomicSpan>,
   val textUnits: Int,
   val forceTokenLayout: Boolean,
   val hasStyledRuns: Boolean,
@@ -1364,8 +1608,15 @@ internal data class NativePreparedParagraph(
   val tokens: List<NativePreparedToken>,
   val breakUnits: List<NativePreparedToken>,
   val runs: List<NativeTextRun>,
+  val atomicSpans: List<NativeAtomicSpan>,
   val forceTokenLayout: Boolean,
   val hasStyledRuns: Boolean,
+)
+
+internal data class NativeAtomicSpan(
+  val start: Int,
+  val end: Int,
+  val source: String,
 )
 
 internal class NativePreparedCorpus(
@@ -1498,3 +1749,24 @@ internal const val LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK = "android_legacy_fallb
 internal const val FALLBACK_REASON_MANUAL_HEIGHT_ESTIMATE = "manual_height_estimate"
 internal const val HEIGHT_METRIC_SOURCE_PLATFORM_TEXT_ENGINE_METRICS =
   "platform_text_engine_metrics"
+internal const val RULE_LAYER_PRETEXT_NATIVE = "pretext_native_rules"
+internal const val BREAK_KIND_HARD = "hard_break"
+internal const val BREAK_KIND_NATIVE_SOFT = "native_soft_break"
+internal const val DRIFT_ALGORITHM_RULE = "algorithm_rule_drift"
+internal const val DRIFT_EMOJI_METRIC = "emoji_metric_drift"
+internal const val DRIFT_ENGINE = "engine_drift"
+internal const val DRIFT_FALLBACK_FONT = "fallback_font_drift"
+internal const val DRIFT_HEIGHT_METRIC = "height_metric_drift"
+internal const val DRIFT_LINE_BREAK_STRATEGY = "line_break_strategy_drift"
+internal const val DRIFT_LOCALE_METRIC = "locale_metric_drift"
+internal const val DRIFT_PADDING = "padding_drift"
+internal val HEIGHT_METRIC_DRIVERS =
+  arrayOf(
+    "font_metrics",
+    "explicit_line_height",
+    "fallback_font",
+    "emoji_fallback",
+    "locale",
+    "include_font_padding",
+    "line_break_strategy",
+  )

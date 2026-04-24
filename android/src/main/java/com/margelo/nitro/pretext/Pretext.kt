@@ -89,6 +89,13 @@ class Pretext : HybridPretextSpec() {
     return PretextShared.layoutParagraphLinesWithRequest(preparedId, request)
   }
 
+  override fun layoutParagraphLinesWithDiagnostics(
+    preparedId: Double,
+    request: ParagraphLayoutRequest,
+  ): Array<LaidOutParagraphLinesWithDiagnostics> {
+    return PretextShared.layoutParagraphLinesWithDiagnostics(preparedId, request)
+  }
+
   override fun createParagraphLineCursor(
     preparedId: Double,
     paragraphIndex: Double,

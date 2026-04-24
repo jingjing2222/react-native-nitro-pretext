@@ -97,6 +97,55 @@ export interface LaidOutParagraphLines {
   lines: ParagraphLineRange[];
 }
 
+export interface ParagraphBreakOpportunity {
+  offset: number;
+  kind: string;
+  source: string;
+}
+
+export interface ParagraphAtomicSpan {
+  textStart: number;
+  textEnd: number;
+  source: string;
+}
+
+export interface ParagraphBreakTable {
+  hardBreaks: ParagraphBreakOpportunity[];
+  nativeSoftBreaks: ParagraphBreakOpportunity[];
+  graphemeBoundaries: number[];
+  atomicSpans: ParagraphAtomicSpan[];
+}
+
+export interface ParagraphLineDiagnostics {
+  textStart: number;
+  textEnd: number;
+  layoutEngine: string;
+  heightMetricSource: string;
+  fallbackReason?: string;
+  driftKinds: string[];
+}
+
+export interface ParagraphLayoutDiagnostics {
+  normalizedRequest: ParagraphLayoutRequest;
+  ruleLayer: string;
+  canvasPixelParityTarget: boolean;
+  layoutEngine: string;
+  heightMetricSource: string;
+  fallbackReason?: string;
+  driftKinds: string[];
+  heightMetricDrivers: string[];
+  breakTable: ParagraphBreakTable;
+  lineDiagnostics: ParagraphLineDiagnostics[];
+}
+
+export interface LaidOutParagraphLinesWithDiagnostics {
+  lineCount: number;
+  height: number;
+  maxLineWidth: number;
+  lines: ParagraphLineRange[];
+  diagnostics: ParagraphLayoutDiagnostics;
+}
+
 export interface ParagraphLineCursorState {
   id: number;
   paragraphIndex: number;
@@ -159,6 +208,10 @@ export interface Pretext extends HybridObject<{
     preparedId: number,
     request: ParagraphLayoutRequest,
   ): LaidOutParagraphLines[];
+  layoutParagraphLinesWithDiagnostics(
+    preparedId: number,
+    request: ParagraphLayoutRequest,
+  ): LaidOutParagraphLinesWithDiagnostics[];
   createParagraphLineCursor(
     preparedId: number,
     paragraphIndex: number,

@@ -85,6 +85,16 @@ class Pretext: HybridPretextSpec {
         try PretextShared.shared.layoutParagraphLines(preparedId: preparedId, request: request)
     }
 
+    public func layoutParagraphLinesWithDiagnostics(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutParagraphLinesWithDiagnostics] {
+        try PretextShared.shared.layoutParagraphLinesWithDiagnostics(
+            preparedId: preparedId,
+            request: request
+        )
+    }
+
     public func createParagraphLineCursor(
         preparedId: Double,
         paragraphIndex: Double,

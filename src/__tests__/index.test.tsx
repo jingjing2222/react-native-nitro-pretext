@@ -116,6 +116,77 @@ function mockCreateParagraphEngine() {
         ],
       },
     ]),
+    layoutParagraphLinesWithDiagnostics: jest.fn(
+      (_preparedId: number, request: { left: number }) => [
+        {
+          lineCount: 1,
+          height: 24,
+          maxLineWidth: 92,
+          lines: [
+            {
+              textStart: 0,
+              textEnd: 5,
+              top: 0,
+              left: request.left,
+              width: 92,
+              height: 24,
+              ascent: -18,
+              descent: 6,
+            },
+          ],
+          diagnostics: {
+            normalizedRequest: request,
+            ruleLayer: "pretext_native_rules",
+            canvasPixelParityTarget: false,
+            layoutEngine: "ios_core_text",
+            heightMetricSource: "platform_text_engine_metrics",
+            driftKinds: ["algorithm_rule_drift", "line_break_strategy_drift"],
+            heightMetricDrivers: [
+              "font_metrics",
+              "explicit_line_height",
+              "fallback_font",
+              "emoji_fallback",
+              "locale",
+              "include_font_padding",
+              "line_break_strategy",
+            ],
+            breakTable: {
+              hardBreaks: [
+                {
+                  offset: 6,
+                  kind: "hard_break",
+                  source: "source_text",
+                },
+              ],
+              nativeSoftBreaks: [
+                {
+                  offset: 5,
+                  kind: "native_soft_break",
+                  source: "ios_core_text",
+                },
+              ],
+              graphemeBoundaries: [0, 1, 2, 3, 4, 5],
+              atomicSpans: [
+                {
+                  textStart: 0,
+                  textEnd: 5,
+                  source: "inline_break_never",
+                },
+              ],
+            },
+            lineDiagnostics: [
+              {
+                textStart: 0,
+                textEnd: 5,
+                layoutEngine: "ios_core_text",
+                heightMetricSource: "platform_text_engine_metrics",
+                driftKinds: [],
+              },
+            ],
+          },
+        },
+      ],
+    ),
     layoutParagraphsWithRequest: jest.fn(() => [
       {
         brokenText: "alpha\nbeta",
@@ -183,6 +254,7 @@ import {
   createParagraphLayoutRequest,
   createParagraphLineCursor,
   layoutParagraphLines,
+  layoutParagraphLinesWithDiagnostics,
   layoutParagraphLinesWithRequest,
   layoutParagraphs,
   layoutParagraphsWithRequest,
@@ -537,6 +609,78 @@ describe("react-native-nitro-pretext", () => {
     expect(
       nativeParagraphEngineMock.layoutParagraphLines.mock.calls.at(-1),
     ).toEqual([7, 320]);
+  });
+
+  it("forwards diagnostic layout calls with pretext-native rule traces", () => {
+    const result = layoutParagraphLinesWithDiagnostics(7, 280, {
+      left: 20,
+      whiteSpace: "pre",
+      wordBreak: "break-all",
+      shapeSlices: [
+        {
+          top: 0,
+          height: 24,
+          left: 20,
+          width: 180,
+        },
+      ],
+    });
+    const expectedRequest = {
+      width: 280,
+      left: 20,
+      whiteSpace: "pre",
+      wordBreak: "break-all",
+      shapeSlices: [
+        {
+          top: 0,
+          height: 24,
+          left: 20,
+          width: 180,
+        },
+      ],
+    };
+
+    expect(
+      nativeParagraphEngineMock.layoutParagraphLinesWithDiagnostics.mock.calls.at(
+        -1,
+      ),
+    ).toEqual([7, expectedRequest]);
+    expect(result[0]?.diagnostics).toMatchObject({
+      normalizedRequest: expectedRequest,
+      ruleLayer: "pretext_native_rules",
+      canvasPixelParityTarget: false,
+      heightMetricSource: "platform_text_engine_metrics",
+      driftKinds: ["algorithm_rule_drift", "line_break_strategy_drift"],
+      breakTable: {
+        hardBreaks: [
+          {
+            offset: 6,
+            kind: "hard_break",
+          },
+        ],
+        nativeSoftBreaks: [
+          {
+            offset: 5,
+            kind: "native_soft_break",
+          },
+        ],
+        graphemeBoundaries: [0, 1, 2, 3, 4, 5],
+        atomicSpans: [
+          {
+            textStart: 0,
+            textEnd: 5,
+          },
+        ],
+      },
+      lineDiagnostics: [
+        {
+          textStart: 0,
+          textEnd: 5,
+          layoutEngine: "ios_core_text",
+          heightMetricSource: "platform_text_engine_metrics",
+        },
+      ],
+    });
   });
 
   it("builds request objects and forwards request-based relayout calls", () => {

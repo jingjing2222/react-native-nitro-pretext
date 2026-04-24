@@ -130,6 +130,8 @@ export function resolveBenchmarkDrift(args: {
 
   if (hasLineTextDrift) {
     driftKinds.add("algorithm_rule_drift");
+    driftKinds.add("line_break_strategy_drift");
+    heightDriftBuckets.line_break_strategy = args.lineTextParityMismatches;
   }
 
   if (

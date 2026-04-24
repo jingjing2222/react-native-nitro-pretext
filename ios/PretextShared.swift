@@ -12,6 +12,26 @@ internal let layoutEngineIosCoreText = "ios_core_text"
 internal let layoutEngineIosManualTokenFallback = "ios_manual_token_fallback"
 internal let fallbackReasonManualHeightEstimate = "manual_height_estimate"
 internal let heightMetricSourcePlatformTextEngineMetrics = "platform_text_engine_metrics"
+internal let ruleLayerPretextNative = "pretext_native_rules"
+internal let breakKindHard = "hard_break"
+internal let breakKindNativeSoft = "native_soft_break"
+internal let driftAlgorithmRule = "algorithm_rule_drift"
+internal let driftEmojiMetric = "emoji_metric_drift"
+internal let driftEngine = "engine_drift"
+internal let driftFallbackFont = "fallback_font_drift"
+internal let driftHeightMetric = "height_metric_drift"
+internal let driftLineBreakStrategy = "line_break_strategy_drift"
+internal let driftLocaleMetric = "locale_metric_drift"
+internal let driftPadding = "padding_drift"
+internal let heightMetricDrivers = [
+    "font_metrics",
+    "explicit_line_height",
+    "fallback_font",
+    "emoji_fallback",
+    "locale",
+    "include_font_padding",
+    "line_break_strategy",
+]
 
 internal struct NativeTokenDescriptor {
     let text: String
@@ -35,6 +55,7 @@ internal struct NativePreparedParagraphSeed {
     let tokens: [NativeTokenDescriptor]
     let breakUnits: [NativeTokenDescriptor]
     let runs: [NativeTextRun]
+    let atomicSpans: [NativeAtomicSpan]
     let textUnits: Int
     let forceTokenLayout: Bool
     let hasStyledRuns: Bool
@@ -47,6 +68,7 @@ internal final class NativePreparedParagraph {
     let tokens: [NativePreparedToken]
     let breakUnits: [NativePreparedToken]
     let runs: [NativeTextRun]
+    let atomicSpans: [NativeAtomicSpan]
     let forceTokenLayout: Bool
     let hasStyledRuns: Bool
 
@@ -57,6 +79,7 @@ internal final class NativePreparedParagraph {
         tokens: [NativePreparedToken],
         breakUnits: [NativePreparedToken],
         runs: [NativeTextRun],
+        atomicSpans: [NativeAtomicSpan],
         forceTokenLayout: Bool,
         hasStyledRuns: Bool
     ) {
@@ -66,9 +89,16 @@ internal final class NativePreparedParagraph {
         self.tokens = tokens
         self.breakUnits = breakUnits
         self.runs = runs
+        self.atomicSpans = atomicSpans
         self.forceTokenLayout = forceTokenLayout
         self.hasStyledRuns = hasStyledRuns
     }
+}
+
+internal struct NativeAtomicSpan {
+    let startUTF16: Int
+    let endUTF16: Int
+    let source: String
 }
 
 internal final class NativePreparedCorpus {
@@ -277,6 +307,7 @@ internal final class PretextShared {
                 runs: textUnits > 0
                     ? [NativeTextRun(startUTF16: 0, endUTF16: textUnits, style: baseStyle)]
                     : [],
+                atomicSpans: [],
                 textUnits: textUnits,
                 forceTokenLayout: false,
                 hasStyledRuns: false
@@ -326,6 +357,7 @@ internal final class PretextShared {
                     prepareMeasuredToken(token, cache: &measurementCache)
                 },
                 runs: paragraph.runs,
+                atomicSpans: paragraph.atomicSpans,
                 forceTokenLayout: paragraph.forceTokenLayout,
                 hasStyledRuns: paragraph.hasStyledRuns
             )
@@ -370,6 +402,7 @@ internal final class PretextShared {
         var tokens: [NativeTokenDescriptor] = []
         var breakUnits: [NativeTokenDescriptor] = []
         var runs: [NativeTextRun] = []
+        var atomicSpans: [NativeAtomicSpan] = []
         var forceTokenLayout = false
         var hasStyledRuns = false
 
@@ -389,6 +422,15 @@ internal final class PretextShared {
             }
             hasStyledRuns = hasStyledRuns || resolvedStyle != baseStyle
             forceTokenLayout = forceTokenLayout || segment.breakBehavior.lowercased() == breakBehaviorNever
+            if segment.breakBehavior.lowercased() == breakBehaviorNever && endOffset > baseOffset {
+                atomicSpans.append(
+                    NativeAtomicSpan(
+                        startUTF16: baseOffset,
+                        endUTF16: endOffset,
+                        source: "inline_break_never"
+                    )
+                )
+            }
             appendInlineSegment(
                 segment,
                 resolvedStyle: resolvedStyle,
@@ -402,6 +444,7 @@ internal final class PretextShared {
             tokens: tokens,
             breakUnits: breakUnits,
             runs: mergeAdjacentRuns(runs),
+            atomicSpans: atomicSpans,
             textUnits: text.utf16.count,
             forceTokenLayout: forceTokenLayout,
             hasStyledRuns: hasStyledRuns
@@ -445,6 +488,16 @@ internal final class PretextShared {
         request: ParagraphLayoutRequest
     ) throws -> [LaidOutParagraphLines] {
         try layoutParagraphLines(preparedId: preparedId, request: normalizeLayoutRequest(request))
+    }
+
+    func layoutParagraphLinesWithDiagnostics(
+        preparedId: Double,
+        request: ParagraphLayoutRequest
+    ) throws -> [LaidOutParagraphLinesWithDiagnostics] {
+        try layoutParagraphLinesWithDiagnostics(
+            preparedId: preparedId,
+            request: normalizeLayoutRequest(request)
+        )
     }
 
     func createParagraphLineCursor(
@@ -643,6 +696,32 @@ internal final class PretextShared {
         }
     }
 
+    private func layoutParagraphLinesWithDiagnostics(
+        preparedId: Double,
+        request: NativeLayoutRequest
+    ) throws -> [LaidOutParagraphLinesWithDiagnostics] {
+        let prepared = try requirePreparedCorpus(preparedId: preparedId)
+        let paragraphLineLayouts = resolveParagraphLineLayouts(
+            prepared: prepared,
+            request: request
+        )
+
+        return prepared.paragraphs.enumerated().map { index, paragraph in
+            let lineLayouts = paragraphLineLayouts[index]
+            return LaidOutParagraphLinesWithDiagnostics(
+                lineCount: Double(lineLayouts.count),
+                height: sumHeights(lineLayouts),
+                maxLineWidth: lineLayouts.map(\.width).max() ?? 0,
+                lines: buildParagraphLineRanges(lineLayouts: lineLayouts),
+                diagnostics: buildParagraphLayoutDiagnostics(
+                    paragraph: paragraph,
+                    request: request,
+                    lineLayouts: lineLayouts
+                )
+            )
+        }
+    }
+
     private func requirePreparedCorpus(preparedId: Double) throws -> NativePreparedCorpus {
         let handle = Int64(preparedId)
         guard let prepared = preparedCorpora[handle] else {
@@ -772,6 +851,186 @@ internal final class PretextShared {
                 fallbackReason: line.fallbackReason,
                 heightMetricSource: heightMetricSourcePlatformTextEngineMetrics
             )
+        }
+    }
+
+    private func buildParagraphLayoutDiagnostics(
+        paragraph: NativePreparedParagraph,
+        request: NativeLayoutRequest,
+        lineLayouts: [NativeLineLayout]
+    ) -> ParagraphLayoutDiagnostics {
+        let driftKinds = collectDriftKinds(
+            paragraph: paragraph,
+            request: request,
+            lineLayouts: lineLayouts
+        )
+        return ParagraphLayoutDiagnostics(
+            normalizedRequest: buildPublicLayoutRequest(request),
+            ruleLayer: ruleLayerPretextNative,
+            canvasPixelParityTarget: false,
+            layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosCoreText,
+            heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
+            fallbackReason: lineLayouts.compactMap { $0.fallbackReason }.first,
+            driftKinds: driftKinds,
+            heightMetricDrivers: heightMetricDrivers,
+            breakTable: buildParagraphBreakTable(paragraph: paragraph, lineLayouts: lineLayouts),
+            lineDiagnostics: lineLayouts.map { line in
+                ParagraphLineDiagnostics(
+                    textStart: Double(line.textStartUTF16),
+                    textEnd: Double(line.textEndUTF16),
+                    layoutEngine: line.layoutEngine,
+                    heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
+                    fallbackReason: line.fallbackReason,
+                    driftKinds: collectLineDriftKinds(line)
+                )
+            }
+        )
+    }
+
+    private func buildPublicLayoutRequest(_ request: NativeLayoutRequest) -> ParagraphLayoutRequest {
+        ParagraphLayoutRequest(
+            width: request.width,
+            left: request.left,
+            whiteSpace: request.whiteSpace,
+            wordBreak: request.wordBreak,
+            shapeSlices: request.shapeSlices.map { slice in
+                ParagraphShapeSlice(
+                    top: slice.top,
+                    height: slice.height,
+                    left: slice.left,
+                    width: slice.width
+                )
+            }
+        )
+    }
+
+    private func buildParagraphBreakTable(
+        paragraph: NativePreparedParagraph,
+        lineLayouts: [NativeLineLayout]
+    ) -> ParagraphBreakTable {
+        let textLength = paragraph.text.length
+        let nativeSoftBreaks = lineLayouts.dropLast().compactMap { line -> ParagraphBreakOpportunity? in
+            let offset = line.textEndUTF16
+            guard offset > 0, offset < textLength else {
+                return nil
+            }
+            guard paragraph.text.character(at: offset) != 0x0A else {
+                return nil
+            }
+            return ParagraphBreakOpportunity(
+                offset: Double(offset),
+                kind: breakKindNativeSoft,
+                source: layoutEngineIosCoreText
+            )
+        }
+
+        return ParagraphBreakTable(
+            hardBreaks: collectHardBreaks(paragraph.text),
+            nativeSoftBreaks: nativeSoftBreaks,
+            graphemeBoundaries: collectGraphemeBoundaries(paragraph.text),
+            atomicSpans: paragraph.atomicSpans.map { span in
+                ParagraphAtomicSpan(
+                    textStart: Double(span.startUTF16),
+                    textEnd: Double(span.endUTF16),
+                    source: span.source
+                )
+            }
+        )
+    }
+
+    private func collectHardBreaks(_ text: NSString) -> [ParagraphBreakOpportunity] {
+        var breaks: [ParagraphBreakOpportunity] = []
+        var cursor = 0
+        while cursor < text.length {
+            let range = text.rangeOfComposedCharacterSequence(at: cursor)
+            if text.substring(with: range) == newlineToken {
+                breaks.append(
+                    ParagraphBreakOpportunity(
+                        offset: Double(range.location + range.length),
+                        kind: breakKindHard,
+                        source: "source_text"
+                    )
+                )
+            }
+            cursor = range.location + range.length
+        }
+        return breaks
+    }
+
+    private func collectGraphemeBoundaries(_ text: NSString) -> [Double] {
+        var boundaries: [Double] = [0]
+        var cursor = 0
+        while cursor < text.length {
+            let range = text.rangeOfComposedCharacterSequence(at: cursor)
+            cursor = range.location + range.length
+            boundaries.append(Double(cursor))
+        }
+        return boundaries
+    }
+
+    private func collectLineDriftKinds(_ line: NativeLineLayout) -> [String] {
+        var driftKinds: [String] = []
+        if line.layoutEngine != layoutEngineIosCoreText {
+            driftKinds.append(driftEngine)
+        }
+        if line.fallbackReason != nil {
+            driftKinds.append(driftHeightMetric)
+        }
+        return driftKinds
+    }
+
+    private func collectDriftKinds(
+        paragraph: NativePreparedParagraph,
+        request: NativeLayoutRequest,
+        lineLayouts: [NativeLineLayout]
+    ) -> [String] {
+        var driftKinds: [String] = []
+        func appendDrift(_ driftKind: String) {
+            if !driftKinds.contains(driftKind) {
+                driftKinds.append(driftKind)
+            }
+        }
+
+        if lineLayouts.contains(where: { $0.layoutEngine != layoutEngineIosCoreText || $0.fallbackReason != nil }) {
+            appendDrift(driftEngine)
+        }
+        if lineLayouts.contains(where: { $0.fallbackReason != nil }) {
+            appendDrift(driftHeightMetric)
+        }
+        if request.whiteSpace != whiteSpaceNormal
+            || request.wordBreak != wordBreakNormal
+            || !request.shapeSlices.isEmpty
+            || !paragraph.atomicSpans.isEmpty {
+            appendDrift(driftAlgorithmRule)
+            appendDrift(driftLineBreakStrategy)
+        }
+        if paragraph.runs.contains(where: { !$0.style.includeFontPadding }) {
+            appendDrift(driftPadding)
+        }
+        if paragraph.runs.contains(where: { !$0.style.locale.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }) {
+            appendDrift(driftLocaleMetric)
+        }
+        if containsPotentialFallbackGlyph(paragraph.text) {
+            appendDrift(driftFallbackFont)
+        }
+        if containsEmoji(paragraph.text) {
+            appendDrift(driftEmojiMetric)
+        }
+        return driftKinds
+    }
+
+    private func containsPotentialFallbackGlyph(_ text: NSString) -> Bool {
+        (text as String).unicodeScalars.contains { scalar in
+            scalar.value > 0x02AF
+        }
+    }
+
+    private func containsEmoji(_ text: NSString) -> Bool {
+        (text as String).unicodeScalars.contains { scalar in
+            let value = scalar.value
+            return (0x1F000...0x1FAFF).contains(value)
+                || (0x2600...0x27BF).contains(value)
+                || value == 0xFE0F
         }
     }
 

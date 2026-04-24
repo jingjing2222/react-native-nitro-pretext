@@ -4,6 +4,7 @@ import type {
   ParagraphLineCursorState,
   ParagraphLineCursorStep,
   ParagraphLayoutRequest,
+  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,
@@ -82,6 +83,12 @@ export const ParagraphEngine: Pretext = {
   },
   layoutParagraphLinesWithRequest(preparedId, request) {
     return NativeParagraphEngine.layoutParagraphLinesWithRequest(
+      preparedId,
+      request,
+    );
+  },
+  layoutParagraphLinesWithDiagnostics(preparedId, request) {
+    return NativeParagraphEngine.layoutParagraphLinesWithDiagnostics(
       preparedId,
       request,
     );
@@ -194,6 +201,22 @@ export function layoutParagraphLinesWithRequest(
   return ParagraphEngine.layoutParagraphLinesWithRequest(preparedId, request);
 }
 
+export function layoutParagraphLinesWithDiagnostics(
+  preparedId: number,
+  widthOrRequest: number | ParagraphLayoutRequest,
+  overrides: Partial<ParagraphLayoutRequest> = {},
+): LaidOutParagraphLinesWithDiagnostics[] {
+  const request =
+    typeof widthOrRequest === "number"
+      ? createParagraphLayoutRequest(widthOrRequest, overrides)
+      : widthOrRequest;
+
+  return ParagraphEngine.layoutParagraphLinesWithDiagnostics(
+    preparedId,
+    request,
+  );
+}
+
 export function createParagraphLayoutRequest(
   width: number,
   overrides: Partial<ParagraphLayoutRequest> = {},
@@ -254,6 +277,7 @@ export function layoutPreparedBenchmarkCorpus(
 
 export type {
   InlineSegment,
+  LaidOutParagraphLinesWithDiagnostics,
   LaidOutParagraphLines,
   LaidOutParagraph,
   LaidOutParagraphMetrics,

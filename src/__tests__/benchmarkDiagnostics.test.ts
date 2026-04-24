@@ -54,9 +54,11 @@ describe("benchmark diagnostics", () => {
       expect.arrayContaining([
         "algorithm_rule_drift",
         "height_metric_drift",
+        "line_break_strategy_drift",
         "renderer_drift",
       ]),
     );
     expect(drift.heightDriftBuckets.unclassified).toBe(3);
+    expect(drift.heightDriftBuckets.line_break_strategy).toBe(2);
   });
 });

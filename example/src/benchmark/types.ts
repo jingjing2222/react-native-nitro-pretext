@@ -73,7 +73,11 @@ export type BenchmarkDriftKind =
   | "algorithm_rule_drift"
   | "compat_drift"
   | "engine_drift"
+  | "emoji_metric_drift"
+  | "fallback_font_drift"
   | "height_metric_drift"
+  | "locale_metric_drift"
+  | "line_break_strategy_drift"
   | "padding_drift"
   | "renderer_drift";
 
