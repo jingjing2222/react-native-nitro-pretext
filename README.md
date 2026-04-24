@@ -130,14 +130,14 @@ StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 | Dependency                   | Package range | Current validation                                      |
 | ---------------------------- | ------------- | ------------------------------------------------------- |
 | React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
-| `react-native-nitro-modules` | `^0.35.5`     | Required runtime peer dependency.                       |
+| `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                       |
 | `nitrogen`                   | `^0.35.5`     | Required for generated Nitro bridge files in this repo. |
 | Android                      | API 24+       | API 29+ normal-wrap requests are the canonical target.  |
 | iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
 
-The Nitro Modules package currently publishes broad React Native peer metadata,
-so Pretext documents and enforces its own package peer floor as React Native
-`>=0.81.0`. Current local validation is on React Native `0.85.0`.
+Pretext keeps its Nitro Modules peer range open and documents/enforces its own
+React Native peer floor as `>=0.81.0`. Current local validation is on React
+Native `0.85.0` with `react-native-nitro-modules@0.35.5`.
 
 ## Performance Snapshot
 
