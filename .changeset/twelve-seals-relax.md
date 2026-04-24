@@ -46,4 +46,4 @@ Documentation and examples were rebuilt around the layout-only contract:
 - API-matched examples live under `examples/use-case/*`; matching RN-only
   workaround examples live under `examples/non-use-case/*`.
 - Benchmark docs now separate API examples from benchmark case studies and
-  record the latest local iOS Maestro suite result.
+  record the latest manual local iOS Maestro suite result.

@@ -32,7 +32,9 @@ yarn example:android
 Native code changes require rebuilding the example app. TypeScript-only library
 changes usually update through Metro.
 
-Run the example Maestro flows after the app is installed and Metro is running:
+Run the optional Maestro flows manually after the app is installed and Metro is
+running. These flows are intentionally not part of CI because they depend on
+device/simulator state and route-level example contracts:
 
 ```sh
 yarn examples:ios

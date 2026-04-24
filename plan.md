@@ -94,8 +94,7 @@ Each session is completed independently:
 - [x] Run available native builds:
   - `yarn workspace react-native-nitro-pretext-example build:android`
   - `yarn workspace react-native-nitro-pretext-example build:ios`
-- [x] Ran iOS Maestro suite on iPhone 16 simulator with
-      `BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios`.
+- [x] Ran the manual iOS Maestro suite on iPhone 16 simulator.
 - [x] Confirmed Android benchmark could not run because no Android device was
       visible to `agent-device`.
 - [x] Replaced the stale prepared-view Maestro route with

@@ -129,7 +129,7 @@ StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
 
 | Dependency                   | Supported range | Current validation                                      |
 | ---------------------------- | --------------- | ------------------------------------------------------- |
-| React Native                 | `0.81+`         | Example app and local CI use React Native `0.85.0`.     |
+| React Native                 | `0.81+`         | Example app and local checks use React Native `0.85.0`. |
 | `react-native-nitro-modules` | `^0.35.5`       | Required runtime peer dependency.                       |
 | `nitrogen`                   | `^0.35.5`       | Required for generated Nitro bridge files in this repo. |
 | Android                      | API 24+         | API 29+ is the canonical Android performance target.    |
@@ -144,14 +144,14 @@ so Pretext documents and enforces its own package support floor as React Native
 Latest local iOS example validation: April 24, 2026, iPhone 16 simulator,
 debug build.
 
-| Path                             |        Time | Notes                                             |
-| -------------------------------- | ----------: | ------------------------------------------------- |
-| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.              |
-| `Pretext.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.         |
-| Example improvement              |     `98.8%` | Demonstration screen, not release-device CI.      |
-| RN `<Text>` benchmark median     | `247.11 ms` | iOS debug simulator suite.                        |
-| Pretext surface median           | `230.95 ms` | Layout before the final RN surface.               |
-| Maestro hot layout median        |   `0.23 ms` | iOS debug simulator suite, Core Text layout only. |
+| Path                             |        Time | Notes                                               |
+| -------------------------------- | ----------: | --------------------------------------------------- |
+| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.                |
+| `Pretext.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.           |
+| Example improvement              |     `98.8%` | Demonstration screen, not release-device benchmark. |
+| RN `<Text>` benchmark median     | `247.11 ms` | iOS debug simulator suite.                          |
+| Pretext surface median           | `230.95 ms` | Layout before the final RN surface.                 |
+| Manual Maestro hot layout median |   `0.23 ms` | iOS debug simulator suite, Core Text layout only.   |
 
 Current benchmark details and validation limits are in the
 [Benchmark Report](docs/benchmark-improvement-report.md). Android
@@ -214,7 +214,11 @@ yarn build
 yarn verify:package-exports
 ```
 
-Example Maestro validation:
+CI runs the static, unit, package, and native build checks above. Maestro device
+flows are manual only because they depend on installed apps, simulators/devices,
+Metro, and API/example routes that may intentionally change.
+
+Manual Maestro validation:
 
 ```sh
 yarn examples:ios

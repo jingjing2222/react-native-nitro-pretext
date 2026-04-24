@@ -41,7 +41,7 @@ API learning examples are intentionally separate from this case study. They live
 under `examples/use-case/*`, with matching plain RN workarounds under
 `examples/non-use-case/*`.
 
-## Current iOS Maestro Suite Snapshot
+## Current Manual iOS Maestro Suite Snapshot
 
 Latest local iOS benchmark suite:
 
@@ -108,8 +108,9 @@ data than `metrics`; use them only when that data is needed.
 ## Reproducing
 
 Benchmarks are intentionally manual and are not part of CI because simulator
-startup, Metro, and Maestro make the job too slow for every pull request. Use
-release builds on the same device class when comparing numbers.
+startup, Metro, Maestro, installed app state, and route-level API changes make
+them too expensive and too brittle for every pull request. Use release builds on
+the same device class when comparing numbers.
 
 The benchmark scripts drive an already installed example app. They do not
 build, install, or boot Metro for you. Before running them, generate the Nitro
@@ -127,7 +128,7 @@ Then run the target benchmark with an explicit device id:
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
-BENCHMARK_GATE_PROFILE=ci-debug yarn benchmark:ios
+BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 ```
 
 Android canonical benchmark claims require API 29+ because the canonical
@@ -141,10 +142,15 @@ The gate checks timing, line-count parity, sampled line-text parity, layout
 engine, renderer kind, parity role, Android `includeFontPadding`, and height
 metric source.
 
-API example coverage is a separate gate:
+Static API example coverage is CI-safe:
 
 ```sh
 yarn verify:api-examples
+```
+
+Optional device-level example coverage is manual only:
+
+```sh
 maestro test example/maestro/flows/examples/suite.yaml
 ```
 

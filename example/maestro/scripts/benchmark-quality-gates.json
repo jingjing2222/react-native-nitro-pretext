@@ -90,7 +90,7 @@
       }
     }
   },
-  "ci-debug": {
+  "manual-debug": {
     "ios": {
       "suite": {
         "maxPrepareMs": 3500,
