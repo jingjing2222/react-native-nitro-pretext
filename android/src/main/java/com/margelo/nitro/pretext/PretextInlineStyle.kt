@@ -1,5 +1,6 @@
 package com.margelo.nitro.pretext
 
+import android.content.res.Resources
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.Canvas
@@ -45,6 +46,21 @@ internal data class NativeTokenMetrics(
   val descent: Double,
 )
 
+internal object AndroidTextUnits {
+  private val density: Double
+    get() = Resources.getSystem().displayMetrics.density.toDouble()
+      .takeIf { it > 0.0 }
+      ?: 1.0
+
+  fun toPx(value: Double): Double {
+    return value * density
+  }
+
+  fun fromPx(value: Double): Double {
+    return value / density
+  }
+}
+
 private data class ParagraphBidiRun(
   val start: Int,
   val end: Int,
@@ -81,7 +97,7 @@ internal fun resolveTextStyle(segment: InlineSegment, baseStyle: NativeTextStyle
 
 internal fun createTextPaint(style: NativeTextStyle): TextPaint {
   return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-    textSize = style.fontSize.toFloat()
+    textSize = AndroidTextUnits.toPx(style.fontSize).toFloat()
     typeface = resolveTypeface(style)
     if (style.fontSize > 0 && style.letterSpacing != 0.0) {
       letterSpacing = (style.letterSpacing / style.fontSize).toFloat()
@@ -303,7 +319,7 @@ internal fun resolveTextDirectionHeuristic(
 }
 
 internal fun resolveLineHeightValue(lineHeight: Double, paint: Paint): Double {
-  return if (lineHeight > 0) lineHeight else paint.fontSpacing.toDouble()
+  return if (lineHeight > 0) AndroidTextUnits.toPx(lineHeight) else paint.fontSpacing.toDouble()
 }
 
 internal fun resolveTypeface(style: NativeTextStyle): Typeface {
@@ -361,7 +377,7 @@ private class InlineMetricSpan(
   }
 
   private fun apply(textPaint: TextPaint) {
-    textPaint.textSize = style.fontSize.toFloat()
+    textPaint.textSize = AndroidTextUnits.toPx(style.fontSize).toFloat()
     textPaint.typeface = resolveTypeface(style)
     textPaint.letterSpacing = if (style.fontSize > 0 && style.letterSpacing != 0.0) {
       (style.letterSpacing / style.fontSize).toFloat()

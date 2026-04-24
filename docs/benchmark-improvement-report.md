@@ -9,12 +9,11 @@ machine-local artifacts and are not part of the package.
 | Platform          | Status                                      | Notes                                                        |
 | ----------------- | ------------------------------------------- | ------------------------------------------------------------ |
 | iOS               | layout example and benchmark suite verified | Latest local validation: April 24, 2026.                     |
-| Android API 29+   | not run in latest local pass                | No connected Android target; AVD boot failed locally.        |
+| Android API 29+   | layout example and benchmark suite verified | Latest local validation: April 25, 2026 on API 36 debug AVD. |
 | Android API 24-28 | StaticLayout compat/fallback only           | Supported, but not a canonical performance or parity target. |
 
-Do not extrapolate Android performance from iOS numbers. Android adoption
-confidence needs a successful API 29+ release-device run on the target device
-class.
+Do not extrapolate Android performance from iOS numbers. The Android numbers
+below are a debug AVD snapshot, not a release-device speedup claim.
 
 ## Layout-Only Example Snapshot
 
@@ -32,6 +31,21 @@ Latest local iOS example validation:
 | Hidden RN `<Text>` + `onLayout` | `129.16 ms` |             2 |             1 |
 | `Pretext.layout()`              |   `1.55 ms` |             1 |             0 |
 | Improvement                     |     `98.8%` |           n/a |           n/a |
+
+Latest local Android example validation:
+
+- Date: April 25, 2026
+- Device target: Pixel_9_Pro AVD, Android API 36
+- Build mode: debug app with Metro
+- React Native: `0.85.0`
+- Nitro Modules: `0.35.5`
+- Screen: `benchmark/measured-layout`
+
+| Path                            |        Time | Render passes | Layout shifts |
+| ------------------------------- | ----------: | ------------: | ------------: |
+| Hidden RN `<Text>` + `onLayout` | `174.95 ms` |             2 |             1 |
+| `Pretext.layout()`              |   `8.59 ms` |             1 |             0 |
+| Improvement                     |     `95.1%` |           n/a |           n/a |
 
 This screen is a product-shaped demonstration, not a release-device benchmark.
 It shows the core value of the public API: text height is available before the
@@ -82,17 +96,56 @@ It is expected until RN `<Text>` style, fallback font, locale, and line-break
 policy are fully aligned with the native layout request.
 
 The visible RN surface is reported for context only. The layout-only API gates
-the hot native layout median, prepare cost, engine metadata, and parity
-contracts; it does not require the final RN render pass to beat RN `<Text>` in
-every debug run.
+the hot native layout median, prepare cost, engine metadata, parity report
+presence, and diagnostic contracts; it does not require the final RN render
+pass to beat RN `<Text>` in every debug run.
 
-Latest local Android attempt:
+## Current Manual Android Maestro Suite Snapshot
 
-- Date: April 24, 2026
-- Command: `yarn benchmark:android`
-- Result: not executed
-- Reason: no connected `adb` target. A local `Pixel_9_Pro` AVD was available but
-  failed to boot, so no Android Maestro contract was updated from this run.
+Latest local Android benchmark suite:
+
+- Date: April 25, 2026
+- Device target: Pixel_9_Pro AVD, Android API 36
+- Build mode: debug app with Metro
+- React Native: `0.85.0`
+- Nitro Modules: `0.35.5`
+- Flow: `benchmark` suite
+- Maestro gate profile: `local`
+- Gate result: pass
+
+| Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
+| ---------------------- | ----------: | --------------------------: | ----------: |
+| Interaction median     |  `54.55 ms` |                  `85.01 ms` | `+30.46 ms` |
+| Interaction p95        |  `72.11 ms` |                  `92.35 ms` | `+20.24 ms` |
+| Layout-only median     | RN internal |                   `0.06 ms` |         n/a |
+| Prepare once           |         n/a |                 `140.01 ms` |         n/a |
+| Measure inside prepare |         n/a |                 `138.06 ms` |         n/a |
+
+Canonical paths in this run:
+
+| Path           | Engine                               | Role                         |
+| -------------- | ------------------------------------ | ---------------------------- |
+| RN baseline    | `rn_text_compat`                     | `rn_text_compat_oracle`      |
+| Pretext layout | `android_measured_text_line_breaker` | `canonical_prepared_compute` |
+
+Android `includeFontPadding` was reported as `true` for the RN baseline,
+canonical compute path, and visible RN surface path. The height metric source
+was `platform_text_engine_metrics`, not a font-size-only heuristic.
+
+Observed Android parity drift:
+
+| Bucket                   | Mismatches |
+| ------------------------ | ---------: |
+| Line-count parity        |   `80/240` |
+| Sampled line-text parity |  `240/240` |
+
+The Android debug AVD run validates that the canonical API 29+ engine path is
+used, but it also shows why platform-specific reporting matters. The
+layout-only hot path was `0.06 ms`; the full visible-surface median was slower
+than RN by `30.46 ms` because the final RN surface still dominates the render
+cost. Parity drift is reported as compatibility diagnostics instead of a
+blocking layout-only gate, and is currently classified as locale, fallback
+font, emoji, height metric, algorithm rule, and line-break strategy drift.
 
 ## API-Level Performance Meaning
 
@@ -140,9 +193,11 @@ runs report `ios_core_text`; degraded fallback diagnostics may report
 `ios_manual_token_fallback`. StaticLayout compat diagnostics include
 `fallbackReason: "static_layout_compat"`.
 
-The gate checks timing, line-count parity, sampled line-text parity, layout
-engine, renderer kind, parity role, Android `includeFontPadding`, and height
-metric source.
+The gate checks layout-only timing, prepare/measure bounds, parity report
+presence, layout engine, renderer kind, parity role, Android
+`includeFontPadding`, and height metric source. RN `<Text>` mismatch counts
+remain diagnostic because RN `<Text>` is a compatibility oracle, not the
+canonical correctness source.
 
 Static API example coverage is CI-safe:
 

@@ -28,7 +28,9 @@ With plain RN `<Text>`, the common path is:
 4. render the visible UI
 
 Pretext moves step 1 and 2 into native text engines so height is available
-before the visible surface mounts.
+before the visible surface mounts. That removes the hidden measurement
+component, the `onLayout` callback fan-in, the second render pass, and the
+layout shift that usually follows when measured height is applied after mount.
 
 ## Core API
 
@@ -141,23 +143,42 @@ Native `0.85.0` with `react-native-nitro-modules@0.35.5`.
 
 ## Performance Snapshot
 
-Latest local iOS example validation: April 24, 2026, iPhone 16 simulator,
-debug build.
+Benchmarks are platform-specific. iOS uses Core Text and Android API 29+ uses
+`MeasuredText + LineBreaker`, so their numbers should be reported separately and
+never averaged together.
 
-| Path                             |        Time | Notes                                               |
-| -------------------------------- | ----------: | --------------------------------------------------- |
-| Hidden RN `<Text>` + `onLayout`  | `129.16 ms` | Two render passes, one layout shift.                |
-| `Pretext.layout()` before render |   `1.55 ms` | One visible render pass, no layout shift.           |
-| Example improvement              |     `98.8%` | Demonstration screen, not release-device benchmark. |
-| RN `<Text>` benchmark median     | `247.11 ms` | iOS debug simulator suite.                          |
-| Pretext surface median           | `230.95 ms` | Layout before the final RN surface.                 |
-| Manual Maestro hot layout median |   `0.23 ms` | iOS debug simulator suite, Core Text layout only.   |
+The most important comparison is the path an app would otherwise build with RN
+only:
+
+| Path                            | What happens before visible UI is stable                                            |
+| ------------------------------- | ----------------------------------------------------------------------------------- |
+| Hidden RN `<Text>` + `onLayout` | Mount hidden measurement tree, wait for callbacks, apply height, render visible UI. |
+| `prepare()` + `layout()`        | Measure in the native text engine first, then render visible UI with known height.  |
+
+Latest local measured-layout case study:
+
+| Platform       | Target                                    | RN hidden measure time | Pretext layout time | Render passes | Layout shifts | Status           |
+| -------------- | ----------------------------------------- | ---------------------: | ------------------: | ------------: | ------------: | ---------------- |
+| iOS            | iPhone 16 simulator, debug, April 24 2026 |            `129.16 ms` |           `1.55 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
+| Android API 36 | Pixel_9_Pro AVD, debug, April 25 2026     |            `174.95 ms` |           `8.59 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
+
+Latest local Maestro timing snapshot:
+
+| Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                |
+| -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ------------------------------------- |
+| iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Debug simulator suite passed          |
+| Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed |
+
+The measured-layout case study is the render optimization claim: Pretext
+removes the hidden measurement `<Text>` surface, so the screen does not need a
+measurement render followed by a corrected visible render. The Maestro timing
+suite is a different contract: it includes the final visible RN `<Text>`
+surface. On the Android debug AVD run, the hot layout path was `0.06 ms`, but
+the full visible-surface median was slower than RN by `30.46 ms`; that visible
+surface number is reported as context, not as the layout-only gate.
 
 Current benchmark details and validation limits are in the
-[Benchmark Report](docs/benchmark-improvement-report.md). Android
-release-device numbers are not published yet. The latest local Android attempt
-had no connected `adb` target and the available AVD failed to boot, so Android
-speedup claims should wait for a successful API 29+ target-device run.
+[Benchmark Report](docs/benchmark-improvement-report.md).
 
 ## Install
 

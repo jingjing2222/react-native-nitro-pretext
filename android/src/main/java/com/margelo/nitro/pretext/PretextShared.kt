@@ -236,9 +236,10 @@ internal object PretextShared {
   }
 
   private fun buildInlineBox(segment: InlineSegment, start: Int): NativeInlineBox {
-    val width = max(0.0, segment.width ?: 0.0)
-    val height = max(0.0, segment.height ?: 0.0)
-    val baseline = (segment.baseline ?: height).coerceIn(0.0, height)
+    val width = AndroidTextUnits.toPx(max(0.0, segment.width ?: 0.0))
+    val height = AndroidTextUnits.toPx(max(0.0, segment.height ?: 0.0))
+    val baseline = AndroidTextUnits.toPx(segment.baseline ?: AndroidTextUnits.fromPx(height))
+      .coerceIn(0.0, height)
     return NativeInlineBox(
       boxId = segment.boxId ?: "inline-box-$start",
       start = start,
@@ -301,8 +302,8 @@ internal object PretextShared {
       val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraphMetrics(
         lineCount = lineLayouts.size.toDouble(),
-        height = sumHeights(lineLayouts),
-        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        height = AndroidTextUnits.fromPx(sumHeights(lineLayouts)),
+        maxLineWidth = AndroidTextUnits.fromPx(lineLayouts.maxOfOrNull { it.width } ?: 0.0),
       )
     }
   }
@@ -317,8 +318,8 @@ internal object PretextShared {
       val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraphLines(
         lineCount = lineLayouts.size.toDouble(),
-        height = sumHeights(lineLayouts),
-        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        height = AndroidTextUnits.fromPx(sumHeights(lineLayouts)),
+        maxLineWidth = AndroidTextUnits.fromPx(lineLayouts.maxOfOrNull { it.width } ?: 0.0),
         lines = buildPublicParagraphLineRanges(lineLayouts).toTypedArray(),
       )
     }
@@ -334,8 +335,8 @@ internal object PretextShared {
       val lineLayouts = paragraphLineLayouts[index]
       LaidOutParagraphLinesWithDiagnostics(
         lineCount = lineLayouts.size.toDouble(),
-        height = sumHeights(lineLayouts),
-        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        height = AndroidTextUnits.fromPx(sumHeights(lineLayouts)),
+        maxLineWidth = AndroidTextUnits.fromPx(lineLayouts.maxOfOrNull { it.width } ?: 0.0),
         lines = buildPublicParagraphLineRanges(lineLayouts).toTypedArray(),
         diagnostics = buildParagraphLayoutDiagnostics(
           paragraph = paragraph,
@@ -357,8 +358,8 @@ internal object PretextShared {
       val lineLayouts = paragraphLineLayouts[index]
       LaidOutRichParagraphLines(
         lineCount = lineLayouts.size.toDouble(),
-        height = sumHeights(lineLayouts),
-        maxLineWidth = lineLayouts.maxOfOrNull { it.width } ?: 0.0,
+        height = AndroidTextUnits.fromPx(sumHeights(lineLayouts)),
+        maxLineWidth = AndroidTextUnits.fromPx(lineLayouts.maxOfOrNull { it.width } ?: 0.0),
         lines = buildPublicParagraphLineRanges(lineLayouts).toTypedArray(),
         boxFrames = buildInlineBoxFrames(
           paragraphIndex = index,
@@ -400,12 +401,12 @@ internal object PretextShared {
       ParagraphLineRange(
         textStart = line.textStart.toDouble(),
         textEnd = line.textEnd.toDouble(),
-        top = line.top,
-        left = line.left,
-        width = line.width,
-        height = line.height,
-        ascent = line.ascent,
-        descent = line.descent,
+        top = AndroidTextUnits.fromPx(line.top),
+        left = AndroidTextUnits.fromPx(line.left),
+        width = AndroidTextUnits.fromPx(line.width),
+        height = AndroidTextUnits.fromPx(line.height),
+        ascent = AndroidTextUnits.fromPx(line.ascent),
+        descent = AndroidTextUnits.fromPx(line.descent),
       )
     }
   }
@@ -445,11 +446,11 @@ internal object PretextShared {
         lineIndex = lineIndex.toDouble(),
         textStart = box.start.toDouble(),
         textEnd = box.end.toDouble(),
-        left = left,
-        top = baseline - box.baseline,
-        width = box.width,
-        height = box.height,
-        baseline = baseline,
+        left = AndroidTextUnits.fromPx(left),
+        top = AndroidTextUnits.fromPx(baseline - box.baseline),
+        width = AndroidTextUnits.fromPx(box.width),
+        height = AndroidTextUnits.fromPx(box.height),
+        baseline = AndroidTextUnits.fromPx(baseline),
         accessibilityLabel = box.accessibilityLabel,
         accessibilityHint = box.accessibilityHint,
         accessibilityRole = box.accessibilityRole,
@@ -630,16 +631,16 @@ internal object PretextShared {
 
   private fun buildPublicLayoutRequest(request: NativeLayoutRequest): ParagraphLayoutRequest {
     return ParagraphLayoutRequest(
-      width = request.width,
-      left = request.left,
+      width = AndroidTextUnits.fromPx(request.width),
+      left = AndroidTextUnits.fromPx(request.left),
       whiteSpace = request.whiteSpace,
       wordBreak = request.wordBreak,
       shapeSlices = request.shapeSlices.map { slice ->
         ParagraphShapeSlice(
-          top = slice.top,
-          height = slice.height,
-          left = slice.left,
-          width = slice.width,
+          top = AndroidTextUnits.fromPx(slice.top),
+          height = AndroidTextUnits.fromPx(slice.height),
+          left = AndroidTextUnits.fromPx(slice.left),
+          width = AndroidTextUnits.fromPx(slice.width),
         )
       }.toTypedArray(),
     )
@@ -1006,11 +1007,18 @@ internal object PretextShared {
       .sortedBy { it.top }
 
     return NativeLayoutRequest(
-      width = max(1.0, finiteOrDefault(request.width, 1.0)),
-      left = finiteOrDefault(request.left, 0.0),
+      width = AndroidTextUnits.toPx(max(1.0, finiteOrDefault(request.width, 1.0))),
+      left = AndroidTextUnits.toPx(finiteOrDefault(request.left, 0.0)),
       whiteSpace = request.whiteSpace.lowercase(),
       wordBreak = request.wordBreak.lowercase(),
-      shapeSlices = shapeSlices,
+      shapeSlices = shapeSlices.map { slice ->
+        NativeShapeSlice(
+          top = AndroidTextUnits.toPx(slice.top),
+          height = AndroidTextUnits.toPx(slice.height),
+          left = AndroidTextUnits.toPx(slice.left),
+          width = AndroidTextUnits.toPx(slice.width),
+        )
+      },
     )
   }
 
@@ -1737,7 +1745,12 @@ internal object PretextShared {
     var maxHeight = defaultLineHeight
     runs.forEach { run ->
       if (run.end > start && run.start < end) {
-        val requested = if (run.style.lineHeight > 0.0) run.style.lineHeight else defaultLineHeight
+        val requested =
+          if (run.style.lineHeight > 0.0) {
+            AndroidTextUnits.toPx(run.style.lineHeight)
+          } else {
+            defaultLineHeight
+          }
         maxHeight = max(maxHeight, requested)
       }
     }

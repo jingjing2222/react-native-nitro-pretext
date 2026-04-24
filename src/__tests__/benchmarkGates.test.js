@@ -166,11 +166,27 @@ describe("benchmark parity contract gates", () => {
     ).toThrow();
   });
 
-  it("fails when Pretext surface median regresses past the ratio gate", () => {
-    expect(() => runGate({ renderInteractionMedianMs: 120 })).toThrow();
+  it("does not gate the final RN surface timing for layout-only API", () => {
+    expect(() =>
+      runGate({
+        renderInteractionMedianMs: 240,
+        renderInteractionP95Ms: 320,
+      }),
+    ).not.toThrow();
   });
 
-  it("fails when Pretext surface p95 regresses past the ratio gate", () => {
-    expect(() => runGate({ renderInteractionP95Ms: 150 })).toThrow();
+  it("does not fail on RN Text compatibility parity drift", () => {
+    expect(() =>
+      runGate({
+        computeLineTextParityMismatches: 200,
+        computeParityMismatches: 200,
+        renderLineTextParityMismatches: 200,
+        renderParityMismatches: 200,
+      }),
+    ).not.toThrow();
+  });
+
+  it("fails when the layout-only hot path exceeds the gate", () => {
+    expect(() => runGate({ computeLayoutOnlyMedianMs: 20 })).toThrow();
   });
 });

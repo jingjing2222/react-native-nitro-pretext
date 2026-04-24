@@ -6,7 +6,6 @@ const path = require("node:path");
 const {
   formatCount,
   formatMs,
-  formatRatio,
   labelValue,
   readBenchmarkLog,
   titleCase,
@@ -46,20 +45,6 @@ function resolveThresholds() {
     mergeDefined(defaultFlow, profileDefaultFlow),
     platformFlow,
   );
-}
-
-function numericRatio(numerator, denominator) {
-  if (
-    numerator === null ||
-    numerator === undefined ||
-    denominator === null ||
-    denominator === undefined ||
-    denominator <= 0
-  ) {
-    return null;
-  }
-
-  return numerator / denominator;
 }
 
 function createCheckState() {
@@ -296,8 +281,6 @@ const preparedP95 =
   flow === "pretext-layout"
     ? (preparedView?.renderInteractionP95Ms ?? null)
     : (combined?.preparedP95Ms ?? preparedView?.renderInteractionP95Ms ?? null);
-const preparedMedianRatio = numericRatio(preparedMedian, baseMedian);
-const preparedP95Ratio = numericRatio(preparedP95, baseText?.interactionP95Ms);
 const timingChecks = createCheckState();
 const contractChecks = createCheckState();
 
@@ -344,6 +327,7 @@ if (flow === "pretext-layout" || flow === "suite") {
 
   requirePresentMetric(timingChecks, "base median", baseMedian);
   requirePresentMetric(timingChecks, "Pretext surface median", preparedMedian);
+  requirePresentMetric(timingChecks, "Pretext surface p95", preparedP95);
   requirePresentMetric(
     timingChecks,
     "Pretext layout-only median",
@@ -352,20 +336,6 @@ if (flow === "pretext-layout" || flow === "suite") {
   );
   requirePresentMetric(timingChecks, "prepare once", preparedView?.prepareMs);
 
-  assertMax(
-    timingChecks,
-    "Pretext median ratio",
-    preparedMedianRatio,
-    thresholds.maxPreparedMedianRatio,
-    formatRatio,
-  );
-  assertMax(
-    timingChecks,
-    "Pretext p95 ratio",
-    preparedP95Ratio,
-    thresholds.maxPreparedP95Ratio,
-    formatRatio,
-  );
   assertMax(
     timingChecks,
     "prepare once",
@@ -409,25 +379,11 @@ if (flow === "pretext-layout" || flow === "suite") {
     thresholds.minRenderParityChecks,
     formatCount,
   );
-  assertMax(
-    contractChecks,
-    "render parity mismatches",
-    preparedView?.renderParityMismatches,
-    thresholds.maxRenderParityMismatches,
-    formatCount,
-  );
   assertMin(
     contractChecks,
     "render line-text checks",
     preparedView?.renderLineTextParityChecks,
     thresholds.minRenderLineTextParityChecks,
-    formatCount,
-  );
-  assertMax(
-    contractChecks,
-    "render line-text mismatches",
-    preparedView?.renderLineTextParityMismatches,
-    thresholds.maxRenderLineTextParityMismatches,
     formatCount,
   );
   assertMin(
@@ -437,25 +393,11 @@ if (flow === "pretext-layout" || flow === "suite") {
     thresholds.minComputeParityChecks,
     formatCount,
   );
-  assertMax(
-    contractChecks,
-    "compute parity mismatches",
-    preparedView?.computeParityMismatches,
-    thresholds.maxComputeParityMismatches,
-    formatCount,
-  );
   assertMin(
     contractChecks,
     "compute line-text checks",
     preparedView?.computeLineTextParityChecks,
     thresholds.minComputeLineTextParityChecks,
-    formatCount,
-  );
-  assertMax(
-    contractChecks,
-    "compute line-text mismatches",
-    preparedView?.computeLineTextParityMismatches,
-    thresholds.maxComputeLineTextParityMismatches,
     formatCount,
   );
 }

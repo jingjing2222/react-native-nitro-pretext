@@ -111,8 +111,11 @@ Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
 Latest local benchmark status:
 
 - iOS `benchmark` suite: passed on April 24, 2026 with an iPhone 16 simulator.
-- Android `benchmark` suite: not run in the latest pass because no `adb` target
-  was connected and the available local AVD did not boot.
+- Android `benchmark` suite: completed on April 25, 2026 with a Pixel_9_Pro AVD
+  on API 36. The canonical engine metadata and local layout-only gate passed.
+- Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden
+  RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
+  `Pretext.layout()` returned the needed layout data in `8.59 ms`.
 
 ## Example Verification
 

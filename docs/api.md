@@ -49,6 +49,9 @@ Since Pretext does not own the final pixels, your visible RN `<Text>` style must
 match the style used for Pretext layout. The biggest Android footgun is
 `includeFontPadding`: RN `<Text>` defaults it to `true`, and Pretext also
 defaults it to `true`. Changing one side without the other can change height.
+Android accepts RN logical layout units from JS and converts them to native px
+before calling `MeasuredText` and `LineBreaker`; returned dimensions are
+converted back to RN layout units.
 
 On Android API 29+, non-normal rule requests such as `shapeSlices`,
 `whiteSpace: "pre"`, `wordBreak: "break-all"`, and forced token layout may

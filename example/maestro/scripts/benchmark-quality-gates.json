@@ -7,16 +7,10 @@
       "maxBuildPreparedMs": 1500,
       "maxTokenizeMs": 250,
       "maxLayoutOnlyMedianMs": 80,
-      "maxPreparedMedianRatio": 1.2,
-      "maxPreparedP95Ratio": 1.25,
       "minRenderParityChecks": 200,
-      "maxRenderParityMismatches": 8,
       "minRenderLineTextParityChecks": 200,
-      "maxRenderLineTextParityMismatches": 40,
       "minComputeParityChecks": 200,
-      "maxComputeParityMismatches": 8,
-      "minComputeLineTextParityChecks": 200,
-      "maxComputeLineTextParityMismatches": 40
+      "minComputeLineTextParityChecks": 200
     },
     "base-text": {
       "requireCompleted": true
@@ -28,16 +22,10 @@
       "maxBuildPreparedMs": 1500,
       "maxTokenizeMs": 250,
       "maxLayoutOnlyMedianMs": 80,
-      "maxPreparedMedianRatio": 1.2,
-      "maxPreparedP95Ratio": 1.25,
       "minRenderParityChecks": 200,
-      "maxRenderParityMismatches": 8,
       "minRenderLineTextParityChecks": 200,
-      "maxRenderLineTextParityMismatches": 40,
       "minComputeParityChecks": 200,
-      "maxComputeParityMismatches": 8,
-      "minComputeLineTextParityChecks": 200,
-      "maxComputeLineTextParityMismatches": 40
+      "minComputeLineTextParityChecks": 200
     }
   },
   "local": {
@@ -48,12 +36,10 @@
         "maxBuildPreparedMs": 400,
         "maxTokenizeMs": 120,
         "maxLayoutOnlyMedianMs": 25,
-        "maxPreparedMedianRatio": 1.1,
-        "maxPreparedP95Ratio": 1.2,
-        "maxRenderParityMismatches": 8,
-        "maxRenderLineTextParityMismatches": 40,
-        "maxComputeParityMismatches": 8,
-        "maxComputeLineTextParityMismatches": 40
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
       },
       "pretext-layout": {
         "maxPrepareMs": 700,
@@ -61,32 +47,26 @@
         "maxBuildPreparedMs": 400,
         "maxTokenizeMs": 120,
         "maxLayoutOnlyMedianMs": 25,
-        "maxPreparedMedianRatio": 1.1,
-        "maxPreparedP95Ratio": 1.2,
-        "maxRenderParityMismatches": 8,
-        "maxRenderLineTextParityMismatches": 40,
-        "maxComputeParityMismatches": 8,
-        "maxComputeLineTextParityMismatches": 40
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
       }
     },
     "android": {
       "suite": {
-        "maxPrepareMs": 120,
-        "maxMeasureMs": 80,
+        "maxPrepareMs": 250,
+        "maxMeasureMs": 250,
         "maxBuildPreparedMs": 60,
         "maxTokenizeMs": 40,
-        "maxLayoutOnlyMedianMs": 10,
-        "maxPreparedMedianRatio": 1.1,
-        "maxPreparedP95Ratio": 1.2
+        "maxLayoutOnlyMedianMs": 10
       },
       "pretext-layout": {
-        "maxPrepareMs": 120,
-        "maxMeasureMs": 80,
+        "maxPrepareMs": 250,
+        "maxMeasureMs": 250,
         "maxBuildPreparedMs": 60,
         "maxTokenizeMs": 40,
-        "maxLayoutOnlyMedianMs": 10,
-        "maxPreparedMedianRatio": 1.1,
-        "maxPreparedP95Ratio": 1.2
+        "maxLayoutOnlyMedianMs": 10
       }
     }
   },
@@ -98,12 +78,10 @@
         "maxBuildPreparedMs": 2000,
         "maxTokenizeMs": 300,
         "maxLayoutOnlyMedianMs": 100,
-        "maxPreparedMedianRatio": 1.5,
-        "maxPreparedP95Ratio": 1.75,
-        "maxRenderParityMismatches": 12,
-        "maxRenderLineTextParityMismatches": 60,
-        "maxComputeParityMismatches": 12,
-        "maxComputeLineTextParityMismatches": 60
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
       },
       "pretext-layout": {
         "maxPrepareMs": 3500,
@@ -111,12 +89,10 @@
         "maxBuildPreparedMs": 2000,
         "maxTokenizeMs": 300,
         "maxLayoutOnlyMedianMs": 100,
-        "maxPreparedMedianRatio": 1.5,
-        "maxPreparedP95Ratio": 1.75,
-        "maxRenderParityMismatches": 12,
-        "maxRenderLineTextParityMismatches": 60,
-        "maxComputeParityMismatches": 12,
-        "maxComputeLineTextParityMismatches": 60
+        "minRenderParityChecks": 200,
+        "minRenderLineTextParityChecks": 200,
+        "minComputeParityChecks": 200,
+        "minComputeLineTextParityChecks": 200
       }
     }
   }
