@@ -1,7 +1,6 @@
 import type { PretextStyle } from "react-native-nitro-pretext";
 
 export type ParityCaseCategory =
-  | "cjk"
   | "emoji"
   | "indic"
   | "japanese"
