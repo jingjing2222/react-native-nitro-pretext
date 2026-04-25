@@ -58,7 +58,8 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
           <Text style={styles.subtitle}>
             `benchmark/base-text` owns the RN Text baseline.
             `benchmark/pretext-layout` owns the Pretext layout and visible RN
-            surface measurements.
+            surface measurements. `benchmark/parity` owns unique-case RN Text
+            parity contracts.
           </Text>
 
           <HeroAutomationPanel
@@ -99,6 +100,14 @@ export function BenchmarkIndexScreen({ navigation }: Props) {
           secondarySummary={preparedViewResults.computeSummary}
           summary={preparedViewResults.renderSummary}
           title="benchmark/pretext-layout"
+        />
+
+        <CatalogCard
+          buttonLabel="Open benchmark/parity"
+          buttonTestID="benchmark.index.open-parity"
+          description="Dedicated RN Text parity route. It is separate from timing benchmarks and runs each parity case once."
+          onPress={() => navigation.navigate("BenchmarkParity")}
+          title="benchmark/parity"
         />
 
         <CatalogCard

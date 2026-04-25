@@ -2,6 +2,7 @@ export type AppStackParamList = {
   BenchmarkBaseText: undefined;
   BenchmarkIndex: undefined;
   BenchmarkMeasuredLayoutCaseStudy: undefined;
+  BenchmarkParity: undefined;
   BenchmarkPretextLayout: undefined;
   ExampleIndex: undefined;
   ExampleNonUseCaseDiagnostics: undefined;

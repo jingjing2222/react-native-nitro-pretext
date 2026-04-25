@@ -142,6 +142,43 @@ function runGate(preparedOverrides = {}) {
   return fs.readFileSync(reportPath, "utf8");
 }
 
+function runParityGate(parityOverrides = {}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-gate-"));
+  const logPath = path.join(tempDir, "maestro.log");
+  const reportPath = path.join(tempDir, "gate.txt");
+  const parity = {
+    caseCount: 3,
+    completedAt: "10:00:02",
+    completedCases: 3,
+    failedCases: 0,
+    geometryTolerance: 0.5,
+    lineCountMismatches: 0,
+    lineGeometryMismatches: 0,
+    lineTextMismatches: 0,
+    mismatchCount: 0,
+    mismatches: [],
+    platform: "android",
+    screen: "benchmark/parity",
+    status: "completed",
+    ...parityOverrides,
+  };
+
+  fs.writeFileSync(
+    logPath,
+    `I/ReactNativeJS: JsConsole: BENCHMARK_REPORT::benchmark/parity::${JSON.stringify(parity)}\n`,
+  );
+
+  execFileSync(process.execPath, [
+    gateScript,
+    logPath,
+    reportPath,
+    "android",
+    "parity",
+  ]);
+
+  return fs.readFileSync(reportPath, "utf8");
+}
+
 describe("benchmark parity contract gates", () => {
   it("separates timing checks from parity contract checks", () => {
     const report = runGate();
@@ -188,5 +225,16 @@ describe("benchmark parity contract gates", () => {
 
   it("fails when the layout-only hot path exceeds the gate", () => {
     expect(() => runGate({ computeLayoutOnlyMedianMs: 20 })).toThrow();
+  });
+
+  it("accepts the dedicated parity benchmark flow", () => {
+    const report = runParityGate();
+
+    expect(report).toContain("parity status == completed");
+    expect(report).toContain("parity completed cases == 3");
+  });
+
+  it("fails dedicated parity when not every case completes", () => {
+    expect(() => runParityGate({ completedCases: 2 })).toThrow();
   });
 });

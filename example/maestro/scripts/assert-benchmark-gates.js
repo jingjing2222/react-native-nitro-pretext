@@ -267,6 +267,7 @@ const thresholds = resolveThresholds();
 const baseText = summary.baseText;
 const preparedView = summary.preparedView;
 const combined = summary.combined;
+const parity = summary.parity;
 const baseMedian =
   flow === "pretext-layout"
     ? (baseText?.interactionMedianMs ?? null)
@@ -287,6 +288,8 @@ const contractChecks = createCheckState();
 if (thresholds.requireCompleted) {
   if (flow === "base-text") {
     requireCompletedStatus(contractChecks, "base-text", baseText);
+  } else if (flow === "parity") {
+    requireCompletedStatus(contractChecks, "parity", parity);
   } else if (flow === "pretext-layout") {
     requireCompletedStatus(contractChecks, "base-text", baseText);
     requireCompletedStatus(contractChecks, "pretext-layout", preparedView);
@@ -295,6 +298,21 @@ if (thresholds.requireCompleted) {
     requireCompletedStatus(contractChecks, "pretext-layout", preparedView);
     requireCompletedStatus(contractChecks, "combined", combined);
   }
+}
+
+if (flow === "parity") {
+  requirePresentMetric(contractChecks, "parity case count", parity?.caseCount);
+  requirePresentMetric(
+    contractChecks,
+    "parity completed cases",
+    parity?.completedCases,
+  );
+  assertEqual(
+    contractChecks,
+    "parity completed cases",
+    parity?.completedCases,
+    parity?.caseCount,
+  );
 }
 
 if (flow === "base-text") {

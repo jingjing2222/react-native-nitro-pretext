@@ -13,6 +13,7 @@ function buildSummary(reports, suite) {
     suite ?? {
       baseText: reports["benchmark/base-text"] ?? null,
       combined: reports["benchmark/index"] ?? null,
+      parity: reports["benchmark/parity"] ?? null,
       preparedView: reports["benchmark/pretext-layout"] ?? null,
     }
   );
@@ -55,7 +56,12 @@ function parseBenchmarkLog(logContents) {
 
   const summary = buildSummary(reports, suite);
 
-  if (!summary.baseText && !summary.combined && !summary.preparedView) {
+  if (
+    !summary.baseText &&
+    !summary.combined &&
+    !summary.parity &&
+    !summary.preparedView
+  ) {
     throw new Error("No benchmark events found in maestro.log");
   }
 

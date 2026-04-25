@@ -16,6 +16,8 @@
     "examples:android": "maestro --platform android test ./maestro/flows/examples/suite.yaml",
     "benchmark:ios": "bash ./maestro/scripts/run-benchmark.sh suite ios",
     "benchmark:android": "bash ./maestro/scripts/run-benchmark.sh suite android",
+    "benchmark:parity:ios": "bash ./maestro/scripts/run-benchmark.sh parity ios",
+    "benchmark:parity:android": "bash ./maestro/scripts/run-benchmark.sh parity android",
     "build:android": "react-native build-android --extra-params \"--no-daemon --console=plain -PreactNativeArchitectures=arm64-v8a\"",
     "build:ios": "react-native build-ios --mode Debug"
   },

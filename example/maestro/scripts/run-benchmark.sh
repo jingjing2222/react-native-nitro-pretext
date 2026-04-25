@@ -9,7 +9,7 @@ APP_ID="${MAESTRO_APP_ID:-pretext.example}"
 cd "$APP_ROOT_DIR"
 
 if [[ -z "$FLOW_NAME" || -z "$PLATFORM_NAME" ]]; then
-  echo "usage: bash example/maestro/scripts/run-benchmark.sh <suite|base-text|pretext-layout> <ios|android>" >&2
+  echo "usage: bash example/maestro/scripts/run-benchmark.sh <suite|base-text|pretext-layout|parity> <ios|android>" >&2
   exit 1
 fi
 
@@ -25,6 +25,10 @@ case "$FLOW_NAME" in
   pretext-layout)
     FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/pretext-layout.yaml"
     FLOW_KEY="pretext-layout"
+    ;;
+  parity)
+    FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/parity.yaml"
+    FLOW_KEY="parity"
     ;;
   *)
     echo "unsupported flow: $FLOW_NAME" >&2

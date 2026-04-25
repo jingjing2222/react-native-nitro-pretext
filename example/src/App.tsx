@@ -8,6 +8,7 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { BaseTextBenchmarkScreen } from "./screens/benchmark/BaseTextBenchmarkScreen";
 import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
 import { BenchmarkMeasuredLayoutCaseStudyScreen } from "./screens/benchmark/BenchmarkMeasuredLayoutCaseStudyScreen";
+import { ParityBenchmarkScreen } from "./screens/benchmark/ParityBenchmarkScreen";
 import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutBenchmarkScreen";
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
 import { ExampleNonUseCaseDiagnosticsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen";
@@ -48,6 +49,7 @@ const linking = {
       Home: "",
       BenchmarkIndex: "benchmark",
       BenchmarkBaseText: "benchmark/base-text",
+      BenchmarkParity: "benchmark/parity",
       BenchmarkPretextLayout: "benchmark/pretext-layout",
       BenchmarkMeasuredLayoutCaseStudy: "benchmark/measured-layout",
       ExampleIndex: "examples",
@@ -112,6 +114,11 @@ export default function App() {
               component={PretextLayoutBenchmarkScreen}
               name="BenchmarkPretextLayout"
               options={{ title: "benchmark/pretext-layout" }}
+            />
+            <Stack.Screen
+              component={ParityBenchmarkScreen}
+              name="BenchmarkParity"
+              options={{ title: "benchmark/parity" }}
             />
             <Stack.Screen
               component={BenchmarkMeasuredLayoutCaseStudyScreen}

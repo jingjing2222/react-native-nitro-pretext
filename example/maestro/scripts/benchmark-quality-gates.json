@@ -15,6 +15,9 @@
     "base-text": {
       "requireCompleted": true
     },
+    "parity": {
+      "requireCompleted": true
+    },
     "pretext-layout": {
       "requireCompleted": true,
       "maxPrepareMs": 3000,
