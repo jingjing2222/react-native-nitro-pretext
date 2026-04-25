@@ -51,6 +51,7 @@ android {
   defaultConfig {
     minSdkVersion getExtOrDefault("minSdkVersion")
     targetSdkVersion getExtOrDefault("targetSdkVersion")
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
     externalNativeBuild {
       cmake {
@@ -121,6 +122,9 @@ android {
 dependencies {
   compileOnly "com.facebook.react:react-android"
   compileOnly project(":react-native-nitro-modules")
+  androidTestImplementation "androidx.test.ext:junit:1.2.1"
+  androidTestImplementation "androidx.test:runner:1.6.2"
+  androidTestImplementation "junit:junit:4.13.2"
 }
 
 if (isNewArchitectureEnabled()) {
