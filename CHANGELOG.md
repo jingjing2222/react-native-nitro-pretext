@@ -1,5 +1,11 @@
 # react-native-nitro-pretext
 
+## 1.0.1
+
+### Patch Changes
+
+- 5d0861f: fix: include nitrogen in tarball
+
 ## 1.0.0
 
 ### Major Changes
