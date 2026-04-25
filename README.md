@@ -7,6 +7,10 @@ screen ask for paragraph height, line count, line ranges, diagnostics, and rich
 inline box frames before mounting the visible UI. It does not render text for
 you, and it does not use hidden `<Text onLayout>` measurement views.
 
+## DEMO
+
+![Pretext demo](./DEMO.gif)
+
 ## Why It Exists
 
 Many React Native layouts need text geometry before they can place visible
