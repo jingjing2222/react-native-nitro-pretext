@@ -109,14 +109,16 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:and
 ```
 
 Android normal-wrap benchmark claims currently use the RN-compatible
-`StaticLayout` path on the validated API 36 AVD. API 24-28 are supported, but
-rerun the target device/API before making device-specific performance or parity
-claims.
+`StaticLayout` path on the validated API 36 AVD. Android API 24+ is supported,
+but rerun the target device/API before making device-specific performance or
+parity claims.
 
-Benchmark scripts write the latest summary and gate report under
+Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
-`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`. Parity runs
-also write `latest-parity-summary.txt`, `latest-parity-mismatches.json`, and
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
+`BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
+do not count that as validation. Parity runs also write
+`latest-parity-summary.txt`, `latest-parity-mismatches.json`, and
 `latest-parity-contracts.json` in the matching `ios-parity` or
 `android-parity` artifact directory.
 

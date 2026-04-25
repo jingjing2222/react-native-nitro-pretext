@@ -49,6 +49,26 @@ die() {
   exit 1
 }
 
+benchmark_command_hint() {
+  case "$FLOW_KEY:$PLATFORM_NAME" in
+    parity:ios)
+      echo "yarn benchmark:parity:ios"
+      ;;
+    parity:android)
+      echo "yarn benchmark:parity:android"
+      ;;
+    *:ios)
+      echo "yarn benchmark:ios"
+      ;;
+    *:android)
+      echo "yarn benchmark:android"
+      ;;
+    *)
+      echo "the benchmark command"
+      ;;
+  esac
+}
+
 release_android_forward_7001() {
   if ! command -v adb >/dev/null 2>&1; then
     return
@@ -208,8 +228,14 @@ write_parity_artifacts() {
 find_latest_log() {
   local debug_dir="$1"
   local latest_log
+  local tests_dir="$debug_dir/.maestro/tests"
 
-  latest_log="$(find "$debug_dir/.maestro/tests" -name "maestro.log" | sort | tail -n 1)"
+  if [[ ! -d "$tests_dir" ]]; then
+    echo "No Maestro test output directory found under $debug_dir" >&2
+    return 1
+  fi
+
+  latest_log="$(find "$tests_dir" -type f -name "maestro.log" 2>/dev/null | sort | tail -n 1)"
   if [[ -z "$latest_log" ]]; then
     echo "No maestro.log found under $debug_dir" >&2
     return 1
@@ -232,6 +258,27 @@ run_quality_gate() {
     "$gate_file" \
     "$platform_name" \
     "$flow_key"
+}
+
+write_skipped_gate() {
+  local debug_dir="$1"
+  local platform_name="$2"
+  local flow_key="$3"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  local gate_file="$debug_dir/latest-gate.txt"
+  {
+    printf '%s\n' "Benchmark Quality Gate"
+    printf '  %-20s %s\n' "profile" "${BENCHMARK_GATE_PROFILE:-local}"
+    printf '  %-20s %s\n' "platform" "$platform_name"
+    printf '  %-20s %s\n' "flow" "$flow_key"
+    printf '  %-20s %s\n' "log" "$latest_log"
+    printf '  %-20s %s\n' "status" "skipped"
+    printf '\n%s\n' "BENCHMARK_SKIP_GATE=1 was set. This run is for artifact capture only and is not validation."
+  } >"$gate_file"
+  log_step "Skipped benchmark quality gate; wrote $gate_file"
 }
 
 cleanup() {
@@ -267,7 +314,7 @@ ensure_ios_app_ready() {
   fi
 
   if ! xcrun simctl get_app_container "$device_id" "$APP_ID" app >/dev/null 2>&1; then
-    die "App $APP_ID is not installed on simulator $device_id. Build and install it first, then rerun yarn benchmark:ios."
+    die "App $APP_ID is not installed on simulator $device_id. Build and install it first, then rerun $(benchmark_command_hint)."
   fi
 
   log_step "Launching $APP_ID"
@@ -317,7 +364,7 @@ ensure_android_app_ready() {
   fi
 
   if ! adb -s "$device_id" shell pm path "$APP_ID" 2>/dev/null | grep -q '^package:'; then
-    die "App $APP_ID is not installed on Android device $device_id. Build and install it first, then rerun yarn benchmark:android."
+    die "App $APP_ID is not installed on Android device $device_id. Build and install it first, then rerun $(benchmark_command_hint)."
   fi
 
   log_step "Waking device and launching $APP_ID"
@@ -400,4 +447,6 @@ fi
 
 if [[ "${BENCHMARK_SKIP_GATE:-0}" != "1" ]]; then
   run_quality_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
+else
+  write_skipped_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
 fi

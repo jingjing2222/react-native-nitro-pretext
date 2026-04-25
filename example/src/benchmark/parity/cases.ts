@@ -137,7 +137,7 @@ const WHITESPACE_TEXTS = [
   "Numbers 1,234.56 and dates 2026-04-25 sit beside compact labels.",
   "Slash/path/value and dash-heavy-copy need stable boundaries.",
   "A sentence ends with nonbreaking space\u00a0before more text.",
-  "Short line\n\nblank line\nthen final line checks empty ranges.",
+  "Short line\n\nblank line\nthen final line checks empty ranges.\n",
 ];
 
 const STYLE_TEXTS = [

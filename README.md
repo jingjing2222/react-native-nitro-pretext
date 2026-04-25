@@ -286,10 +286,11 @@ MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
 
-Benchmark scripts write the latest summary and gate report under
+Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
-`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`. Parity runs
-also write:
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
+`BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
+do not count that as validation. Parity runs also write:
 
 - `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
 - `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`

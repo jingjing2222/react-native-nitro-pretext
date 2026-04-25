@@ -142,6 +142,47 @@ describe("RN Text parity harness contracts", () => {
     });
   });
 
+  it("counts duplicate result mismatches once per case and kind", () => {
+    const mismatches = compareParityCaseLines(
+      parityCase,
+      [createLine("Unit parity")],
+      [createLine("Unit mismatch", { width: 130 })],
+      0.5,
+    );
+    const report = createParityAutomationReport({
+      caseCount: 1,
+      completedAt: "10:00:00",
+      results: [
+        {
+          caseId: parityCase.caseId,
+          category: parityCase.category,
+          errorMessage: null,
+          mismatches,
+          platform: "unknown",
+        },
+        {
+          caseId: parityCase.caseId,
+          category: parityCase.category,
+          errorMessage: null,
+          mismatches,
+          platform: "unknown",
+        },
+      ],
+      status: "completed",
+    });
+
+    expect(report).toMatchObject({
+      completedCases: 1,
+      lineGeometryMismatches: 1,
+      lineTextMismatches: 1,
+      mismatchCount: 2,
+    });
+    expect(report.mismatches.map((mismatch) => mismatch.kind)).toEqual([
+      "line-text",
+      "line-geometry",
+    ]);
+  });
+
   it("serializes parity reports with grouped mismatch transport", () => {
     const mismatches = compareParityCaseLines(
       parityCase,

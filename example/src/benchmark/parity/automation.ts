@@ -27,6 +27,25 @@ function countMismatchesByKind(
   return mismatches.filter((mismatch) => mismatch.kind === kind).length;
 }
 
+function uniqueMismatchesByCaseKind(
+  mismatches: ParityMismatch[],
+): ParityMismatch[] {
+  const seen = new Set<string>();
+  const uniqueMismatches: ParityMismatch[] = [];
+
+  for (const mismatch of mismatches) {
+    const key = `${mismatch.caseId}::${mismatch.kind}`;
+    if (seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    uniqueMismatches.push(mismatch);
+  }
+
+  return uniqueMismatches;
+}
+
 function countUniqueCaseIds(results: ParityCaseResult[]): number {
   return new Set(results.map((result) => result.caseId)).size;
 }
@@ -94,7 +113,9 @@ export function createParityAutomationReport(args: {
   results: ParityCaseResult[];
   status: ParityAutomationStatus;
 }): ParityAutomationReport {
-  const mismatches = args.results.flatMap((result) => result.mismatches);
+  const mismatches = uniqueMismatchesByCaseKind(
+    args.results.flatMap((result) => result.mismatches),
+  );
 
   return {
     caseCount: args.caseCount,

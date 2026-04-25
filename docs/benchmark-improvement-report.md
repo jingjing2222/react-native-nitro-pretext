@@ -6,11 +6,12 @@ machine-local artifacts and are not part of the package.
 
 ## Current Validation Status
 
-| Platform        | Status                                               | Notes                                                                     |
-| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
-| iOS             | layout example and parity verified; timing retained  | Current suite gate expects `ios_text_kit`; rerun before claiming pass.    |
-| Android API 24+ | layout example, benchmark suite, and parity verified | Latest local validation: April 25, 2026 on API 36 debug AVD.              |
-| RN `<Text>`     | dedicated parity contract verified on both platforms | `benchmark:parity:*` requires 240 completed cases and `0/240` mismatches. |
+| Platform                | Status                                               | Notes                                                                     |
+| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| iOS                     | layout example and parity verified; timing retained  | Current suite gate expects `ios_text_kit`; rerun before claiming pass.    |
+| Android API 36          | layout example, benchmark suite, and parity verified | Latest local validation: April 25, 2026 on a debug AVD.                   |
+| Android API 24+ support | normal-wrap StaticLayout path supported              | Rerun the target device/API before making device-specific claims.         |
+| RN `<Text>`             | dedicated parity contract verified on both platforms | `benchmark:parity:*` requires 240 completed cases and `0/240` mismatches. |
 
 Do not extrapolate Android performance from iOS numbers. The Android numbers
 below are a debug AVD snapshot, not a release-device speedup claim.
@@ -94,8 +95,10 @@ Parity artifacts:
 - `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
 
 Each benchmark run also writes `latest-summary.txt` and `latest-gate.txt` under
-`example/.maestro-artifacts/<platform>-<flow>/`. Raw Maestro logs remain under
-that same directory at `.maestro/tests/<timestamp>/maestro.log`.
+`example/.maestro-artifacts/<platform>-<flow>/`. If `BENCHMARK_SKIP_GATE=1` is
+set, `latest-gate.txt` records `status skipped` for artifact capture only and
+must not be treated as validation. Raw Maestro logs remain under that same
+directory at `.maestro/tests/<timestamp>/maestro.log`.
 
 ## Manual iOS Maestro Timing Snapshot
 
