@@ -80,6 +80,7 @@ Benchmark routes:
 - `benchmark`: benchmark catalog.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
+- `benchmark/parity`: 240 unique-case RN `<Text>` parity contract.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -103,6 +104,8 @@ already be installed and, for debug builds, Metro to already be running.
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
 
 Android canonical benchmark claims require API 29+ because the canonical
@@ -117,6 +120,9 @@ Latest local benchmark status:
 - Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden
   RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
   `Pretext.layout()` returned the needed layout data in `8.59 ms`.
+- RN `<Text>` parity suite: passed on April 25, 2026 on iOS and Android with
+  240 unique Maestro cases and `0/240` line-count, line-text, and geometry
+  mismatches.
 
 ## Example Verification
 

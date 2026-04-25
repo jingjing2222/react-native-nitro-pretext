@@ -196,6 +196,17 @@ surface. On the Android debug AVD run, the hot layout path was `0.06 ms`, but
 the full visible-surface median was slower than RN by `30.46 ms`; that visible
 surface number is reported as context, not as the layout-only gate.
 
+Latest local RN `<Text>` parity contract:
+
+| Platform       | Contract source                 | Cases | Line count | Line text | Geometry | Status |
+| -------------- | ------------------------------- | ----: | ---------: | --------: | -------: | ------ |
+| iOS            | 240 unique Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
+| Android API 36 | 240 unique Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
+
+The parity contract is no longer derived from repeated timing samples. It is a
+dedicated Maestro flow that executes 240 unique cases once per platform and
+requires line-count, line-text, and line-geometry parity to be `0/240`.
+
 Current benchmark details and validation limits are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).
 
@@ -223,6 +234,8 @@ The example app is split into learning examples and benchmark routes:
   you would otherwise manage yourself.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
+- `benchmark/parity`: RN `<Text>` parity contract using 240 unique Maestro
+  cases.
 - `benchmark/base-text` and `benchmark/pretext-layout`: validation screens for
   compatibility, timing, and parity diagnostics.
 
@@ -266,7 +279,18 @@ Manual Maestro validation:
 ```sh
 yarn examples:ios
 yarn examples:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
+
+The latest parity artifacts are written under:
+
+- `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/ios-parity/latest-parity-contracts.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/android-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
 
 Example native builds:
 

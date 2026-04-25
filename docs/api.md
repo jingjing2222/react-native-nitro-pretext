@@ -584,6 +584,7 @@ Box segment fields:
 ## Compatibility Notes
 
 - Browser canvas pixel parity is explicitly out of scope.
+- RN `<Text>` parity is gated by the 240 unique-case Maestro parity suite.
 - Public offsets are source UTF-16 offsets.
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or

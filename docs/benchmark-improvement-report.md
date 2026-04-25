@@ -6,11 +6,11 @@ machine-local artifacts and are not part of the package.
 
 ## Current Validation Status
 
-| Platform          | Status                                      | Notes                                                        |
-| ----------------- | ------------------------------------------- | ------------------------------------------------------------ |
-| iOS               | layout example and benchmark suite verified | Latest local validation: April 24, 2026.                     |
-| Android API 29+   | layout example and benchmark suite verified | Latest local validation: April 25, 2026 on API 36 debug AVD. |
-| Android API 24-28 | StaticLayout compat/fallback only           | Supported, but not a canonical performance or parity target. |
+| Platform          | Status                                               | Notes                                                        |
+| ----------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| iOS               | layout example, benchmark suite, and parity verified | Benchmark suite: April 24, 2026. Parity: April 25, 2026.     |
+| Android API 29+   | layout example, benchmark suite, and parity verified | Latest local validation: April 25, 2026 on API 36 debug AVD. |
+| Android API 24-28 | StaticLayout compat/fallback only                    | Supported, but not a canonical performance or parity target. |
 
 Do not extrapolate Android performance from iOS numbers. The Android numbers
 below are a debug AVD snapshot, not a release-device speedup claim.
@@ -56,6 +56,43 @@ API learning examples are intentionally separate from this case study. They live
 under `examples/use-case/*`, with matching plain RN workarounds under
 `examples/non-use-case/*`.
 
+## Current RN Text Maestro Parity Contract
+
+RN `<Text>` parity is a dedicated Maestro contract, not a count inflated by
+repeated timing benchmark samples. The contract source is 240 unique cases. Each
+case has a stable `caseId`, text, width, style, and category, and is executed
+once per platform.
+
+Latest local parity validation:
+
+- Date: April 25, 2026
+- iOS target: iPhone 16 simulator, iOS 18.5
+- Android target: Pixel_9_Pro AVD, Android API 36
+- React Native: `0.85.0`
+- Nitro Modules: `0.35.5`
+- Gate result: pass on both platforms
+
+| Platform | Cases | Mismatches | Line count | Line text | Geometry | Contract candidates |
+| -------- | ----: | ---------: | ---------: | --------: | -------: | ------------------: |
+| iOS      |   240 |          0 |      0/240 |     0/240 |    0/240 |                   0 |
+| Android  |   240 |          0 |      0/240 |     0/240 |    0/240 |                   0 |
+
+Manual parity commands:
+
+```sh
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
+```
+
+Parity artifacts:
+
+- `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/ios-parity/latest-parity-contracts.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/android-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
+
 ## Current Manual iOS Maestro Suite Snapshot
 
 Latest local iOS benchmark suite:
@@ -84,16 +121,17 @@ Canonical paths in this run:
 | RN baseline    | `rn_text_compat` | `rn_text_compat_oracle`      |
 | Pretext layout | `ios_core_text`  | `canonical_prepared_compute` |
 
-Observed parity drift:
+Dedicated RN Text parity contract:
 
-| Bucket                   | Mismatches |
-| ------------------------ | ---------: |
-| Line-count parity        |    `0/240` |
-| Sampled line-text parity |   `35/240` |
+| Bucket               | Mismatches |
+| -------------------- | ---------: |
+| Line-count parity    |    `0/240` |
+| Line-text parity     |    `0/240` |
+| Line-geometry parity |    `0/240` |
 
-The drift is classified as native algorithm rule and line-break strategy drift.
-It is expected until RN `<Text>` style, fallback font, locale, and line-break
-policy are fully aligned with the native layout request.
+This is measured by the dedicated `benchmark:parity:ios` flow. The timing suite
+still reports visible RN surface timings for context, but it is not the source
+of the RN Text parity contract.
 
 The visible RN surface is reported for context only. The layout-only API gates
 the hot native layout median, prepare cost, engine metadata, parity report
@@ -132,20 +170,36 @@ Android `includeFontPadding` was reported as `true` for the RN baseline,
 canonical compute path, and visible RN surface path. The height metric source
 was `platform_text_engine_metrics`, not a font-size-only heuristic.
 
-Observed Android parity drift:
+Dedicated RN Text parity contract:
 
-| Bucket                   | Mismatches |
-| ------------------------ | ---------: |
-| Line-count parity        |   `80/240` |
-| Sampled line-text parity |  `240/240` |
+| Bucket               | Mismatches |
+| -------------------- | ---------: |
+| Line-count parity    |    `0/240` |
+| Line-text parity     |    `0/240` |
+| Line-geometry parity |    `0/240` |
 
 The Android debug AVD run validates that the canonical API 29+ engine path is
 used, but it also shows why platform-specific reporting matters. The
 layout-only hot path was `0.06 ms`; the full visible-surface median was slower
 than RN by `30.46 ms` because the final RN surface still dominates the render
-cost. Parity drift is reported as compatibility diagnostics instead of a
-blocking layout-only gate, and is currently classified as locale, fallback
-font, emoji, height metric, algorithm rule, and line-break strategy drift.
+cost. The dedicated `benchmark:parity:android` flow is the blocking RN Text
+parity contract and currently passes at `0/240`.
+
+## Resolved RN Text Parity History
+
+Earlier timing-suite reports recorded sampled parity drift before the dedicated
+240-case Maestro contract and native platform alignment work were complete.
+Those counts are retained here only as resolved history:
+
+| Platform | Earlier report bucket    | Historical mismatch count | Current contract status |
+| -------- | ------------------------ | ------------------------: | ----------------------- |
+| iOS      | Sampled line-text parity |                  `35/240` | `0/240` resolved        |
+| Android  | Line-count parity        |                  `80/240` | `0/240` resolved        |
+
+The current source of truth is the 240 unique-case Maestro parity suite above.
+If a new mismatch appears, it should be promoted into a deterministic Maestro
+contract case or native fixture, fixed in the relevant platform bucket, and
+then verified back to `0/240`.
 
 ## API-Level Performance Meaning
 
@@ -182,6 +236,8 @@ Then run the target benchmark with an explicit device id:
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 ```
 
@@ -193,11 +249,11 @@ runs report `ios_core_text`; degraded fallback diagnostics may report
 `ios_manual_token_fallback`. StaticLayout compat diagnostics include
 `fallbackReason: "static_layout_compat"`.
 
-The gate checks layout-only timing, prepare/measure bounds, minimum parity
-sample counts, layout engine, renderer kind, parity role, Android
-`includeFontPadding`, and height metric source. RN `<Text>` mismatch counts and
-line/text drift counts remain diagnostic because RN `<Text>` is a compatibility
-oracle, not the canonical correctness source.
+The timing-suite gate checks layout-only timing, prepare/measure bounds,
+minimum diagnostic sample counts, layout engine, renderer kind, parity role,
+Android `includeFontPadding`, and height metric source. The dedicated parity
+gate separately requires 240 completed cases and `0/240` line-count, line-text,
+and line-geometry mismatches against the final RN `<Text>` renderer.
 
 Static API example coverage is CI-safe:
 
