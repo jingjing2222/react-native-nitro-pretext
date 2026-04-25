@@ -331,17 +331,20 @@ const SHAPE_SLICE_CASES: ParityCase[] = [
   {
     caseId: "parity-shape-001",
     category: "shape",
-    description: "Blocked shapeSlices row skips before multi-slot rows",
+    description:
+      "Narrow and blocked shapeSlices rows skip before multi-slot rows",
     rnTextProps: DEFAULT_RN_TEXT_PROPS,
     shapeSlices: [
-      { height: 28, left: 0, top: 0, width: 0 },
-      { height: 28, left: 0, top: 28, width: 132 },
-      { height: 28, left: 168, top: 28, width: 132 },
-      { height: 28, left: 0, top: 56, width: 152 },
-      { height: 28, left: 148, top: 56, width: 152 },
+      { height: 28, left: 0, top: 0, width: 56 },
+      { height: 28, left: 244, top: 0, width: 56 },
+      { height: 28, left: 0, top: 28, width: 0 },
+      { height: 28, left: 0, top: 56, width: 132 },
+      { height: 28, left: 168, top: 56, width: 132 },
+      { height: 28, left: 0, top: 84, width: 152 },
+      { height: 28, left: 148, top: 84, width: 152 },
     ],
     style: PARITY_BASE_STYLE,
-    text: "Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega.",
+    text: "Typography beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega.",
     width: 300,
   },
 ];

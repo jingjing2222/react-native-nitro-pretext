@@ -130,6 +130,20 @@ if (routePath === "examples/use-case/namespace-and-types") {
   );
 }
 
+if (routePath === "examples/pretext-react-native-example") {
+  assertReport(report.previewWidth > 0, "must measure preview width");
+  assertReport(report.lineCount > 0, "must produce line geometry");
+  assertReport(report.shapeSliceCount > 0, "must produce circle shape slices");
+  assertReport(
+    report.intrudingLineCount === 0,
+    "must keep lines outside the circle obstacle",
+  );
+  assertReport(
+    report.minObstacleClearance === null || report.minObstacleClearance >= -0.5,
+    "must report non-negative obstacle clearance",
+  );
+}
+
 if (routePath.startsWith("examples/non-use-case/")) {
   assertReport(report.renderPassCount > 0, "must expose renderPassCount");
   const hiddenNodeCount =

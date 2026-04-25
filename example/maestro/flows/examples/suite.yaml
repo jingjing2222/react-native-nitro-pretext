@@ -1,4 +1,5 @@
 appId: pretext.example
 ---
+- runFlow: pretext-react-native-example.yaml
 - runFlow: use-case.yaml
 - runFlow: non-use-case.yaml

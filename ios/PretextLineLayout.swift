@@ -287,11 +287,21 @@ private func resolveLineConstraints(
         }
 
     guard !slices.isEmpty else {
-        return [NativeLineConstraint(left: request.left, width: request.width, height: 0)]
+        return [NativeLineConstraint(
+            left: request.left,
+            width: request.width,
+            height: 0,
+            isShapeConstrained: false
+        )]
     }
 
     return slices.map { slice in
-        NativeLineConstraint(left: slice.left, width: slice.width, height: slice.height)
+        NativeLineConstraint(
+            left: slice.left,
+            width: slice.width,
+            height: slice.height,
+            isShapeConstrained: true
+        )
     }
 }
 
@@ -704,8 +714,9 @@ private func layoutLineLayoutsFallback(
         let constraints = resolveLineConstraints(request: request, top: top)
 
         for constraint in constraints {
+            rowHeight = max(rowHeight, constraint.height)
+
             if constraint.width <= 0 {
-                rowHeight = max(rowHeight, constraint.height)
                 continue
             }
 
@@ -743,6 +754,10 @@ private func layoutLineLayoutsFallback(
                 }
                 hitForcedBreak = true
                 break
+            }
+
+            if constraint.isShapeConstrained && tokens[cursor].width > constraint.width {
+                continue
             }
 
             var end = cursor
@@ -836,7 +851,7 @@ private func layoutLineLayoutsFallback(
             top += rowHeight
         } else if cursor >= tokens.count {
             break
-        } else if constraints.allSatisfy({ $0.width <= 0 }) {
+        } else if constraints.contains(where: { $0.isShapeConstrained }) {
             top += rowHeight
         }
 

@@ -62,12 +62,12 @@ under `examples/use-case/*`, with matching plain RN workarounds under
 RN `<Text>` parity is a dedicated strict raw Maestro contract, not a count
 inflated by repeated timing benchmark samples. The contract source is 260
 cases: 259 raw RN `<Text onTextLayout>` cases plus one structural
-`shapeSlices` case that verifies blocked rows, same-row multi-slot output, and
-gap containment. Each case has a stable `caseId`, text, width, style, and
-category, and is executed once per platform. The source of truth for raw RN
-text cases is RN's `onTextLayout` line payload; line text is compared without
-trimming, normalization, newline folding, trailing whitespace removal, tab
-conversion, or NBSP conversion.
+`shapeSlices` case that verifies narrow-slot skips, blocked rows, same-row
+multi-slot output, and gap containment. Each case has a stable `caseId`, text,
+width, style, and category, and is executed once per platform. The source of
+truth for raw RN text cases is RN's `onTextLayout` line payload; line text is
+compared without trimming, normalization, newline folding, trailing whitespace
+removal, tab conversion, or NBSP conversion.
 
 Latest parity run:
 
@@ -278,8 +278,8 @@ minimum diagnostic sample counts, layout engine, renderer kind, parity role,
 Android `includeFontPadding`, and height metric source. The dedicated parity
 gate separately requires 260 completed cases and `0/260` line-count, line-text,
 and line-geometry mismatches against the final RN `<Text>` renderer plus the
-`shapeSlices` structural oracle for blocked rows, same-row slots, and gap
-containment.
+`shapeSlices` structural oracle for narrow slots, blocked rows, same-row slots,
+and gap containment.
 
 Static API example coverage is CI-safe:
 

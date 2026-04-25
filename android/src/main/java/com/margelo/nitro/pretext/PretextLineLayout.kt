@@ -285,8 +285,9 @@ private fun layoutWrappedLineLayouts(
     val constraints = resolveLineConstraints(request, top)
 
     for (constraint in constraints) {
+      rowHeight = max(rowHeight, constraint.height)
+
       if (constraint.width <= 0.0) {
-        rowHeight = max(rowHeight, constraint.height)
         continue
       }
 
@@ -324,6 +325,10 @@ private fun layoutWrappedLineLayouts(
         }
         hitForcedBreak = true
         break
+      }
+
+      if (constraint.isShapeConstrained && units[cursor].width > constraint.width) {
+        continue
       }
 
       var end = cursor
@@ -418,7 +423,7 @@ private fun layoutWrappedLineLayouts(
       top += rowHeight
     } else if (cursor >= units.size) {
       break
-    } else if (constraints.all { it.width <= 0.0 }) {
+    } else if (constraints.any { it.isShapeConstrained }) {
       top += rowHeight
     }
 
@@ -499,6 +504,7 @@ private fun resolveLineConstraints(
         left = request.left,
         width = request.width,
         height = 0.0,
+        isShapeConstrained = false,
       ),
     )
   }
@@ -508,6 +514,7 @@ private fun resolveLineConstraints(
       left = slice.left,
       width = slice.width,
       height = slice.height,
+      isShapeConstrained = true,
     )
   }
 }

@@ -1,0 +1,31 @@
+appId: pretext.example
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-pretext-react-native-example"
+- assertVisible: "Draggable shape reflow"
+- assertVisible:
+    id: "examples.pretext-react-native-example.circle"
+- swipe:
+    direction: LEFT
+    from:
+      id: "examples.pretext-react-native-example.circle"
+    duration: 900
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "API_EXAMPLE_REPORT::examples/pretext-react-native-example::.*"
+    timeout: 20000
+    visibilityPercentage: 1
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/pretext-react-native-example::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/pretext-react-native-example
+      requiredFields: circleX,circleY,intrudingLineCount,lineCount,minObstacleClearance,obstacleRadius,previewWidth,shapeSliceCount
+- assertTrue: ${output.apiExampleReports['examples/pretext-react-native-example'].circleX < output.apiExampleReports['examples/pretext-react-native-example'].previewWidth * 0.35}

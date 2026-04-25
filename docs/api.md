@@ -546,7 +546,9 @@ Multiple slices may share the same vertical band. With `output: "lines"`,
 Pretext fills those same-row slots from left to right. A zero-width slice keeps
 the row constrained but blocked, so the fallback line engine advances to the
 next row without consuming text instead of treating the band as unconstrained
-full-width space.
+full-width space. If the next unbreakable token is wider than a constrained
+slot, Pretext skips that slot and advances until the token can fit or the shape
+constraint ends.
 
 ### `InlineSegment`
 

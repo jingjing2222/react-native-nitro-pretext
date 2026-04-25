@@ -196,5 +196,8 @@ describe("RN Text parity corpus", () => {
       true,
     );
     expect(shapeSlices.some((slice) => slice.width === 0)).toBe(true);
+    expect(
+      shapeSlices.some((slice) => slice.width > 0 && slice.width < 80),
+    ).toBe(true);
   });
 });

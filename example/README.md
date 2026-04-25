@@ -81,8 +81,8 @@ Benchmark routes:
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
 - `benchmark/parity`: 260-case strict parity contract covering raw RN
-  `<Text>` line output plus a `shapeSlices` blocked-row and multi-slot
-  structural case.
+  `<Text>` line output plus a `shapeSlices` narrow-slot, blocked-row, and
+  multi-slot structural case.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -146,6 +146,15 @@ The API example map is verified from the repository root:
 
 ```sh
 yarn verify:api-examples
+```
+
+The draggable `examples/pretext-react-native-example` page also has a Maestro
+flow that drags the circle and asserts the exported geometry report has
+`intrudingLineCount: 0`:
+
+```sh
+maestro --platform ios test example/maestro/flows/examples/pretext-react-native-example.yaml
+maestro --platform android test example/maestro/flows/examples/pretext-react-native-example.yaml
 ```
 
 That gate checks `docs/api.md`, `apiExampleManifest`, navigation types, linking

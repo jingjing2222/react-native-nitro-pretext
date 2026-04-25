@@ -97,7 +97,9 @@ mode, Pretext fills those same-row slots from left to right before advancing to
 the next visual row, which supports text around two sides of an obstacle.
 Use `width: 0` for a constrained band that has no valid text slot; Pretext
 advances past that row without consuming text instead of falling back to the
-full paragraph width.
+full paragraph width. If the next unbreakable token is wider than a constrained
+slot, Pretext skips that slot and advances until the token can fit or the shape
+constraint ends.
 
 Rich inline boxes are prepared with inline segment paragraphs and caller-owned
 box metrics, then read with `output: "rich"`. See the

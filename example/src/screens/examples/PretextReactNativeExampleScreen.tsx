@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import {
   layout,
+  type ParagraphLineRange,
   prepare,
   type ParagraphShapeSlice,
   type PretextLinesLayout,
@@ -33,8 +34,10 @@ const TEXT_STYLE: PretextStyle = {
 const CIRCLE_RADIUS = 62;
 const CIRCLE_PADDING = 14;
 const LINE_HEIGHT = 24;
+const LINE_RENDER_WIDTH_PADDING = 2;
 const PREVIEW_HEIGHT = 520;
 const MIN_LINE_SLOT_WIDTH = 56;
+const SHAPE_INTRUSION_TOLERANCE = 0.5;
 
 type Point = {
   x: number;
@@ -74,12 +77,16 @@ function buildCircleShapeSlices({
 
   for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
     const top = lineIndex * lineHeight;
-    const lineCenter = top + lineHeight / 2;
-    const dy = lineCenter - circle.y;
-
-    if (Math.abs(dy) >= obstacleRadius) {
+    const bottom = top + lineHeight;
+    if (
+      bottom <= circle.y - obstacleRadius ||
+      top >= circle.y + obstacleRadius
+    ) {
       continue;
     }
+
+    const closestLineY = clamp(circle.y, top, bottom);
+    const dy = closestLineY - circle.y;
 
     const dx = Math.sqrt(obstacleRadius * obstacleRadius - dy * dy);
     const blockedLeft = clamp(circle.x - dx, 0, width);
@@ -116,6 +123,54 @@ function buildCircleShapeSlices({
   }
 
   return slices;
+}
+
+function summarizeCircleIntrusions({
+  circle,
+  lines,
+}: {
+  circle: Point;
+  lines: ParagraphLineRange[];
+}): {
+  intrudingLineCount: number;
+  intrudingLineTexts: string[];
+  minObstacleClearance: number | null;
+} {
+  const obstacleRadius = CIRCLE_RADIUS + CIRCLE_PADDING;
+  let hasClearance = false;
+  let minObstacleClearance = Number.POSITIVE_INFINITY;
+  const intrudingLineTexts: string[] = [];
+
+  lines.forEach((line) => {
+    if (line.width <= 0 || line.height <= 0) {
+      return;
+    }
+
+    const left = line.left;
+    const right = line.left + line.width + LINE_RENDER_WIDTH_PADDING;
+    const top = line.top;
+    const bottom = line.top + line.height;
+    const closestX = clamp(circle.x, left, right);
+    const closestY = clamp(circle.y, top, bottom);
+    const distance = Math.hypot(closestX - circle.x, closestY - circle.y);
+    const clearance = distance - obstacleRadius;
+    hasClearance = true;
+    minObstacleClearance = Math.min(minObstacleClearance, clearance);
+
+    if (clearance < -SHAPE_INTRUSION_TOLERANCE) {
+      intrudingLineTexts.push(
+        SAMPLE_TEXT.slice(line.textStart, line.textEnd).trim(),
+      );
+    }
+  });
+
+  return {
+    intrudingLineCount: intrudingLineTexts.length,
+    intrudingLineTexts: intrudingLineTexts.slice(0, 4),
+    minObstacleClearance: hasClearance
+      ? Number(minObstacleClearance.toFixed(2))
+      : null,
+  };
 }
 
 export function PretextReactNativeExampleScreen() {
@@ -257,12 +312,17 @@ export function PretextReactNativeExampleScreen() {
   }, [preparedState.prepared, previewWidth, shapeSlices]);
 
   const lines = computed.linesLayout?.paragraphs[0]?.lines ?? [];
+  const circleIntrusionSummary = summarizeCircleIntrusions({ circle, lines });
   const report = `API_EXAMPLE_REPORT::examples/pretext-react-native-example::${JSON.stringify(
     {
       circleX: Math.round(circle.x),
       circleY: Math.round(circle.y),
+      intrudingLineCount: circleIntrusionSummary.intrudingLineCount,
+      intrudingLineTexts: circleIntrusionSummary.intrudingLineTexts,
       layoutElapsedMs: computed.elapsedMs,
       lineCount: lines.length,
+      minObstacleClearance: circleIntrusionSummary.minObstacleClearance,
+      obstacleRadius: CIRCLE_RADIUS + CIRCLE_PADDING,
       previewWidth,
       shapeSliceCount: shapeSlices.length,
     },
@@ -327,7 +387,7 @@ const lines = layout(prepared, {
                 {
                   left: line.left,
                   top: line.top,
-                  width: Math.max(1, line.width + 2),
+                  width: Math.max(1, line.width + LINE_RENDER_WIDTH_PADDING),
                 },
               ]}
             >
