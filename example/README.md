@@ -80,7 +80,7 @@ Benchmark routes:
 - `benchmark`: benchmark catalog.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
-- `benchmark/parity`: 240 unique-case RN `<Text>` parity contract.
+- `benchmark/parity`: 240 unique-case strict raw RN `<Text>` parity contract.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -117,10 +117,13 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not count that as validation. Parity runs also write
-`latest-parity-summary.txt`, `latest-parity-mismatches.json`, and
-`latest-parity-contracts.json` in the matching `ios-parity` or
-`android-parity` artifact directory.
+do not count that as validation. `.maestro-artifacts` is ignored by git, so
+local `latest-gate.txt` files must be regenerated before making a parity claim.
+Parity runs also write `latest-parity-summary.txt`,
+`latest-parity-mismatches.json`, and `latest-parity-contracts.json` in the
+matching `ios-parity` or `android-parity` artifact directory. The parity
+comparator uses raw RN `onTextLayout` line text exactly; escaped values in the
+artifact files are for display only.
 
 Latest local benchmark status:
 
@@ -133,8 +136,8 @@ Latest local benchmark status:
   RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
   `Pretext.layout()` returned the needed layout data in `8.59 ms`.
 - RN `<Text>` parity suite: passed on April 25, 2026 on iOS and Android with
-  240 unique Maestro cases and `0/240` line-count, line-text, and geometry
-  mismatches.
+  240 unique strict raw Maestro cases and `0/240` line-count, line-text, and
+  geometry mismatches.
 
 ## Example Verification
 

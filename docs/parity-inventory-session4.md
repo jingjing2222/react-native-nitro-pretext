@@ -7,7 +7,8 @@ Date: 2026-04-25
 Session 4 is an inventory pass, not a parity engine fix pass. The goal is to
 run the 240 unique-case Maestro parity suite on both platforms, produce the
 artifact files, and classify the first mismatch map that will drive Sessions 5
-through 8.
+through 8. The current contract is strict raw RN `onTextLayout` parity; text
+comparison must not trim or normalize whitespace/newline/NBSP drift.
 
 ## Harness Notes
 

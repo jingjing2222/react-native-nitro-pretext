@@ -197,16 +197,19 @@ surface. On the Android debug AVD run, the hot layout path was `0.06 ms`, but
 the full visible-surface median was slower than RN by `30.46 ms`; that visible
 surface number is reported as context, not as the layout-only gate.
 
-Latest local RN `<Text>` parity contract:
+Latest local strict raw RN `<Text onTextLayout>` parity contract:
 
-| Platform       | Contract source                 | Cases | Line count | Line text | Geometry | Status |
-| -------------- | ------------------------------- | ----: | ---------: | --------: | -------: | ------ |
-| iOS            | 240 unique Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
-| Android API 36 | 240 unique Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
+| Platform       | Contract source                     | Cases | Line count | Line text | Geometry | Status |
+| -------------- | ----------------------------------- | ----: | ---------: | --------: | -------: | ------ |
+| iOS            | 240 strict raw Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
+| Android API 36 | 240 strict raw Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
 
 The parity contract is no longer derived from repeated timing samples. It is a
 dedicated Maestro flow that executes 240 unique cases once per platform and
-requires line-count, line-text, and line-geometry parity to be `0/240`.
+requires line-count, exact raw line-text, and line-geometry parity to be
+`0/240`. The line-text comparison does not trim, normalize, or collapse newline,
+trailing whitespace, tab, or NBSP characters; display output may JSON-escape
+raw values, but comparison uses the unmodified RN payload.
 
 Current benchmark details and validation limits are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).
@@ -290,7 +293,9 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not count that as validation. Parity runs also write:
+do not count that as validation. `.maestro-artifacts` is ignored by git, so any
+local `latest-gate.txt` is a cache from the last local run, not a tracked source
+of truth. Parity runs also write:
 
 - `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
 - `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`

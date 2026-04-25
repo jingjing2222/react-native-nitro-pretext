@@ -59,10 +59,13 @@ under `examples/use-case/*`, with matching plain RN workarounds under
 
 ## Current RN Text Maestro Parity Contract
 
-RN `<Text>` parity is a dedicated Maestro contract, not a count inflated by
-repeated timing benchmark samples. The contract source is 240 unique cases. Each
-case has a stable `caseId`, text, width, style, and category, and is executed
-once per platform.
+RN `<Text>` parity is a dedicated strict raw Maestro contract, not a count
+inflated by repeated timing benchmark samples. The contract source is 240
+unique cases. Each case has a stable `caseId`, text, width, style, and category,
+and is executed once per platform. The source of truth is RN's raw
+`onTextLayout` line payload; line text is compared without trimming,
+normalization, newline folding, trailing whitespace removal, tab conversion, or
+NBSP conversion.
 
 Latest local parity validation:
 
@@ -97,8 +100,10 @@ Parity artifacts:
 Each benchmark run also writes `latest-summary.txt` and `latest-gate.txt` under
 `example/.maestro-artifacts/<platform>-<flow>/`. If `BENCHMARK_SKIP_GATE=1` is
 set, `latest-gate.txt` records `status skipped` for artifact capture only and
-must not be treated as validation. Raw Maestro logs remain under that same
-directory at `.maestro/tests/<timestamp>/maestro.log`.
+must not be treated as validation. The artifact directory is ignored by git, so
+local files there are caches from the most recent run and must be regenerated
+for current validation. Raw Maestro logs remain under that same directory at
+`.maestro/tests/<timestamp>/maestro.log`.
 
 ## Manual iOS Maestro Timing Snapshot
 
@@ -143,7 +148,8 @@ Dedicated RN Text parity contract:
 
 This is measured by the dedicated `benchmark:parity:ios` flow. The timing suite
 still reports visible RN surface timings for context, but it is not the source
-of the RN Text parity contract.
+of the RN Text parity contract. Escaped strings in mismatch artifacts are for
+display only; the comparator stores and compares raw RN/Pretext line text.
 
 The visible RN surface is reported for context only. The layout-only API gates
 the hot native layout median, prepare cost, engine metadata, parity report
@@ -195,7 +201,8 @@ normal-wrap path, but it also shows why platform-specific reporting matters.
 The layout-only hot path was `0.06 ms`; the full visible-surface median was
 slower than RN by `30.46 ms` because the final RN surface still dominates the
 render cost. The dedicated `benchmark:parity:android` flow is the blocking RN
-Text parity contract and currently passes at `0/240`.
+Text parity contract and currently passes at `0/240` under strict raw line-text
+comparison.
 
 ## Resolved RN Text Parity History
 
@@ -211,7 +218,9 @@ Those counts are retained here only as resolved history:
 The current source of truth is the 240 unique-case Maestro parity suite above.
 If a new mismatch appears, it should be promoted into a deterministic Maestro
 contract case or native fixture, fixed in the relevant platform bucket, and
-then verified back to `0/240`.
+then verified back to `0/240`. The gate must not be weakened by trimming,
+normalizing, deduping observed mismatches, or treating a skipped-gate run as a
+pass.
 
 ## API-Level Performance Meaning
 
@@ -256,7 +265,9 @@ BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 `BENCHMARK_GATE_PROFILE=manual-debug` relaxes timing thresholds for noisy local
 debug runs where configured; the dedicated parity gate remains strict.
 `BENCHMARK_SKIP_GATE=1` is only for exploratory artifact capture and should not
-be reported as validation.
+be reported as validation. A parity claim requires a non-skipped
+`benchmark:parity:*` run that completes all 240 cases and reports zero failed
+cases plus zero line-count, line-text, and line-geometry mismatches.
 
 Android normal-wrap benchmark claims currently use the RN-compatible
 `android_static_layout_compat` path. Android rule-layer requests that require
