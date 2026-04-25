@@ -110,11 +110,12 @@ Height is native text-engine output. It is affected by font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
 
-| Platform        | Layout path                  | Status                                                              |
-| --------------- | ---------------------------- | ------------------------------------------------------------------- |
-| Android API 24+ | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.            |
-| iOS             | TextKit normal-wrap layout   | Current benchmark gate path for normal text.                        |
-| RN `<Text>`     | final visible renderer       | Not the correctness source. Match styles carefully to reduce drift. |
+| Platform                 | Layout path                  | Status                                                         |
+| ------------------------ | ---------------------------- | -------------------------------------------------------------- |
+| Android API 24+          | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.       |
+| iOS                      | TextKit normal-wrap layout   | Current benchmark gate path for normal text.                   |
+| RN `<Text onTextLayout>` | strict parity oracle         | Dedicated Maestro contract for raw line count, text, geometry. |
+| Visible RN `<Text>`      | final renderer               | Match styles carefully because Pretext does not draw pixels.   |
 
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
 If you turn it off in Pretext but leave RN `<Text>` at its default, height can
@@ -281,9 +282,9 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not report that as a benchmark result. `.maestro-artifacts` is ignored by git, so any
-local `latest-gate.txt` is a cache from the last local run, not a tracked source
-of truth. Parity runs also write:
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git,
+so any `latest-gate.txt` there is generated output, not a tracked result. Parity
+runs also write:
 
 - `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
 - `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`

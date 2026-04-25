@@ -1,8 +1,8 @@
 # Benchmark Report
 
 This document records benchmark and parity-contract status for the layout-only
-Pretext API. Raw Maestro outputs are not linked here because they are
-machine-local artifacts and are not part of the package.
+Pretext API. Raw Maestro outputs are not linked here because generated artifacts
+are not part of the package.
 
 ## Current Benchmark Status
 
@@ -114,7 +114,7 @@ Latest iOS benchmark suite:
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
-- Maestro gate profile: `local`
+- Maestro gate profile: default timing thresholds
 - Gate: pass
 
 | Metric                 | RN baseline | Pretext layout + RN surface |      Delta |
@@ -160,7 +160,7 @@ Latest Android benchmark suite:
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
-- Maestro gate profile: `local`
+- Maestro gate profile: default timing thresholds
 - Gate: pass
 
 | Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
@@ -256,8 +256,8 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:and
 BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 ```
 
-`BENCHMARK_GATE_PROFILE=manual-debug` relaxes timing thresholds for noisy local
-debug runs where configured; the dedicated parity gate remains strict.
+`BENCHMARK_GATE_PROFILE=manual-debug` relaxes timing thresholds for noisy debug
+runs where configured; the dedicated parity gate remains strict.
 `BENCHMARK_SKIP_GATE=1` is only for exploratory artifact capture and should not
 be reported as a benchmark result. A parity claim requires a non-skipped
 `benchmark:parity:*` run that completes all 259 cases and reports zero failed

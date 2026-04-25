@@ -117,8 +117,9 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not report that as a benchmark result. `.maestro-artifacts` is ignored by git, so
-local `latest-gate.txt` files must be regenerated before making a parity claim.
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git,
+so generated `latest-gate.txt` files must be regenerated before making a parity
+claim.
 Parity runs also write `latest-parity-summary.txt`,
 `latest-parity-mismatches.json`, and `latest-parity-contracts.json` in the
 matching `ios-parity` or `android-parity` artifact directory. The parity

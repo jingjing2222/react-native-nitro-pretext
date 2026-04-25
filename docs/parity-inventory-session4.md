@@ -2,13 +2,17 @@
 
 Date: 2026-04-25
 
+This is a historical inventory from the earlier 240-case contract. The current
+public parity contract is the 259 unique-case strict raw Maestro suite recorded
+in `docs/benchmark-improvement-report.md` and `docs/parity-regression-session9.md`.
+
 ## Scope
 
-Session 4 is an inventory pass, not a parity engine fix pass. The goal is to
-run the 240 unique-case Maestro parity suite on both platforms, produce the
-artifact files, and classify the first mismatch map that will drive Sessions 5
-through 8. The current contract is strict raw RN `onTextLayout` parity; text
-comparison must not trim or normalize whitespace/newline/NBSP drift.
+Session 4 was an inventory pass, not a parity engine fix pass. The goal was to
+run the then-current 240 unique-case Maestro parity suite on both platforms,
+produce the artifact files, and classify the first mismatch map that would drive
+Sessions 5 through 8. The strict raw RN `onTextLayout` rule already applied:
+text comparison must not trim or normalize whitespace/newline/NBSP drift.
 
 ## Harness Notes
 
@@ -32,9 +36,9 @@ MAESTRO_IOS_DEVICE_ID=2BDA24D2-3694-46CA-9CF5-2EA46D0445DE yarn benchmark:parity
 MAESTRO_ANDROID_DEVICE_ID=emulator-5554 yarn benchmark:parity:android
 ```
 
-Both commands are expected to exit non-zero until the parity gate reaches
-`0/240`, because Session 3 made mismatch count, line count, line text, and line
-geometry thresholds strict.
+At this point in the project history, both commands were expected to exit
+non-zero until the parity gate reached `0/240`, because Session 3 made mismatch
+count, line count, line text, and line geometry thresholds strict.
 
 ## Artifact Locations
 
@@ -51,7 +55,7 @@ geometry thresholds strict.
 - Android contract candidates:
   `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
 
-## Current Counts
+## Session 4 Counts
 
 | Platform | Cases | Cases with mismatch | Total mismatches | Line count | Line text | Geometry |
 | -------- | ----: | ------------------: | ---------------: | ---------: | --------: | -------: |

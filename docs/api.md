@@ -32,12 +32,13 @@ Native `>=0.81.0` peer floor is defined by Pretext, and
 
 ## Platform Contract
 
-| Platform        | Layout path                  | Notes                                                            |
-| --------------- | ---------------------------- | ---------------------------------------------------------------- |
-| Android API 24+ | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.         |
-| iOS             | TextKit normal-wrap layout   | Current benchmark gate path for plain normal-wrap requests.      |
-| iOS             | Core Text native line layout | Used by alternate native line-layout paths such as rich inline.  |
-| RN `<Text>`     | final visible renderer       | Not the correctness source. Match render styles to reduce drift. |
+| Platform                 | Layout path                  | Notes                                                           |
+| ------------------------ | ---------------------------- | --------------------------------------------------------------- |
+| Android API 24+          | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.        |
+| iOS                      | TextKit normal-wrap layout   | Current benchmark gate path for plain normal-wrap requests.     |
+| iOS                      | Core Text native line layout | Used by alternate native line-layout paths such as rich inline. |
+| RN `<Text onTextLayout>` | strict parity oracle         | Dedicated Maestro contract for raw line count, text, geometry.  |
+| Visible RN `<Text>`      | final renderer               | Match render styles because Pretext does not draw final pixels. |
 
 Height is not derived from `fontSize`. It depends on font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
@@ -591,5 +592,5 @@ Box segment fields:
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or
   complex-script clusters in caller code.
-- The latest local Android parity snapshot was captured on API 36; validate on
-  older supported API levels before making device-specific claims for them.
+- Documented Android benchmark and parity snapshots target API 36; rerun older
+  supported API levels before making device-specific claims for them.
