@@ -1,5 +1,5 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ScrollView, Text, View } from "react-native";
+import { Platform, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import {
@@ -178,6 +178,7 @@ export function PretextLayoutBenchmarkScreen({ navigation }: Props) {
           />
 
           <HeroAutomationPanel
+            reportAsInput={Platform.OS !== "android"}
             reportLine={automationReportLine}
             reportTestID="benchmark.pretext-layout.report"
             statusLine={automationStatusLine}

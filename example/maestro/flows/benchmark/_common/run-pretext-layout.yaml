@@ -25,11 +25,11 @@ appId: pretext.example
 - scrollUntilVisible:
     direction: DOWN
     element:
-      text: "AUTOMATION_REPORT::benchmark/pretext-layout::.*"
+      id: "benchmark.pretext-layout.report"
     timeout: 20000
     visibilityPercentage: 1
 - copyTextFrom:
-    text: "AUTOMATION_REPORT::benchmark/pretext-layout::.*"
+    id: "benchmark.pretext-layout.report"
 - runScript:
     file: ../../../scripts/log-benchmark-report.js
     env:

@@ -109,7 +109,7 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:and
 ```
 
 Android normal-wrap benchmark claims currently use the RN-compatible
-`StaticLayout` path on the validated API 36 AVD. Android API 24+ is supported,
+`StaticLayout` path on the API 36 AVD. Android API 24+ is supported,
 but rerun the target device/API before making device-specific performance or
 parity claims.
 
@@ -117,7 +117,7 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not count that as validation. `.maestro-artifacts` is ignored by git, so
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git, so
 local `latest-gate.txt` files must be regenerated before making a parity claim.
 Parity runs also write `latest-parity-summary.txt`,
 `latest-parity-mismatches.json`, and `latest-parity-contracts.json` in the
@@ -125,17 +125,15 @@ matching `ios-parity` or `android-parity` artifact directory. The parity
 comparator uses raw RN `onTextLayout` line text exactly; escaped values in the
 artifact files are for display only.
 
-Latest local benchmark status:
+Latest benchmark runs:
 
-- iOS `benchmark` suite: April 24, 2026 timing snapshot with an iPhone 16
-  simulator; rerun for the current TextKit gate contract before treating it as
-  a current gate pass.
-- Android `benchmark` suite: completed on April 25, 2026 with a Pixel_9_Pro AVD
-  on API 36. The canonical engine metadata and local layout-only gate passed.
-- Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden
-  RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
-  `Pretext.layout()` returned the needed layout data in `8.59 ms`.
-- RN `<Text>` parity suite: passed on April 25, 2026 on iOS and Android with
+- iOS `benchmark` suite: April 25, 2026 on iPhone 16 simulator, iOS 18.5.
+  RN median `234.94 ms`, Pretext visible median `228.76 ms`, layout-only
+  median `0.19 ms`.
+- Android `benchmark` suite: April 25, 2026 on Pixel_9_Pro AVD, API 36.
+  RN median `70.65 ms`, Pretext visible median `86.33 ms`, layout-only median
+  `0.10 ms`.
+- RN `<Text>` parity suite: April 25, 2026 on iOS and Android with
   259 unique strict raw Maestro cases and `0/259` line-count, line-text, and
   geometry mismatches.
 

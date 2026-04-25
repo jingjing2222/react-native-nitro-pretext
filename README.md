@@ -132,17 +132,17 @@ both Android and iOS.
 
 ## Compatibility
 
-| Dependency                   | Package range | Current validation                                      |
-| ---------------------------- | ------------- | ------------------------------------------------------- |
-| React                        | `*`           | Example app and local checks use React `19.2.3`.        |
-| React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
-| `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                       |
-| Android                      | API 24+       | Normal-wrap requests use RN-compatible StaticLayout.    |
-| iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
+| Dependency                   | Package range | Example target                                       |
+| ---------------------------- | ------------- | ---------------------------------------------------- |
+| React                        | `*`           | Example app uses React `19.2.3`.                     |
+| React Native                 | `>=0.81.0`    | Example app uses React Native `0.85.0`.              |
+| `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                    |
+| Android                      | API 24+       | Normal-wrap requests use RN-compatible StaticLayout. |
+| iOS                          | RN default    | Example app currently targets iOS 15.1.              |
 
 Pretext keeps its React and `react-native-nitro-modules` peer ranges open as
 `*` and documents/enforces its own React Native peer floor as `>=0.81.0`.
-Current local validation is on React `19.2.3` and React Native `0.85.0`.
+The bundled example app is on React `19.2.3` and React Native `0.85.0`.
 
 ## Performance Snapshot
 
@@ -158,46 +158,34 @@ only:
 | Hidden RN `<Text>` + `onLayout` | Mount hidden measurement tree, wait for callbacks, apply height, render visible UI. |
 | `prepare()` + `layout()`        | Measure in the native text engine first, then render visible UI with known height.  |
 
-Latest local measured-layout case study:
+Latest Maestro timing snapshot:
 
-| Platform       | Target                                    | RN hidden measure time | Pretext layout time | Render passes | Layout shifts | Status           |
-| -------------- | ----------------------------------------- | ---------------------: | ------------------: | ------------: | ------------: | ---------------- |
-| iOS            | iPhone 16 simulator, debug, April 24 2026 |            `129.16 ms` |           `1.55 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
-| Android API 36 | Pixel_9_Pro AVD, debug, April 25 2026     |            `174.95 ms` |           `8.59 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
+| Platform       | Target                               | RN `<Text>` median | Pretext visible surface median | Delta vs RN | Pretext hot layout median | Prepare once |
+| -------------- | ------------------------------------ | -----------------: | -----------------------------: | ----------: | ------------------------: | -----------: |
+| iOS            | iPhone 16 simulator, iOS 18.5, debug |        `234.94 ms` |                    `228.76 ms` |  `-6.18 ms` |                 `0.19 ms` |   `55.62 ms` |
+| Android API 36 | Pixel_9_Pro AVD, API 36, debug       |         `70.65 ms` |                     `86.33 ms` | `+15.68 ms` |                 `0.10 ms` |  `155.28 ms` |
 
-Improvement headline:
-
-| Platform       | Stable-height path improved by | Time removed before visible UI is stable | Relative speedup |
-| -------------- | -----------------------------: | ---------------------------------------: | ---------------: |
-| iOS            |                        `98.8%` |                              `127.61 ms` |          `83.3x` |
-| Android API 36 |                        `95.1%` |                              `166.36 ms` |          `20.4x` |
-
-`Stable-height path improved by` is calculated as
-`(RN hidden measure time - Pretext layout time) / RN hidden measure time`.
-
-Latest retained local Maestro timing snapshot:
-
-| Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                               |
-| -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ---------------------------------------------------- |
-| iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Historical timing snapshot; rerun current suite gate |
-| Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed                |
+Negative delta means the Pretext visible surface was faster in that run;
+positive delta means it was slower. The visible-surface number includes the
+final RN `<Text>` render. The hot-layout number is the layout-only relayout
+cost after paragraph state has already been prepared.
 
 Hot relayout compute improvement:
 
 | Platform       | Hot layout compute vs RN `<Text>` median | Relative compute speedup |
 | -------------- | ---------------------------------------: | -----------------------: |
-| iOS            |                                  `99.9%` |                `1074.4x` |
-| Android API 36 |                                  `99.9%` |                 `909.2x` |
+| iOS            |                                  `99.9%` |                `1236.5x` |
+| Android API 36 |                                  `99.9%` |                 `706.5x` |
 
 The measured-layout case study is the render optimization claim: Pretext
 removes the hidden measurement `<Text>` surface, so the screen does not need a
 measurement render followed by a corrected visible render. The Maestro timing
 suite is a different contract: it includes the final visible RN `<Text>`
-surface. On the Android debug AVD run, the hot layout path was `0.06 ms`, but
-the full visible-surface median was slower than RN by `30.46 ms`; that visible
+surface. On the Android API 36 run above, the hot layout path was `0.10 ms`, but
+the full visible-surface median was slower than RN by `15.68 ms`; that visible
 surface number is reported as context, not as the layout-only gate.
 
-Latest local strict raw RN `<Text onTextLayout>` parity contract:
+Strict raw RN `<Text onTextLayout>` parity contract:
 
 | Platform       | Contract source                     | Cases | Line count | Line text | Geometry | Status |
 | -------------- | ----------------------------------- | ----: | ---------: | --------: | -------: | ------ |
@@ -211,7 +199,7 @@ requires line-count, exact raw line-text, and line-geometry parity to be
 trailing whitespace, tab, or NBSP characters; display output may JSON-escape
 raw values, but comparison uses the unmodified RN payload.
 
-Current benchmark details and validation limits are in the
+Current benchmark details and gate thresholds are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).
 
 ## Install
@@ -240,7 +228,7 @@ The example app is split into learning examples and benchmark routes:
   `Pretext.layout()` before render.
 - `benchmark/parity`: RN `<Text>` parity contract using 259 unique Maestro
   cases.
-- `benchmark/base-text` and `benchmark/pretext-layout`: validation screens for
+- `benchmark/base-text` and `benchmark/pretext-layout`: benchmark screens for
   compatibility, timing, and parity diagnostics.
 
 Run it locally:
@@ -278,7 +266,7 @@ CI runs the static, unit, package, and native build checks above. Maestro device
 flows are manual only because they depend on installed apps, simulators/devices,
 Metro, and API/example routes that may intentionally change.
 
-Manual Maestro validation:
+Manual Maestro runs:
 
 ```sh
 yarn examples:ios
@@ -293,7 +281,7 @@ Benchmark scripts write the latest summary and quality-gate report under
 `example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
 `example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
 `BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
-do not count that as validation. `.maestro-artifacts` is ignored by git, so any
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git, so any
 local `latest-gate.txt` is a cache from the last local run, not a tracked source
 of truth. Parity runs also write:
 

@@ -195,12 +195,12 @@ export function HeroAutomationPanel({
           {`AUTOMATION_REPORT::benchmark/parity::${reportLine.length} bytes`}
         </Text>
       ) : (
-        <Pressable
-          accessibilityRole="button"
-          onPress={() => {}}
-          testID={reportTestID}
-        >
-          <Text selectable style={styles.heroAutomationText}>
+        <Pressable accessibilityRole="button" onPress={() => {}}>
+          <Text
+            selectable
+            style={styles.heroAutomationText}
+            testID={reportTestID}
+          >
             {reportLine}
           </Text>
         </Pressable>

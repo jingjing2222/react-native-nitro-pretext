@@ -21,10 +21,10 @@ workarounds live under `examples/non-use-case/*`.
 
 | Dependency                   | Package range         | Notes                                               |
 | ---------------------------- | --------------------- | --------------------------------------------------- |
-| React                        | `*`                   | App-supplied peer; current validation uses 19.2.3.  |
-| React Native                 | `>=0.81.0`            | Package peer floor; current validation uses 0.85.0. |
+| React                        | `*`                   | App-supplied peer; example app uses 19.2.3.         |
+| React Native                 | `>=0.81.0`            | Package peer floor; example app uses 0.85.0.        |
 | `react-native-nitro-modules` | `*`                   | Nitro runtime dependency used by the native module. |
-| Example app                  | React Native `0.85.0` | Current local validation and native build target.   |
+| Example app                  | React Native `0.85.0` | Native build and Maestro benchmark target.          |
 
 Pretext keeps its React and Nitro Modules peer ranges open. The stricter React
 Native `>=0.81.0` peer floor is defined by Pretext, and
