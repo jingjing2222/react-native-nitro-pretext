@@ -91,19 +91,21 @@ function buildCircleShapeSlices({
       continue;
     }
 
-    if (rightWidth > leftWidth) {
-      slices.push({
-        height: lineHeight,
-        left: blockedRight,
-        top,
-        width: Math.max(1, rightWidth),
-      });
-    } else {
+    if (leftWidth >= MIN_LINE_SLOT_WIDTH) {
       slices.push({
         height: lineHeight,
         left: 0,
         top,
         width: Math.max(1, leftWidth),
+      });
+    }
+
+    if (rightWidth >= MIN_LINE_SLOT_WIDTH) {
+      slices.push({
+        height: lineHeight,
+        left: blockedRight,
+        top,
+        width: Math.max(1, rightWidth),
       });
     }
   }
@@ -118,6 +120,7 @@ export function PretextReactNativeExampleScreen() {
     x: CIRCLE_RADIUS + CIRCLE_PADDING,
     y: 132,
   });
+  const [isDragging, setIsDragging] = useState(false);
   const circleRef = useRef(circle);
   const dragStartRef = useRef(circle);
   const initializedRef = useRef(false);
@@ -168,6 +171,7 @@ export function PretextReactNativeExampleScreen() {
       PanResponder.create({
         onMoveShouldSetPanResponder: () => true,
         onPanResponderGrant: () => {
+          setIsDragging(true);
           dragStartRef.current = circleRef.current;
         },
         onPanResponderMove: (_event, gesture) => {
@@ -176,6 +180,12 @@ export function PretextReactNativeExampleScreen() {
             x: start.x + gesture.dx,
             y: start.y + gesture.dy,
           });
+        },
+        onPanResponderRelease: () => {
+          setIsDragging(false);
+        },
+        onPanResponderTerminate: () => {
+          setIsDragging(false);
         },
         onStartShouldSetPanResponder: () => true,
       }),
@@ -258,6 +268,7 @@ export function PretextReactNativeExampleScreen() {
           localStyles.content,
           { paddingBottom: 56 + insets.bottom },
         ]}
+        scrollEnabled={!isDragging}
         showsVerticalScrollIndicator={false}
       >
         <View style={localStyles.header}>

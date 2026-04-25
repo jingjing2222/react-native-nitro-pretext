@@ -270,11 +270,29 @@ private func resolveLineConstraint(
     request: NativeLayoutRequest,
     top: Double
 ) -> NativeLineConstraint {
-    if let slice = request.shapeSlices.first(where: { top >= $0.top && top < $0.top + $0.height }) {
-        return NativeLineConstraint(left: slice.left, width: slice.width)
+    resolveLineConstraints(request: request, top: top)[0]
+}
+
+private func resolveLineConstraints(
+    request: NativeLayoutRequest,
+    top: Double
+) -> [NativeLineConstraint] {
+    let slices = request.shapeSlices
+        .filter { top >= $0.top && top < $0.top + $0.height }
+        .sorted { left, right in
+            if left.left == right.left {
+                return left.width < right.width
+            }
+            return left.left < right.left
+        }
+
+    guard !slices.isEmpty else {
+        return [NativeLineConstraint(left: request.left, width: request.width)]
     }
 
-    return NativeLineConstraint(left: request.left, width: request.width)
+    return slices.map { slice in
+        NativeLineConstraint(left: slice.left, width: slice.width)
+    }
 }
 
 private func resolveCoreTextLineLeft(
@@ -659,8 +677,6 @@ private func layoutLineLayoutsFallback(
     }
 
     while cursor < tokens.count {
-        let constraint = resolveLineConstraint(request: request, top: top)
-
         if tokens[cursor].text == newlineToken {
             let newline = tokens[cursor]
             let newlineHeight = max(lineHeight, newline.lineHeight)
@@ -680,85 +696,139 @@ private func layoutLineLayoutsFallback(
             break
         }
 
-        var end = cursor
-        var currentWidth = 0.0
-        var lastBreakAfter = -1
+        var rowLines: [NativeLineLayout] = []
+        var rowHeight = lineHeight
         var hitForcedBreak = false
         let breakAnywhere = request.wordBreak == wordBreakBreakAll
 
-        while end < tokens.count {
-            let token = tokens[end]
+        for constraint in resolveLineConstraints(request: request, top: top) {
+            while cursor < tokens.count && isNonNewlineWhitespace(tokens[cursor].text) {
+                cursor += 1
+            }
 
-            if token.text == newlineToken {
+            if cursor >= tokens.count {
+                break
+            }
+
+            if tokens[cursor].text == newlineToken {
+                if rowLines.isEmpty {
+                    let newline = tokens[cursor]
+                    let newlineHeight = max(lineHeight, newline.lineHeight)
+                    rowHeight = max(rowHeight, newlineHeight)
+                    rowLines.append(
+                        NativeLineLayout(
+                            textStartUTF16: newline.startUTF16,
+                            textEndUTF16: newline.startUTF16,
+                            width: 0,
+                            left: resolveFallbackLineLeft(
+                                constraint: constraint,
+                                lineWidth: 0,
+                                lineText: "",
+                                textDirection: textDirection,
+                                textLocale: textLocale
+                            ),
+                            top: top,
+                            height: newlineHeight,
+                            ascent: 0,
+                            descent: newlineHeight
+                        )
+                    )
+                }
                 hitForcedBreak = true
                 break
             }
 
-            if currentWidth + token.width <= constraint.width || end == cursor {
-                currentWidth += token.width
-                end += 1
-                if breakAnywhere || isNonNewlineWhitespace(token.text) {
-                    lastBreakAfter = end
+            var end = cursor
+            var currentWidth = 0.0
+            var lastBreakAfter = -1
+
+            while end < tokens.count {
+                let token = tokens[end]
+
+                if token.text == newlineToken {
+                    hitForcedBreak = true
+                    break
                 }
-                continue
+
+                if currentWidth + token.width <= constraint.width || end == cursor {
+                    currentWidth += token.width
+                    end += 1
+                    if breakAnywhere || isNonNewlineWhitespace(token.text) {
+                        lastBreakAfter = end
+                    }
+                    continue
+                }
+
+                if lastBreakAfter > cursor {
+                    end = lastBreakAfter
+                }
+                break
             }
 
-            if lastBreakAfter > cursor {
-                end = lastBreakAfter
+            let trimmedEnd = trimTrailingWhitespaceEnd(tokens, start: cursor, end: end)
+            if trimmedEnd == cursor {
+                let fallback = tokens[cursor]
+                let fallbackRange = fallback.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    ? fallback.startUTF16..<fallback.startUTF16
+                    : fallback.startUTF16..<fallback.endUTF16
+                let fallbackLineHeight = fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight
+                rowHeight = max(rowHeight, fallbackLineHeight)
+                rowLines.append(
+                    NativeLineLayout(
+                        textStartUTF16: fallbackRange.lowerBound,
+                        textEndUTF16: fallbackRange.upperBound,
+                        width: fallback.width,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: fallback.width,
+                            lineText: fallback.text,
+                            textDirection: textDirection,
+                            textLocale: textLocale
+                        ),
+                        top: top,
+                        height: fallbackLineHeight,
+                        ascent: fallback.ascent,
+                        descent: max(fallback.descent, fallbackLineHeight + fallback.ascent)
+                    )
+                )
+                cursor += 1
+            } else {
+                let metrics = fallbackLineMetrics(tokens, start: cursor, end: trimmedEnd, defaultLineHeight: lineHeight)
+                let lineWidth = sumWidths(tokens, start: cursor, end: trimmedEnd)
+                rowHeight = max(rowHeight, metrics.lineHeight)
+                rowLines.append(
+                    NativeLineLayout(
+                        textStartUTF16: tokens[cursor].startUTF16,
+                        textEndUTF16: tokens[trimmedEnd - 1].endUTF16,
+                        width: lineWidth,
+                        left: resolveFallbackLineLeft(
+                            constraint: constraint,
+                            lineWidth: lineWidth,
+                            lineText: lineTextFromTokens(tokens, start: cursor, end: trimmedEnd),
+                            textDirection: textDirection,
+                            textLocale: textLocale
+                        ),
+                        top: top,
+                        height: metrics.lineHeight,
+                        ascent: metrics.ascent,
+                        descent: metrics.descent
+                    )
+                )
+                cursor = end
             }
-            break
+
+            if hitForcedBreak {
+                break
+            }
         }
 
-        let trimmedEnd = trimTrailingWhitespaceEnd(tokens, start: cursor, end: end)
-        if trimmedEnd == cursor {
-            let fallback = tokens[cursor]
-            let fallbackRange = fallback.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? fallback.startUTF16..<fallback.startUTF16
-                : fallback.startUTF16..<fallback.endUTF16
-            let fallbackLineHeight = fallback.lineHeight > 0 ? max(lineHeight, fallback.lineHeight) : lineHeight
-            lines.append(
-                NativeLineLayout(
-                    textStartUTF16: fallbackRange.lowerBound,
-                    textEndUTF16: fallbackRange.upperBound,
-                    width: fallback.width,
-                    left: resolveFallbackLineLeft(
-                        constraint: constraint,
-                        lineWidth: fallback.width,
-                        lineText: fallback.text,
-                        textDirection: textDirection,
-                        textLocale: textLocale
-                    ),
-                    top: top,
-                    height: fallbackLineHeight,
-                    ascent: fallback.ascent,
-                    descent: max(fallback.descent, fallbackLineHeight + fallback.ascent)
-                )
-            )
-            top += fallbackLineHeight
-            cursor += 1
-        } else {
-            let metrics = fallbackLineMetrics(tokens, start: cursor, end: trimmedEnd, defaultLineHeight: lineHeight)
-            let lineWidth = sumWidths(tokens, start: cursor, end: trimmedEnd)
-            lines.append(
-                NativeLineLayout(
-                    textStartUTF16: tokens[cursor].startUTF16,
-                    textEndUTF16: tokens[trimmedEnd - 1].endUTF16,
-                    width: lineWidth,
-                    left: resolveFallbackLineLeft(
-                        constraint: constraint,
-                        lineWidth: lineWidth,
-                        lineText: lineTextFromTokens(tokens, start: cursor, end: trimmedEnd),
-                        textDirection: textDirection,
-                        textLocale: textLocale
-                    ),
-                    top: top,
-                    height: metrics.lineHeight,
-                    ascent: metrics.ascent,
-                    descent: metrics.descent
-                )
-            )
-            top += metrics.lineHeight
-            cursor = end
+        if !rowLines.isEmpty {
+            lines.append(contentsOf: rowLines.map { line in
+                line.withHeight(rowHeight)
+            })
+            top += rowHeight
+        } else if cursor >= tokens.count {
+            break
         }
 
         if hitForcedBreak && cursor < tokens.count && tokens[cursor].text == newlineToken {
@@ -796,6 +866,28 @@ private func layoutLineLayoutsFallback(
     }
 
     return lines
+}
+
+private extension NativeLineLayout {
+    func withHeight(_ rowHeight: Double) -> NativeLineLayout {
+        guard height != rowHeight else {
+            return self
+        }
+
+        return NativeLineLayout(
+            textStartUTF16: textStartUTF16,
+            textEndUTF16: textEndUTF16,
+            width: width,
+            left: left,
+            top: top,
+            height: rowHeight,
+            ascent: ascent,
+            descent: max(descent, rowHeight + ascent),
+            layoutEngine: layoutEngine,
+            fallbackReason: fallbackReason,
+            ctLine: ctLine
+        )
+    }
 }
 
 internal func sumHeights(_ lineLayouts: [NativeLineLayout]) -> Double {
