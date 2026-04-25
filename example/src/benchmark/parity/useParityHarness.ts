@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { compareParityCaseLines } from "./comparator";
-import {
-  materializePretextParityLines,
-  materializeShapeSliceParityOracleLines,
-} from "./pretextLines";
+import { materializePretextParityLines } from "./pretextLines";
 import { normalizeParityPlatform } from "./platform";
+import { materializeShapeSliceParityOracleLines } from "./shapeSliceOracle";
 import {
   advanceParityLayoutObservation,
   createParityLayoutObservation,

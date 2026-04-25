@@ -5,7 +5,7 @@ import {
   serializeParityAutomationReport,
 } from "../../example/src/benchmark/parity/automation";
 import { compareParityCaseLines } from "../../example/src/benchmark/parity/comparator";
-import { materializeShapeSliceParityOracleLines } from "../../example/src/benchmark/parity/pretextLines";
+import { materializeShapeSliceParityOracleLines } from "../../example/src/benchmark/parity/shapeSliceOracle";
 import {
   advanceParityLayoutObservation,
   createParityLayoutObservation,
