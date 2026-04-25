@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { LayoutChangeEvent } from "react-native";
+import type { LayoutChangeEvent, ViewStyle } from "react-native";
 import {
   PanResponder,
   Pressable,
@@ -35,14 +35,36 @@ const CIRCLE_RADIUS = 62;
 const CIRCLE_PADDING = 14;
 const LINE_HEIGHT = 24;
 const LINE_RENDER_WIDTH_PADDING = 2;
-const PREVIEW_HEIGHT = 520;
+const PREVIEW_HEIGHT = 360;
 const MIN_LINE_SLOT_WIDTH = 56;
+const SHAPE_LAYOUT_CLEARANCE = 20;
 const SHAPE_INTRUSION_TOLERANCE = 0.5;
+const GRID_CELL_PERCENT = 100 / 3;
+const GRID_CELLS = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
+const GRID_TARGET_FRACTIONS = [0.28, 0.5, 0.72] as const;
 
 type Point = {
   x: number;
   y: number;
 };
+
+type CircleMotionReport = {
+  intrudingSampleCount: number;
+  maxIntrudingLineCount: number;
+  minObstacleClearance: number | null;
+  sampledPositionCount: number;
+  visitedGridCells: number[];
+};
+
+function createCircleMotionReport(): CircleMotionReport {
+  return {
+    intrudingSampleCount: 0,
+    maxIntrudingLineCount: 0,
+    minObstacleClearance: null,
+    sampledPositionCount: 0,
+    visitedGridCells: [],
+  };
+}
 
 function describeError(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -54,6 +76,51 @@ function clamp(value: number, min: number, max: number): number {
 
 function formatMs(value: number | null): string {
   return value === null ? "-" : `${value.toFixed(2)} ms`;
+}
+
+function minNullableNumber(
+  current: number | null,
+  next: number | null,
+): number | null {
+  if (current === null) {
+    return next;
+  }
+
+  if (next === null) {
+    return current;
+  }
+
+  return Math.min(current, next);
+}
+
+function getCircleGridCell({
+  circle,
+  previewWidth,
+}: {
+  circle: Point;
+  previewWidth: number;
+}): number | null {
+  if (previewWidth <= 0) {
+    return null;
+  }
+
+  const column = clamp(Math.floor((circle.x / previewWidth) * 3), 0, 2);
+  const row = clamp(Math.floor((circle.y / PREVIEW_HEIGHT) * 3), 0, 2);
+
+  return row * 3 + column + 1;
+}
+
+function getCircleGridCellStyle(cell: number): ViewStyle {
+  const index = cell - 1;
+  const column = index % 3;
+  const row = Math.floor(index / 3);
+
+  return {
+    height: `${GRID_CELL_PERCENT}%`,
+    left: `${column * GRID_CELL_PERCENT}%`,
+    top: `${row * GRID_CELL_PERCENT}%`,
+    width: `${GRID_CELL_PERCENT}%`,
+  };
 }
 
 function buildCircleShapeSlices({
@@ -72,7 +139,8 @@ function buildCircleShapeSlices({
   }
 
   const slices: ParagraphShapeSlice[] = [];
-  const obstacleRadius = CIRCLE_RADIUS + CIRCLE_PADDING;
+  const obstacleRadius =
+    CIRCLE_RADIUS + CIRCLE_PADDING + SHAPE_LAYOUT_CLEARANCE;
   const lineCount = Math.ceil(previewHeight / lineHeight);
 
   for (let lineIndex = 0; lineIndex < lineCount; lineIndex += 1) {
@@ -181,9 +249,13 @@ export function PretextReactNativeExampleScreen() {
     y: 132,
   });
   const [isDragging, setIsDragging] = useState(false);
+  const [circleMoveCount, setCircleMoveCount] = useState(0);
+  const [circleMotionReport, setCircleMotionReport] =
+    useState<CircleMotionReport>(createCircleMotionReport);
   const circleRef = useRef(circle);
   const dragStartRef = useRef(circle);
   const initializedRef = useRef(false);
+  const lastMotionSampleKeyRef = useRef<string | null>(null);
   const [preparedState, setPreparedState] = useState<{
     error: string | null;
     prepared: PretextPrepared | null;
@@ -226,6 +298,20 @@ export function PretextReactNativeExampleScreen() {
     [previewWidth],
   );
 
+  const finishDrag = useCallback(() => {
+    setIsDragging(false);
+
+    const start = dragStartRef.current;
+    const current = circleRef.current;
+    const moved =
+      Math.round(start.x) !== Math.round(current.x) ||
+      Math.round(start.y) !== Math.round(current.y);
+
+    if (moved) {
+      setCircleMoveCount((count) => count + 1);
+    }
+  }, []);
+
   const panResponder = useMemo(
     () =>
       PanResponder.create({
@@ -242,16 +328,43 @@ export function PretextReactNativeExampleScreen() {
             y: start.y + gesture.dy,
           });
         },
-        onPanResponderRelease: () => {
-          setIsDragging(false);
-        },
-        onPanResponderTerminate: () => {
-          setIsDragging(false);
-        },
+        onPanResponderRelease: finishDrag,
+        onPanResponderTerminate: finishDrag,
         onStartShouldSetPanResponder: () => true,
         onStartShouldSetPanResponderCapture: () => true,
       }),
-    [updateCircle],
+    [finishDrag, updateCircle],
+  );
+
+  const resetCircleMotionReport = useCallback(() => {
+    lastMotionSampleKeyRef.current = null;
+    setCircleMoveCount(0);
+    setCircleMotionReport(createCircleMotionReport());
+  }, []);
+
+  const moveCircleToGridCell = useCallback(
+    (cell: number) => {
+      const index = cell - 1;
+      const column = index % 3;
+      const row = Math.floor(index / 3);
+      const start = circleRef.current;
+      const targetColumnFraction = GRID_TARGET_FRACTIONS[column] ?? 0.5;
+      const targetRowFraction = GRID_TARGET_FRACTIONS[row] ?? 0.5;
+      const next = {
+        x: targetColumnFraction * previewWidth,
+        y: targetRowFraction * PREVIEW_HEIGHT,
+      };
+
+      updateCircle(next);
+
+      if (
+        Math.round(start.x) !== Math.round(next.x) ||
+        Math.round(start.y) !== Math.round(next.y)
+      ) {
+        setCircleMoveCount((count) => count + 1);
+      }
+    },
+    [previewWidth, updateCircle],
   );
 
   function handlePreviewLayout(event: LayoutChangeEvent) {
@@ -313,17 +426,71 @@ export function PretextReactNativeExampleScreen() {
 
   const lines = computed.linesLayout?.paragraphs[0]?.lines ?? [];
   const circleIntrusionSummary = summarizeCircleIntrusions({ circle, lines });
+  const roundedCircleX = Math.round(circle.x);
+  const roundedCircleY = Math.round(circle.y);
+  const circleGridCell = getCircleGridCell({ circle, previewWidth });
+
+  useEffect(() => {
+    if (previewWidth <= 0 || lines.length === 0) {
+      return;
+    }
+
+    const sampleKey = `${roundedCircleX}:${roundedCircleY}:${lines.length}`;
+    if (lastMotionSampleKeyRef.current === sampleKey) {
+      return;
+    }
+
+    lastMotionSampleKeyRef.current = sampleKey;
+    setCircleMotionReport((current) => ({
+      intrudingSampleCount:
+        current.intrudingSampleCount +
+        (circleIntrusionSummary.intrudingLineCount > 0 ? 1 : 0),
+      maxIntrudingLineCount: Math.max(
+        current.maxIntrudingLineCount,
+        circleIntrusionSummary.intrudingLineCount,
+      ),
+      minObstacleClearance: minNullableNumber(
+        current.minObstacleClearance,
+        circleIntrusionSummary.minObstacleClearance,
+      ),
+      sampledPositionCount: current.sampledPositionCount + 1,
+      visitedGridCells:
+        circleGridCell === null ||
+        current.visitedGridCells.includes(circleGridCell)
+          ? current.visitedGridCells
+          : [...current.visitedGridCells, circleGridCell].sort(
+              (left, right) => left - right,
+            ),
+    }));
+  }, [
+    circleGridCell,
+    circleIntrusionSummary.intrudingLineCount,
+    circleIntrusionSummary.minObstacleClearance,
+    lines.length,
+    previewWidth,
+    roundedCircleX,
+    roundedCircleY,
+  ]);
+
   const report = `API_EXAMPLE_REPORT::examples/pretext-react-native-example::${JSON.stringify(
     {
-      circleX: Math.round(circle.x),
-      circleY: Math.round(circle.y),
+      circleMoveCount,
+      circleX: roundedCircleX,
+      circleY: roundedCircleY,
       intrudingLineCount: circleIntrusionSummary.intrudingLineCount,
       intrudingLineTexts: circleIntrusionSummary.intrudingLineTexts,
       layoutElapsedMs: computed.elapsedMs,
       lineCount: lines.length,
       minObstacleClearance: circleIntrusionSummary.minObstacleClearance,
+      motionIntrudingSampleCount: circleMotionReport.intrudingSampleCount,
+      motionMaxIntrudingLineCount: circleMotionReport.maxIntrudingLineCount,
+      motionMinObstacleClearance: circleMotionReport.minObstacleClearance,
+      motionSampledPositionCount: circleMotionReport.sampledPositionCount,
+      motionVisitedGridCellCount: circleMotionReport.visitedGridCells.length,
+      motionVisitedGridCells: circleMotionReport.visitedGridCells,
       obstacleRadius: CIRCLE_RADIUS + CIRCLE_PADDING,
       previewWidth,
+      shapeLayoutClearance: SHAPE_LAYOUT_CLEARANCE,
       shapeSliceCount: shapeSlices.length,
     },
   )}`;
@@ -373,6 +540,18 @@ const lines = layout(prepared, {
           <Stat label="layout" value={formatMs(computed.elapsedMs)} />
         </View>
 
+        <Text
+          accessible
+          accessibilityLabel={report}
+          importantForAccessibility="yes"
+          numberOfLines={1}
+          selectable
+          style={localStyles.automationReportAnchor}
+          testID="examples.pretext-react-native-example.report"
+        >
+          {report}
+        </Text>
+
         <View
           onLayout={handlePreviewLayout}
           style={localStyles.preview}
@@ -396,6 +575,26 @@ const lines = layout(prepared, {
           ))}
 
           <View
+            pointerEvents="box-none"
+            style={localStyles.gridTargets}
+            testID="examples.pretext-react-native-example.grid"
+          >
+            {GRID_CELLS.map((cell) => (
+              <Pressable
+                accessible
+                accessibilityLabel={`Move circle to grid cell ${cell}`}
+                accessibilityRole="button"
+                collapsable={false}
+                importantForAccessibility="yes"
+                key={cell}
+                onPress={() => moveCircleToGridCell(cell)}
+                style={[localStyles.gridTarget, getCircleGridCellStyle(cell)]}
+                testID={`examples.pretext-react-native-example.grid-cell.${cell}`}
+              />
+            ))}
+          </View>
+
+          <View
             {...panResponder.panHandlers}
             accessibilityRole="adjustable"
             style={[
@@ -413,12 +612,13 @@ const lines = layout(prepared, {
 
         <Pressable
           accessibilityRole="button"
-          onPress={() =>
+          onPress={() => {
+            resetCircleMotionReport();
             updateCircle({
               x: previewWidth / 2,
               y: 132,
-            })
-          }
+            });
+          }}
           style={({ pressed }) => [
             localStyles.resetButton,
             pressed && localStyles.resetButtonPressed,
@@ -449,6 +649,13 @@ function Stat({ label, value }: { label: string; value: number | string }) {
 }
 
 const localStyles = StyleSheet.create({
+  automationReportAnchor: {
+    color: "#f3eee5",
+    fontSize: 1,
+    height: 1,
+    lineHeight: 1,
+    overflow: "hidden",
+  },
   body: {
     color: "#4f5b57",
     fontSize: 14,
@@ -464,6 +671,7 @@ const localStyles = StyleSheet.create({
     justifyContent: "center",
     position: "absolute",
     width: CIRCLE_RADIUS * 2,
+    zIndex: 2,
   },
   circleCore: {
     backgroundColor: "rgba(70, 132, 153, 0.28)",
@@ -493,6 +701,18 @@ const localStyles = StyleSheet.create({
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 10,
+  },
+  gridTarget: {
+    backgroundColor: "rgba(255, 255, 255, 0.01)",
+    position: "absolute",
+  },
+  gridTargets: {
+    bottom: 0,
+    left: 0,
+    position: "absolute",
+    right: 0,
+    top: 0,
+    zIndex: 1,
   },
   header: {
     gap: 8,

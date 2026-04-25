@@ -149,8 +149,10 @@ yarn verify:api-examples
 ```
 
 The draggable `examples/pretext-react-native-example` page also has a Maestro
-flow that drags the circle and asserts the exported geometry report has
-`intrudingLineCount: 0`:
+flow that performs 20 circle moves across a 3x3 preview grid and asserts the
+exported geometry report keeps both the final state and every sampled motion
+state outside the obstacle (`intrudingLineCount: 0`,
+`motionMaxIntrudingLineCount: 0`) while visiting all cells `1` through `9`:
 
 ```sh
 maestro --platform ios test example/maestro/flows/examples/pretext-react-native-example.yaml
