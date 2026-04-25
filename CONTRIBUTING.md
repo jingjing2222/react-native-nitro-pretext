@@ -23,12 +23,12 @@ yarn
 
 This project uses Nitro Modules. If you're not familiar with how Nitro works, make sure to check the [Nitro Modules Docs](https://nitro.margelo.com/).
 
-You need to run [Nitrogen](https://nitro.margelo.com/docs/nitrogen) to generate the boilerplate code required for this project. The example app will not build without this step.
+This repository commits the [Nitrogen](https://nitro.margelo.com/docs/nitrogen) generated bridge files so installs from npm or GitHub do not require consumers to run code generation.
 
 Run **Nitrogen** in following cases:
 
 - When you make changes to any `*.nitro.ts` files.
-- When running the project for the first time (since the generated files are not committed to the repository).
+- When generated bridge files need to be refreshed after upgrading Nitro.
 
 To invoke **Nitrogen**, use the following command:
 
@@ -101,6 +101,7 @@ The `package.json` file contains various scripts for common tasks:
 - `yarn lint`: lint the package with Oxlint.
 - `yarn fmt:check`: verify formatting with Oxfmt.
 - `yarn test`: run unit tests with [Jest](https://jestjs.io/).
+- `yarn verify:package-contents`: check the npm tarball includes the built JS and Nitrogen generated files.
 - `yarn changeset`: create a release note and version bump entry for publishable changes.
 - `yarn workspace react-native-nitro-pretext-example start`: start the Metro server for the example app.
 - `yarn example:android`: run the example app on Android.
