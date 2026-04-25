@@ -83,6 +83,10 @@ function createRnTextStyle(parityCase: ParityCase): TextStyle {
         : style.textDirection === "ltr"
           ? "ltr"
           : "auto",
+    ...(Platform.OS === "android" &&
+    (style.textDirection === "rtl" || style.textDirection === "ltr")
+      ? { direction: style.textDirection as TextStyle["direction"] }
+      : {}),
     ...(style.fontWeight
       ? { fontWeight: style.fontWeight as TextStyle["fontWeight"] }
       : {}),

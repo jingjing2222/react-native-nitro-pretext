@@ -70,11 +70,13 @@ class AndroidStaticLayoutParityFixtureTest {
     val text = buildOracleStyledText(fixture.text, fixture.style)
     val paint = createOracleTextPaint(fixture.style)
     val layoutWidth = max(1, floor(toPx(fixture.width)).toInt())
-    val alignment = if (TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)) {
-      Layout.Alignment.ALIGN_OPPOSITE
-    } else {
-      Layout.Alignment.ALIGN_NORMAL
-    }
+    val textDirection = fixture.style.textDirection ?: ParagraphTextDirection.AUTO
+    val alignment =
+      resolveOracleReactLeftTextAlignment(
+        text = text,
+        textDirection = textDirection,
+        textLocale = fixture.style.locale,
+      )
     val boring = resolveReactBoringMetrics(text, paint)
     val layout =
       if (boring != null && boring.width <= layoutWidth) {
@@ -94,6 +96,8 @@ class AndroidStaticLayoutParityFixtureTest {
           .setAlignment(alignment)
           .setLineSpacing(0f, 1f)
           .setIncludePad(fixture.style.includeFontPadding ?: true)
+          // RN 0.85 TextLayoutManager applies explicit direction through
+          // alignment, not through StaticLayout.Builder text direction.
           .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
           .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
           .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
@@ -231,6 +235,12 @@ class AndroidStaticLayoutParityFixtureTest {
           style = baseStyle(textDirection = ParagraphTextDirection.RTL),
         ),
         Fixture(
+          id = "android-explicit-rtl-latin-paragraph",
+          text = "Explicit RTL paragraph keeps Latin words aligned from the left edge.",
+          width = 212.0,
+          style = baseStyle(textDirection = ParagraphTextDirection.RTL, locale = "en-US"),
+        ),
+        Fixture(
           id = "android-cjk-weight-600-letter-spacing",
           text = "CJK style case uses 中文과 한국어 with wider font metrics.",
           width = 308.0,
@@ -328,6 +338,26 @@ class AndroidStaticLayoutParityFixtureTest {
         )
       } else {
         BoringLayout.isBoring(text, paint)
+      }
+    }
+
+    private fun resolveOracleReactLeftTextAlignment(
+      text: CharSequence,
+      textDirection: ParagraphTextDirection,
+      textLocale: String,
+    ): Layout.Alignment {
+      val isParagraphRtl =
+        when (textDirection) {
+          ParagraphTextDirection.LTR -> false
+          ParagraphTextDirection.RTL -> true
+          ParagraphTextDirection.AUTO -> isRtlLocale(textLocale)
+        }
+      val isScriptRtl =
+        text.isNotEmpty() && TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)
+      return if (isParagraphRtl != isScriptRtl) {
+        Layout.Alignment.ALIGN_OPPOSITE
+      } else {
+        Layout.Alignment.ALIGN_NORMAL
       }
     }
 

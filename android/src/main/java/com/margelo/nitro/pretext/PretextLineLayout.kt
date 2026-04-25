@@ -59,6 +59,8 @@ internal fun layoutLineLayouts(
       left = request.left,
       defaultLineHeight = corpus.lineHeight,
       includeFontPadding = corpus.includeFontPadding,
+      textDirection = corpus.baseStyle.textDirection,
+      textLocale = corpus.baseStyle.locale,
     )
   }
 

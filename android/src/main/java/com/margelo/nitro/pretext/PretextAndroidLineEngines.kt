@@ -529,9 +529,11 @@ internal object StaticLayoutLineLayout {
     left: Double,
     defaultLineHeight: Double,
     includeFontPadding: Boolean,
+    textDirection: ParagraphTextDirection,
+    textLocale: String,
   ): List<NativeLineLayout> {
     val layoutWidth = max(1, floor(width).toInt())
-    val alignment = resolveReactLeftTextAlignment(text)
+    val alignment = resolveReactLeftTextAlignment(text, textDirection, textLocale)
     val layout =
       createReactTextLayout(
         text = text,
@@ -631,6 +633,8 @@ internal object StaticLayoutLineLayout {
       .setAlignment(alignment)
       .setLineSpacing(0f, 1f)
       .setIncludePad(includeFontPadding)
+      // RN 0.85 TextLayoutManager keeps StaticLayout's text direction heuristic
+      // at FIRSTSTRONG_LTR and applies explicit direction through alignment.
       .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
       .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
       .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
@@ -661,9 +665,18 @@ internal object StaticLayoutLineLayout {
 
   private fun resolveReactLeftTextAlignment(
     text: CharSequence,
+    textDirection: ParagraphTextDirection,
+    textLocale: String,
   ): Layout.Alignment {
-    val isScriptRtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)
-    return if (isScriptRtl) {
+    val isParagraphRtl =
+      when (textDirection) {
+        ParagraphTextDirection.LTR -> false
+        ParagraphTextDirection.RTL -> true
+        ParagraphTextDirection.AUTO -> isRtlLocale(textLocale)
+      }
+    val isScriptRtl =
+      text.isNotEmpty() && TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)
+    return if (isParagraphRtl != isScriptRtl) {
       Layout.Alignment.ALIGN_OPPOSITE
     } else {
       Layout.Alignment.ALIGN_NORMAL
