@@ -100,6 +100,7 @@ function createMismatch(
     platform: normalizeParityPlatform(),
     pretextLines,
     rnLines,
+    shapeSlices: parityCase.shapeSlices,
     style: parityCase.style,
     width: parityCase.width,
   };

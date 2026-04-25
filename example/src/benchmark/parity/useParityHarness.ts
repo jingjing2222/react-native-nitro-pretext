@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { compareParityCaseLines } from "./comparator";
-import { materializePretextParityLines } from "./pretextLines";
+import {
+  materializePretextParityLines,
+  materializeShapeSliceParityOracleLines,
+} from "./pretextLines";
 import { normalizeParityPlatform } from "./platform";
 import {
   advanceParityLayoutObservation,
@@ -137,11 +140,18 @@ export function useParityHarness(
       let result: ParityCaseResult;
       try {
         const pretextLines = materializePretextParityLines(parityCase);
+        const expectedLines =
+          materializeShapeSliceParityOracleLines(parityCase, pretextLines) ??
+          rnLines;
         result = {
           caseId,
           category: parityCase.category,
           errorMessage: null,
-          mismatches: compareParityCaseLines(parityCase, rnLines, pretextLines),
+          mismatches: compareParityCaseLines(
+            parityCase,
+            expectedLines,
+            pretextLines,
+          ),
           platform,
         };
       } catch (error) {

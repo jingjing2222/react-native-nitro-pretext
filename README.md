@@ -85,9 +85,16 @@ const lines = layout(prepared, {
   width: 280,
   left: 12,
   output: "lines",
-  shapeSlices: [{ top: 0, height: 96, left: 24, width: 256 }],
+  shapeSlices: [
+    { top: 0, height: 24, left: 0, width: 120 },
+    { top: 0, height: 24, left: 180, width: 100 },
+  ],
 });
 ```
+
+Multiple `shapeSlices` may share the same vertical band. In `output: "lines"`
+mode, Pretext fills those same-row slots from left to right before advancing to
+the next visual row, which supports text around two sides of an obstacle.
 
 Rich inline boxes are prepared with inline segment paragraphs and caller-owned
 box metrics, then read with `output: "rich"`. See the
@@ -186,19 +193,26 @@ surface. On the Android API 36 run above, the hot layout path was `0.10 ms`, but
 the full visible-surface median was slower than RN by `15.68 ms`; that visible
 surface number is reported as context, not as the layout-only gate.
 
-Strict raw RN `<Text onTextLayout>` parity contract:
+Strict parity contract:
 
-| Platform       | Contract source                     | Cases | Line count | Line text | Geometry | Status |
-| -------------- | ----------------------------------- | ----: | ---------: | --------: | -------: | ------ |
-| iOS            | 259 strict raw Maestro parity cases |   259 |      0/259 |     0/259 |    0/259 | Passed |
-| Android API 36 | 259 strict raw Maestro parity cases |   259 |      0/259 |     0/259 |    0/259 | Passed |
+| Platform       | Contract source                   | Cases | Line count | Line text | Geometry | Status                           |
+| -------------- | --------------------------------- | ----: | ---------: | --------: | -------: | -------------------------------- |
+| iOS            | 260 Maestro parity cases          |   260 |      0/260 |     0/260 |    0/260 | Passed                           |
+| Android API 36 | previous 259-case parity snapshot |   259 |      0/259 |     0/259 |    0/259 | Rerun required for 260-case gate |
 
 The parity contract is no longer derived from repeated timing samples. It is a
-dedicated Maestro flow that executes 259 unique cases once per platform and
-requires line-count, exact raw line-text, and line-geometry parity to be
-`0/259`. The line-text comparison does not trim, normalize, or collapse newline,
-trailing whitespace, tab, or NBSP characters; display output may JSON-escape
-raw values, but comparison uses the unmodified RN payload.
+dedicated Maestro flow that executes 260 cases once per platform and requires
+line-count, exact raw line-text, and line-geometry parity to be `0/260`. The
+suite contains 259 raw RN `<Text onTextLayout>` cases plus one structural
+`shapeSlices` case that verifies same-row multi-slot output. The line-text
+comparison does not trim, normalize, or collapse newline, trailing whitespace,
+tab, or NBSP characters; display output may JSON-escape raw values, but
+comparison uses the unmodified RN payload.
+
+The latest iOS run completed the 260-case gate on April 26, 2026. Android API
+36 last passed the previous 259-case suite on April 25, 2026; rerun
+`benchmark:parity:android` on a connected Android device before reporting the
+260-case Android gate.
 
 Current benchmark details and gate thresholds are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).
@@ -227,8 +241,8 @@ The example app is split into learning examples and benchmark routes:
   you would otherwise manage yourself.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
-- `benchmark/parity`: RN `<Text>` parity contract using 259 unique Maestro
-  cases.
+- `benchmark/parity`: RN `<Text>` and `shapeSlices` parity contract using 260
+  Maestro cases.
 - `benchmark/base-text` and `benchmark/pretext-layout`: benchmark screens for
   compatibility, timing, and parity diagnostics.
 

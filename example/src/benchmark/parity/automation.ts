@@ -15,6 +15,7 @@ type ParityMismatchTransportGroup = Pick<
   | "platform"
   | "pretextLines"
   | "rnLines"
+  | "shapeSlices"
   | "style"
   | "width"
 > & {
@@ -74,6 +75,7 @@ function groupMismatchesForTransport(
       platform: mismatch.platform,
       pretextLines: mismatch.pretextLines,
       rnLines: mismatch.rnLines,
+      shapeSlices: mismatch.shapeSlices,
       style: mismatch.style,
       width: mismatch.width,
       mismatches: [

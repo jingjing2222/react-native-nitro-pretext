@@ -154,7 +154,7 @@ const rich = layout(preparedInlineParagraphs, {
 | `width`       | `number`                                          | required    | Available text width.                                        |
 | `output`      | `"metrics" \| "lines" \| "diagnostics" \| "rich"` | `"metrics"` | Amount of layout data to return.                             |
 | `left`        | `number`                                          | `0`         | Base x offset for returned line geometry.                    |
-| `shapeSlices` | `ParagraphShapeSlice[]`                           | `[]`        | Per-band constraints for obstacle-aware layout.              |
+| `shapeSlices` | `ParagraphShapeSlice[]`                           | `[]`        | Obstacle-aware layout; same-band slices fill left to right.  |
 | `whiteSpace`  | `"normal" \| "pre" \| string`                     | `"normal"`  | Whitespace rule. Current native support is normal/pre.       |
 | `wordBreak`   | `"normal" \| "break-all" \| string`               | `"normal"`  | Word break rule. Current native support is normal/break-all. |
 
@@ -586,8 +586,10 @@ Box segment fields:
 ## Compatibility Notes
 
 - Browser canvas pixel parity is explicitly out of scope.
-- RN `<Text>` parity is gated by the 259 unique-case strict raw Maestro parity
-  suite; line text is compared exactly as RN `onTextLayout` reports it.
+- Parity is gated by the 260-case Maestro suite: 259 strict raw RN
+  `<Text onTextLayout>` cases plus one `shapeSlices` structural case for
+  same-row multi-slot output. Line text is compared exactly as RN
+  `onTextLayout` reports it.
 - Public offsets are source UTF-16 offsets.
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or

@@ -44,6 +44,7 @@ describe("RN Text parity corpus", () => {
       PARITY_CASES.map((parityCase) =>
         JSON.stringify({
           style: parityCase.style,
+          shapeSlices: parityCase.shapeSlices,
           text: parityCase.text,
           width: parityCase.width,
         }),
@@ -171,5 +172,28 @@ describe("RN Text parity corpus", () => {
       style: { textDirection: "rtl" },
       width: 228,
     });
+  });
+
+  it("keeps multi-slot shape slice coverage in the corpus", () => {
+    const shapeCase = PARITY_CASES.find(
+      (parityCase) => parityCase.caseId === "parity-shape-001",
+    );
+    const shapeSlices = shapeCase?.shapeSlices ?? [];
+    const topsWithMultipleSlots = new Set(
+      shapeSlices
+        .map((slice) => slice.top)
+        .filter(
+          (top) => shapeSlices.filter((slice) => slice.top === top).length > 1,
+        ),
+    );
+
+    expect(shapeCase).toMatchObject({
+      category: "shape",
+      width: 300,
+    });
+    expect(topsWithMultipleSlots.size).toBeGreaterThanOrEqual(1);
+    expect(shapeSlices.some((slice) => slice.left > 0 && slice.width > 0)).toBe(
+      true,
+    );
   });
 });

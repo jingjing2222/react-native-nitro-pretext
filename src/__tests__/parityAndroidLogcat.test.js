@@ -15,9 +15,9 @@ describe("Android parity logcat report transport", () => {
     const logcatPath = path.join(tempDir, "logcat.txt");
     const maestroLogPath = path.join(tempDir, "maestro.log");
     const report = {
-      caseCount: 259,
+      caseCount: 260,
       completedAt: "10:00:02",
-      completedCases: 259,
+      completedCases: 260,
       failedCaseResults: [],
       failedCases: 0,
       geometryTolerance: 0.5,

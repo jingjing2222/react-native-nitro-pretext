@@ -8,7 +8,7 @@ const gateScript = path.join(
   rootDir,
   "example/maestro/scripts/assert-benchmark-gates.js",
 );
-const PARITY_EXPECTED_CASE_COUNT = 259;
+const PARITY_EXPECTED_CASE_COUNT = 260;
 
 function createHeightDriftBuckets() {
   return {

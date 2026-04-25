@@ -56,6 +56,7 @@ function contractFromMismatch(mismatch) {
     firstDiff: mismatch.firstDiff ?? null,
     kind: mismatch.kind ?? "unknown-kind",
     platform: mismatch.platform ?? platform,
+    shapeSlices: mismatch.shapeSlices ?? null,
     style: mismatch.style ?? null,
     width: mismatch.width ?? null,
   };

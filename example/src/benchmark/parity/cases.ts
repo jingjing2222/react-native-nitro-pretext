@@ -23,6 +23,7 @@ export const PARITY_CASE_DISTRIBUTION = {
   "korean-cjk": 35,
   latin: 30,
   rtl: 25,
+  shape: 1,
   style: 15,
   "style-cross": 15,
   thai: 25,
@@ -326,6 +327,26 @@ const STYLE_VARIANTS: PretextStyle[] = [
   { ...PARITY_BASE_STYLE, fontSize: 20, lineHeight: 34, letterSpacing: 0.4 },
 ];
 
+const SHAPE_SLICE_CASES: ParityCase[] = [
+  {
+    caseId: "parity-shape-001",
+    category: "shape",
+    description: "Multi-slot shapeSlices fill both sides of the same row",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    shapeSlices: [
+      { height: 28, left: 0, top: 0, width: 112 },
+      { height: 28, left: 188, top: 0, width: 112 },
+      { height: 28, left: 0, top: 28, width: 132 },
+      { height: 28, left: 168, top: 28, width: 132 },
+      { height: 28, left: 0, top: 56, width: 152 },
+      { height: 28, left: 148, top: 56, width: 152 },
+    ],
+    style: PARITY_BASE_STYLE,
+    text: "Alpha beta gamma delta epsilon zeta eta theta iota kappa lambda mu nu xi omicron pi rho sigma tau upsilon phi chi psi omega.",
+    width: 300,
+  },
+];
+
 const STYLE_CROSS_CASES: ParityCase[] = [
   {
     caseId: "parity-style-cross-001",
@@ -523,6 +544,12 @@ if (STYLE_CROSS_CASES.length !== PARITY_CASE_DISTRIBUTION["style-cross"]) {
   );
 }
 
+if (SHAPE_SLICE_CASES.length !== PARITY_CASE_DISTRIBUTION.shape) {
+  throw new Error(
+    `Expected ${PARITY_CASE_DISTRIBUTION.shape} fixed shape parity cases, got ${SHAPE_SLICE_CASES.length}`,
+  );
+}
+
 export const PARITY_CASES: ParityCase[] = [
   ...createParityCases({
     category: "latin",
@@ -589,5 +616,6 @@ export const PARITY_CASES: ParityCase[] = [
       STYLE_VARIANTS[index % STYLE_VARIANTS.length] ?? PARITY_BASE_STYLE,
     texts: STYLE_TEXTS,
   }),
+  ...SHAPE_SLICE_CASES,
   ...STYLE_CROSS_CASES,
 ];

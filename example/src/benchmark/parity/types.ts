@@ -1,4 +1,7 @@
-import type { PretextStyle } from "react-native-nitro-pretext";
+import type {
+  ParagraphShapeSlice,
+  PretextStyle,
+} from "react-native-nitro-pretext";
 
 export type ParityCaseCategory =
   | "emoji"
@@ -7,6 +10,7 @@ export type ParityCaseCategory =
   | "korean-cjk"
   | "latin"
   | "rtl"
+  | "shape"
   | "style"
   | "style-cross"
   | "thai"
@@ -23,6 +27,7 @@ export type ParityCase = {
   category: ParityCaseCategory;
   description: string;
   rnTextProps?: ParityRnTextProps;
+  shapeSlices?: ParagraphShapeSlice[];
   style: PretextStyle;
   text: string;
   width: number;
@@ -59,6 +64,7 @@ export type ParityMismatch = {
   platform: ParityPlatform;
   pretextLines: ParityLineSnapshot[];
   rnLines: ParityLineSnapshot[];
+  shapeSlices?: ParagraphShapeSlice[];
   style: PretextStyle;
   width: number;
 };

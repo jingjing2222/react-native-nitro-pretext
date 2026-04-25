@@ -5,6 +5,7 @@ import {
   serializeParityAutomationReport,
 } from "../../example/src/benchmark/parity/automation";
 import { compareParityCaseLines } from "../../example/src/benchmark/parity/comparator";
+import { materializeShapeSliceParityOracleLines } from "../../example/src/benchmark/parity/pretextLines";
 import {
   advanceParityLayoutObservation,
   createParityLayoutObservation,
@@ -29,6 +30,16 @@ const parityCase: ParityCase = {
   },
   text: "Unit parity fixture text",
   width: 220,
+};
+
+const shapeParityCase: ParityCase = {
+  ...parityCase,
+  caseId: "unit-shape-001",
+  category: "shape",
+  shapeSlices: [
+    { height: 28, left: 0, top: 0, width: 100 },
+    { height: 28, left: 160, top: 0, width: 100 },
+  ],
 };
 
 function createLine(
@@ -249,6 +260,37 @@ describe("RN Text parity harness contracts", () => {
         stableFrames: 2,
       },
     });
+  });
+
+  it("uses structural same-row oracle for shape slice parity cases", () => {
+    const multiSlotLines = [
+      createLine("left slot"),
+      createLine("right slot", { left: 160 }),
+    ];
+    const staleSingleSlotLines = [
+      createLine("left slot"),
+      createLine("next row", { top: 28 }),
+    ];
+
+    expect(
+      materializeShapeSliceParityOracleLines(shapeParityCase, multiSlotLines),
+    ).toEqual(multiSlotLines);
+    expect(
+      materializeShapeSliceParityOracleLines(
+        shapeParityCase,
+        staleSingleSlotLines,
+      ),
+    ).toEqual([
+      {
+        geometry: {
+          height: 0,
+          left: 0,
+          top: 0,
+          width: 0,
+        },
+        text: "shape oracle expected same-row multi-slot output",
+      },
+    ]);
   });
 
   it("serializes parity reports with grouped mismatch transport", () => {

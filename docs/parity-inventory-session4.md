@@ -3,8 +3,9 @@
 Date: 2026-04-25
 
 This is a historical inventory from the earlier 240-case contract. The current
-public parity contract is the 259 unique-case strict raw Maestro suite recorded
-in `docs/benchmark-improvement-report.md` and `docs/parity-regression-session9.md`.
+public parity contract is the 260-case Maestro suite recorded in
+`docs/benchmark-improvement-report.md`. Session 9 remains the historical
+259-case cross-platform closure record.
 
 ## Scope
 

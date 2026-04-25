@@ -37,6 +37,7 @@ function expandParityReport(report) {
         platform: group.platform ?? report.platform,
         pretextLines: group.pretextLines ?? [],
         rnLines: group.rnLines ?? [],
+        shapeSlices: group.shapeSlices,
         style: group.style ?? null,
         width: group.width ?? null,
       }),
