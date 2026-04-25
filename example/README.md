@@ -108,13 +108,23 @@ MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
 
-Android canonical benchmark claims require API 29+ because the canonical
-Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
-`StaticLayout` compat or legacy fallback paths only.
+Android normal-wrap benchmark claims currently use the RN-compatible
+`StaticLayout` path on the validated API 36 AVD. API 24-28 are supported, but
+rerun the target device/API before making device-specific performance or parity
+claims.
+
+Benchmark scripts write the latest summary and gate report under
+`example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`. Parity runs
+also write `latest-parity-summary.txt`, `latest-parity-mismatches.json`, and
+`latest-parity-contracts.json` in the matching `ios-parity` or
+`android-parity` artifact directory.
 
 Latest local benchmark status:
 
-- iOS `benchmark` suite: passed on April 24, 2026 with an iPhone 16 simulator.
+- iOS `benchmark` suite: April 24, 2026 timing snapshot with an iPhone 16
+  simulator; rerun for the current TextKit gate contract before treating it as
+  a current gate pass.
 - Android `benchmark` suite: completed on April 25, 2026 with a Pixel_9_Pro AVD
   on API 36. The canonical engine metadata and local layout-only gate passed.
 - Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden

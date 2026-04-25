@@ -75,7 +75,7 @@ class AndroidStaticLayoutParityFixtureTest {
     } else {
       Layout.Alignment.ALIGN_NORMAL
     }
-    val boring = BoringLayout.isBoring(text, paint)
+    val boring = resolveReactBoringMetrics(text, paint)
     val layout =
       if (boring != null && boring.width <= layoutWidth) {
         @Suppress("DEPRECATION")
@@ -260,11 +260,18 @@ class AndroidStaticLayoutParityFixtureTest {
           width = 292.0,
           style = baseStyle(includeFontPadding = false),
         ),
+        Fixture(
+          id = "android-boring-fallback-line-spacing",
+          text = "Status ✅ ready",
+          width = 220.0,
+          style = baseStyle(lineHeight = 0.0, locale = "en-US"),
+        ),
       )
 
     private fun baseStyle(
       fontWeight: String? = null,
       includeFontPadding: Boolean = true,
+      lineHeight: Double = 28.0,
       letterSpacing: Double = 0.0,
       locale: String = "",
       textDirection: ParagraphTextDirection = ParagraphTextDirection.AUTO,
@@ -272,7 +279,7 @@ class AndroidStaticLayoutParityFixtureTest {
       return ParagraphStyle(
         fontFamily = "System",
         fontSize = 18.0,
-        lineHeight = 28.0,
+        lineHeight = lineHeight,
         letterSpacing = letterSpacing,
         locale = locale,
         fontWeight = fontWeight,
@@ -305,6 +312,23 @@ class AndroidStaticLayoutParityFixtureTest {
           else -> Typeface.NORMAL
         }
       return Typeface.create(Typeface.DEFAULT, typefaceStyle)
+    }
+
+    private fun resolveReactBoringMetrics(
+      text: CharSequence,
+      paint: TextPaint,
+    ): BoringLayout.Metrics? {
+      return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        BoringLayout.isBoring(
+          text,
+          paint,
+          TextDirectionHeuristics.FIRSTSTRONG_LTR,
+          true,
+          null,
+        )
+      } else {
+        BoringLayout.isBoring(text, paint)
+      }
     }
 
     private fun resolveOracleLocale(localeTag: String): Locale {

@@ -32,11 +32,12 @@ Native `>=0.81.0` peer floor is defined by Pretext, and
 
 ## Platform Contract
 
-| Platform        | Layout path                       | Notes                                                            |
-| --------------- | --------------------------------- | ---------------------------------------------------------------- |
-| Android API 24+ | RN-compatible `StaticLayout`      | Canonical for normal-wrap requests without shape slices.         |
-| iOS             | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                              |
-| RN `<Text>`     | final visible renderer            | Not the correctness source. Match render styles to reduce drift. |
+| Platform        | Layout path                  | Notes                                                            |
+| --------------- | ---------------------------- | ---------------------------------------------------------------- |
+| Android API 24+ | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.         |
+| iOS             | TextKit normal-wrap layout   | Current benchmark gate path for plain normal-wrap requests.      |
+| iOS             | Core Text native line layout | Used by alternate native line-layout paths such as rich inline.  |
+| RN `<Text>`     | final visible renderer       | Not the correctness source. Match render styles to reduce drift. |
 
 Height is not derived from `fontSize`. It depends on font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
@@ -49,13 +50,13 @@ match the style used for Pretext layout. The biggest Android footgun is
 `includeFontPadding`: RN `<Text>` defaults it to `true`, and Pretext also
 defaults it to `true`. Changing one side without the other can change height.
 Android accepts RN logical layout units from JS and converts them to native px
-before calling `MeasuredText` and `LineBreaker`; returned dimensions are
-converted back to RN layout units.
+before native layout; returned dimensions are converted back to RN layout
+units.
 
-On Android API 29+, non-normal rule requests such as `shapeSlices`,
+On Android, non-normal rule requests such as `shapeSlices`,
 `whiteSpace: "pre"`, `wordBreak: "break-all"`, and forced token layout may
-report a named fallback engine instead of the canonical `MeasuredText +
-LineBreaker` path.
+report a named fallback engine instead of the canonical StaticLayout compat
+path.
 
 ## `prepare(text, style)`
 
@@ -261,9 +262,9 @@ type PretextDiagnosticsLayout = {
 | `normalizedRequest`       | Request actually used by native layout.                                                                                                  |
 | `ruleLayer`               | Pretext rule layer over native engines.                                                                                                  |
 | `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                                                             |
-| `layoutEngine`            | `android_static_layout_compat`, `android_legacy_fallback`, `ios_core_text`, or `ios_manual_token_fallback`.                              |
+| `layoutEngine`            | `android_static_layout_compat`, `android_legacy_fallback`, `ios_text_kit`, `ios_core_text`, or `ios_manual_token_fallback`.              |
 | `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                 |
-| `fallbackReason`          | Present when a fallback path was used, for example `static_layout_compat` or `manual_height_estimate`.                                   |
+| `fallbackReason`          | Present when a degraded fallback path was used, for example `manual_height_estimate`.                                                    |
 | `driftKinds`              | Native layout drift classes such as `engine_drift`, `padding_drift`, `algorithm_rule_drift`, `height_metric_drift`, and related classes. |
 | `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                 |
 | `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                  |
@@ -589,4 +590,5 @@ Box segment fields:
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or
   complex-script clusters in caller code.
-- Android API 24-28 is a supported fallback, not the canonical parity target.
+- The latest local Android parity snapshot was captured on API 36; validate on
+  older supported API levels before making device-specific claims for them.

@@ -12,10 +12,13 @@
 
 ## Platform Contract
 
-- Android API 29+ canonical layout uses `MeasuredText + LineBreaker`.
-- Android API 24-28 remains supported as a named legacy fallback only.
-- iOS canonical layout uses Core Text: `CTTypesetter + CTLine`.
+- Android API 24+ normal-wrap layout uses RN-compatible `StaticLayout`.
+- Android rule-layer requests may use named fallback paths when token layout is
+  required.
+- iOS normal-wrap layout uses TextKit; alternate native line-layout paths may
+  report Core Text diagnostics.
 - RN `<Text>` is the expected visible renderer, but not the correctness source.
+- RN `<Text>` parity is gated by the 240 unique-case Maestro parity suite.
 - Android `includeFontPadding` defaults to `true` to match RN `<Text>`.
 - Height must account for font metrics, explicit `lineHeight`, fallback fonts,
   emoji, locale, `includeFontPadding`, text direction, and line-break strategy.

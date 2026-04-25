@@ -168,6 +168,7 @@ internal fun buildStyledText(
   return spannable
 }
 
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
 internal fun buildMeasuredText(
   text: String,
   runs: List<NativeTextRun>,
@@ -253,6 +254,7 @@ private fun buildParagraphBidiRuns(
     }
 }
 
+@androidx.annotation.RequiresApi(Build.VERSION_CODES.Q)
 private fun appendParagraphBidiStyleRuns(
   builder: android.graphics.text.MeasuredText.Builder,
   start: Int,

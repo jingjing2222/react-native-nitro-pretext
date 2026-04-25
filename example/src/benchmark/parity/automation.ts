@@ -1,6 +1,5 @@
-import { Platform } from "react-native";
-
 import { PARITY_GEOMETRY_TOLERANCE } from "./comparator";
+import { normalizeParityPlatform } from "./platform";
 import type {
   ParityAutomationReport,
   ParityAutomationStatus,
@@ -21,19 +20,23 @@ type ParityMismatchTransportGroup = Pick<
   mismatches: Array<Pick<ParityMismatch, "firstDiff" | "kind">>;
 };
 
-function normalizePlatform(): "android" | "ios" | "unknown" {
-  if (Platform.OS === "android" || Platform.OS === "ios") {
-    return Platform.OS;
-  }
-
-  return "unknown";
-}
-
 function countMismatchesByKind(
   mismatches: ParityMismatch[],
   kind: ParityMismatch["kind"],
 ): number {
   return mismatches.filter((mismatch) => mismatch.kind === kind).length;
+}
+
+function countUniqueCaseIds(results: ParityCaseResult[]): number {
+  return new Set(results.map((result) => result.caseId)).size;
+}
+
+function countFailedCaseIds(results: ParityCaseResult[]): number {
+  return new Set(
+    results
+      .filter((result) => result.errorMessage !== null)
+      .map((result) => result.caseId),
+  ).size;
 }
 
 function groupMismatchesForTransport(
@@ -96,16 +99,15 @@ export function createParityAutomationReport(args: {
   return {
     caseCount: args.caseCount,
     completedAt: args.completedAt,
-    completedCases: args.results.length,
-    failedCases: args.results.filter((result) => result.errorMessage !== null)
-      .length,
+    completedCases: countUniqueCaseIds(args.results),
+    failedCases: countFailedCaseIds(args.results),
     geometryTolerance: PARITY_GEOMETRY_TOLERANCE,
     lineCountMismatches: countMismatchesByKind(mismatches, "line-count"),
     lineGeometryMismatches: countMismatchesByKind(mismatches, "line-geometry"),
     lineTextMismatches: countMismatchesByKind(mismatches, "line-text"),
     mismatchCount: mismatches.length,
     mismatches,
-    platform: normalizePlatform(),
+    platform: normalizeParityPlatform(),
     screen: "benchmark/parity",
     status: args.status,
   };

@@ -20,7 +20,7 @@ internal func layoutTextKitLineLayouts(
         )
     )
     textContainer.lineFragmentPadding = 0
-    textContainer.lineBreakMode = .byClipping
+    textContainer.lineBreakMode = .byWordWrapping
     textContainer.maximumNumberOfLines = 0
 
     layoutManager.addTextContainer(textContainer)

@@ -1,5 +1,6 @@
 package com.margelo.nitro.pretext
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.graphics.text.MeasuredText
@@ -375,6 +376,7 @@ internal object PretextShared {
     return line.left + measureParagraphAdvance(paragraph, line.textStart, box.start)
   }
 
+  @SuppressLint("WrongConstant")
   private fun resolveInlineBoxVisualLeftWithStaticLayout(
     paragraph: NativePreparedParagraph,
     corpus: NativePreparedCorpus,

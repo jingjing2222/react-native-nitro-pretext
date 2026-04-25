@@ -343,7 +343,7 @@ run_ios_benchmark() {
       return 0
     fi
 
-    if ! rg -q 'iOS driver not ready in time' "$attempt_log" || [[ "$attempt" -ge "$max_attempts" ]]; then
+    if ! grep -q 'iOS driver not ready in time' "$attempt_log" || [[ "$attempt" -ge "$max_attempts" ]]; then
       return 1
     fi
 

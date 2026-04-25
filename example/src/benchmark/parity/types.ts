@@ -41,6 +41,8 @@ export type ParityLineSnapshot = {
 
 export type ParityMismatchKind = "line-count" | "line-geometry" | "line-text";
 
+export type ParityPlatform = "android" | "ios" | "unknown";
+
 export type ParityFirstDiff = {
   field: "count" | "height" | "left" | "text" | "top" | "width";
   lineIndex: number | null;
@@ -53,7 +55,7 @@ export type ParityMismatch = {
   category: ParityCaseCategory;
   firstDiff: ParityFirstDiff;
   kind: ParityMismatchKind;
-  platform: "android" | "ios" | "unknown";
+  platform: ParityPlatform;
   pretextLines: ParityLineSnapshot[];
   rnLines: ParityLineSnapshot[];
   style: PretextStyle;
@@ -65,7 +67,7 @@ export type ParityCaseResult = {
   category: ParityCaseCategory;
   errorMessage: string | null;
   mismatches: ParityMismatch[];
-  platform: "android" | "ios" | "unknown";
+  platform: ParityPlatform;
 };
 
 export type ParityAutomationStatus =
@@ -85,7 +87,7 @@ export type ParityAutomationReport = {
   lineTextMismatches: number;
   mismatchCount: number;
   mismatches: ParityMismatch[];
-  platform: "android" | "ios" | "unknown";
+  platform: ParityPlatform;
   screen: "benchmark/parity";
   status: ParityAutomationStatus;
 };

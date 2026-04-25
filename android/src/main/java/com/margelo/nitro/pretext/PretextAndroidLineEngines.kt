@@ -1,5 +1,6 @@
 package com.margelo.nitro.pretext
 
+import android.annotation.SuppressLint
 import android.graphics.Paint
 import android.graphics.Rect
 import android.graphics.text.LineBreaker
@@ -597,6 +598,7 @@ internal object StaticLayoutLineLayout {
     return lines
   }
 
+  @SuppressLint("WrongConstant")
   private fun createReactTextLayout(
     text: CharSequence,
     textPaint: TextPaint,
@@ -604,7 +606,7 @@ internal object StaticLayoutLineLayout {
     alignment: Layout.Alignment,
     includeFontPadding: Boolean,
   ): Layout {
-    val boring = BoringLayout.isBoring(text, textPaint)
+    val boring = resolveReactBoringMetrics(text, textPaint)
     if (boring != null && boring.width <= layoutWidth) {
       @Suppress("DEPRECATION")
       return BoringLayout.make(
@@ -638,6 +640,23 @@ internal object StaticLayoutLineLayout {
         }
       }
       .build()
+  }
+
+  private fun resolveReactBoringMetrics(
+    text: CharSequence,
+    textPaint: TextPaint,
+  ): BoringLayout.Metrics? {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      BoringLayout.isBoring(
+        text,
+        textPaint,
+        TextDirectionHeuristics.FIRSTSTRONG_LTR,
+        true,
+        null,
+      )
+    } else {
+      BoringLayout.isBoring(text, textPaint)
+    }
   }
 
   private fun resolveReactLeftTextAlignment(

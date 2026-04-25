@@ -76,9 +76,14 @@ private func buildParagraphBreakTable(
     lineLayouts: [NativeLineLayout]
 ) -> ParagraphBreakTable {
     let textLength = paragraph.text.length
+    let hardBreaks = collectHardBreaks(paragraph.text)
+    let hardBreakOffsets = Set(hardBreaks.map { Int($0.offset) })
     let nativeSoftBreaks = lineLayouts.dropLast().compactMap { line -> ParagraphBreakOpportunity? in
         let offset = line.textEndUTF16
         guard offset > 0, offset < textLength else {
+            return nil
+        }
+        guard !hardBreakOffsets.contains(offset) else {
             return nil
         }
         guard paragraph.text.character(at: offset) != 0x0A else {
@@ -92,7 +97,7 @@ private func buildParagraphBreakTable(
     }
 
     return ParagraphBreakTable(
-        hardBreaks: collectHardBreaks(paragraph.text),
+        hardBreaks: hardBreaks,
         nativeSoftBreaks: nativeSoftBreaks,
         graphemeBoundaries: collectGraphemeBoundaries(paragraph.text),
         atomicSpans: paragraph.atomicSpans.map { span in

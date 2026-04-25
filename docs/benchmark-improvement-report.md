@@ -6,11 +6,11 @@ machine-local artifacts and are not part of the package.
 
 ## Current Validation Status
 
-| Platform          | Status                                               | Notes                                                        |
-| ----------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
-| iOS               | layout example, benchmark suite, and parity verified | Benchmark suite: April 24, 2026. Parity: April 25, 2026.     |
-| Android API 29+   | layout example, benchmark suite, and parity verified | Latest local validation: April 25, 2026 on API 36 debug AVD. |
-| Android API 24-28 | StaticLayout compat/fallback only                    | Supported, but not a canonical performance or parity target. |
+| Platform        | Status                                               | Notes                                                                     |
+| --------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- |
+| iOS             | layout example and parity verified; timing retained  | Current suite gate expects `ios_text_kit`; rerun before claiming pass.    |
+| Android API 24+ | layout example, benchmark suite, and parity verified | Latest local validation: April 25, 2026 on API 36 debug AVD.              |
+| RN `<Text>`     | dedicated parity contract verified on both platforms | `benchmark:parity:*` requires 240 completed cases and `0/240` mismatches. |
 
 Do not extrapolate Android performance from iOS numbers. The Android numbers
 below are a debug AVD snapshot, not a release-device speedup claim.
@@ -93,9 +93,13 @@ Parity artifacts:
 - `example/.maestro-artifacts/android-parity/latest-parity-mismatches.json`
 - `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
 
-## Current Manual iOS Maestro Suite Snapshot
+Each benchmark run also writes `latest-summary.txt` and `latest-gate.txt` under
+`example/.maestro-artifacts/<platform>-<flow>/`. Raw Maestro logs remain under
+that same directory at `.maestro/tests/<timestamp>/maestro.log`.
 
-Latest local iOS benchmark suite:
+## Manual iOS Maestro Timing Snapshot
+
+Latest retained local iOS benchmark timing snapshot:
 
 - Date: April 24, 2026
 - Device target: iPhone 16 simulator
@@ -104,7 +108,8 @@ Latest local iOS benchmark suite:
 - Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
 - Maestro gate profile: `local`
-- Gate result: pass
+- Current gate status: rerun required after the TextKit benchmark contract
+  update
 
 | Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
 | ---------------------- | ----------: | --------------------------: | ----------: |
@@ -114,12 +119,16 @@ Latest local iOS benchmark suite:
 | Prepare once           |         n/a |                  `47.40 ms` |         n/a |
 | Measure inside prepare |         n/a |                  `47.26 ms` |         n/a |
 
-Canonical paths in this run:
+Reported paths in this historical run:
 
 | Path           | Engine           | Role                         |
 | -------------- | ---------------- | ---------------------------- |
 | RN baseline    | `rn_text_compat` | `rn_text_compat_oracle`      |
 | Pretext layout | `ios_core_text`  | `canonical_prepared_compute` |
+
+The current suite gate expects `ios_text_kit` for plain normal-wrap iOS
+benchmark paths. The iOS timing numbers above are retained as local timing
+context, not as proof of the current suite gate result.
 
 Dedicated RN Text parity contract:
 
@@ -161,10 +170,10 @@ Latest local Android benchmark suite:
 
 Canonical paths in this run:
 
-| Path           | Engine                               | Role                         |
-| -------------- | ------------------------------------ | ---------------------------- |
-| RN baseline    | `rn_text_compat`                     | `rn_text_compat_oracle`      |
-| Pretext layout | `android_measured_text_line_breaker` | `canonical_prepared_compute` |
+| Path           | Engine                         | Role                         |
+| -------------- | ------------------------------ | ---------------------------- |
+| RN baseline    | `rn_text_compat`               | `rn_text_compat_oracle`      |
+| Pretext layout | `android_static_layout_compat` | `canonical_prepared_compute` |
 
 Android `includeFontPadding` was reported as `true` for the RN baseline,
 canonical compute path, and visible RN surface path. The height metric source
@@ -178,12 +187,12 @@ Dedicated RN Text parity contract:
 | Line-text parity     |    `0/240` |
 | Line-geometry parity |    `0/240` |
 
-The Android debug AVD run validates that the canonical API 29+ engine path is
-used, but it also shows why platform-specific reporting matters. The
-layout-only hot path was `0.06 ms`; the full visible-surface median was slower
-than RN by `30.46 ms` because the final RN surface still dominates the render
-cost. The dedicated `benchmark:parity:android` flow is the blocking RN Text
-parity contract and currently passes at `0/240`.
+The Android debug AVD run validates the current RN-compatible StaticLayout
+normal-wrap path, but it also shows why platform-specific reporting matters.
+The layout-only hot path was `0.06 ms`; the full visible-surface median was
+slower than RN by `30.46 ms` because the final RN surface still dominates the
+render cost. The dedicated `benchmark:parity:android` flow is the blocking RN
+Text parity contract and currently passes at `0/240`.
 
 ## Resolved RN Text Parity History
 
@@ -241,13 +250,18 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:and
 BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
 ```
 
-Android canonical benchmark claims require API 29+ normal-wrap requests because
-the canonical Android engine is `MeasuredText + LineBreaker`. API 24-28 runs and
-Android rule-layer requests that require token fallback exercise
-`android_static_layout_compat` or `android_legacy_fallback` paths. iOS canonical
-runs report `ios_core_text`; degraded fallback diagnostics may report
-`ios_manual_token_fallback`. StaticLayout compat diagnostics include
-`fallbackReason: "static_layout_compat"`.
+`BENCHMARK_GATE_PROFILE=manual-debug` relaxes timing thresholds for noisy local
+debug runs where configured; the dedicated parity gate remains strict.
+`BENCHMARK_SKIP_GATE=1` is only for exploratory artifact capture and should not
+be reported as validation.
+
+Android normal-wrap benchmark claims currently use the RN-compatible
+`android_static_layout_compat` path. Android rule-layer requests that require
+token fallback may report `android_legacy_fallback`; rerun the target device/API
+before making device-specific claims beyond the API 36 snapshot above. Current
+iOS normal-wrap suite gates expect `ios_text_kit`; alternate native line-layout
+paths may report `ios_core_text`, and degraded fallback diagnostics may report
+`ios_manual_token_fallback`.
 
 The timing-suite gate checks layout-only timing, prepare/measure bounds,
 minimum diagnostic sample counts, layout engine, renderer kind, parity role,
@@ -264,7 +278,8 @@ yarn verify:api-examples
 Optional device-level example coverage is manual only:
 
 ```sh
-maestro test example/maestro/flows/examples/suite.yaml
+yarn examples:ios
+yarn examples:android
 ```
 
 ## Practical Meaning
@@ -283,4 +298,5 @@ Poor candidates:
 - one-off static text that never needs geometry before render
 - editable text inputs
 - use cases that require browser canvas pixel parity
-- Android API 24-28 flows that require canonical parity with API 29+
+- rule-layer fallback paths that require exact RN parity without a dedicated
+  contract case

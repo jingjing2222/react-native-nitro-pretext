@@ -169,6 +169,7 @@ internal func textAttributes(
 private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
     let paragraphStyle = NSMutableParagraphStyle()
     paragraphStyle.alignment = .left
+    paragraphStyle.lineBreakMode = .byWordWrapping
     switch style.textDirection {
     case .ltr:
         paragraphStyle.baseWritingDirection = .leftToRight

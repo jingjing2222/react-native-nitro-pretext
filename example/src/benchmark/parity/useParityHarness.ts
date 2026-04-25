@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 
 import { compareParityCaseLines } from "./comparator";
 import { materializePretextParityLines } from "./pretextLines";
+import { normalizeParityPlatform } from "./platform";
 import {
   createParityAutomationReport,
   createParityAutomationStatusLine,
@@ -39,6 +40,7 @@ export function useParityHarness(
   const [results, setResults] = useState<ParityCaseResult[]>([]);
   const [completedAt, setCompletedAt] = useState<string | null>(null);
   const processedCaseIdRef = useRef<string | null>(null);
+  const processedCaseIdsRef = useRef<Set<string>>(new Set());
   const resultsRef = useRef<ParityCaseResult[]>([]);
   const activeCase =
     activeIndex === null ? null : (parityCases[activeIndex] ?? null);
@@ -58,6 +60,7 @@ export function useParityHarness(
 
     resultsRef.current = [];
     processedCaseIdRef.current = null;
+    processedCaseIdsRef.current = new Set();
     setResults([]);
     setCompletedAt(null);
 
@@ -75,7 +78,8 @@ export function useParityHarness(
       if (
         status !== "running" ||
         activeIndex === null ||
-        processedCaseIdRef.current === caseId
+        processedCaseIdRef.current === caseId ||
+        processedCaseIdsRef.current.has(caseId)
       ) {
         return;
       }
@@ -86,6 +90,8 @@ export function useParityHarness(
       }
 
       processedCaseIdRef.current = caseId;
+      processedCaseIdsRef.current.add(caseId);
+      const platform = normalizeParityPlatform();
 
       let result: ParityCaseResult;
       try {
@@ -95,7 +101,7 @@ export function useParityHarness(
           category: parityCase.category,
           errorMessage: null,
           mismatches: compareParityCaseLines(parityCase, rnLines, pretextLines),
-          platform: "unknown",
+          platform,
         };
       } catch (error) {
         result = {
@@ -104,7 +110,7 @@ export function useParityHarness(
           errorMessage:
             error instanceof Error ? error.message : "Unknown parity error",
           mismatches: [],
-          platform: "unknown",
+          platform,
         };
       }
 
@@ -142,7 +148,7 @@ export function useParityHarness(
   const statusLine = createParityAutomationStatusLine({
     activeCaseId: activeCase?.caseId ?? null,
     caseCount: parityCases.length,
-    completedCases: results.length,
+    completedCases: report.completedCases,
     status,
   });
 

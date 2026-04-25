@@ -1,5 +1,4 @@
-import { Platform } from "react-native";
-
+import { normalizeParityPlatform } from "./platform";
 import type {
   ParityCase,
   ParityFirstDiff,
@@ -10,14 +9,6 @@ import type {
 } from "./types";
 
 export const PARITY_GEOMETRY_TOLERANCE = 0.5;
-
-function normalizePlatform(): "android" | "ios" | "unknown" {
-  if (Platform.OS === "android" || Platform.OS === "ios") {
-    return Platform.OS;
-  }
-
-  return "unknown";
-}
 
 function normalizeLineText(text: string): string {
   return text.replace(/\r?\n/gu, "").replace(/[ \t\u00a0]+$/gu, "");
@@ -112,7 +103,7 @@ function createMismatch(
     category: parityCase.category,
     firstDiff,
     kind,
-    platform: normalizePlatform(),
+    platform: normalizeParityPlatform(),
     pretextLines,
     rnLines,
     style: parityCase.style,

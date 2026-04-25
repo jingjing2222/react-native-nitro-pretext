@@ -110,11 +110,11 @@ Height is native text-engine output. It is affected by font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
 
-| Platform        | Layout path                       | Status                                                              |
-| --------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 24+ | RN-compatible `StaticLayout`      | Canonical for normal-wrap requests without shape slices.            |
-| iOS             | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
-| RN `<Text>`     | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
+| Platform        | Layout path                  | Status                                                              |
+| --------------- | ---------------------------- | ------------------------------------------------------------------- |
+| Android API 24+ | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.            |
+| iOS             | TextKit normal-wrap layout   | Current benchmark gate path for normal text.                        |
+| RN `<Text>`     | final visible renderer       | Not the correctness source. Match styles carefully to reduce drift. |
 
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
 If you turn it off in Pretext but leave RN `<Text>` at its default, height can
@@ -122,8 +122,9 @@ drift.
 When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
 Diagnostics may report `android_static_layout_compat` on Android normal-wrap
-paths, `android_legacy_fallback` on Android fallback paths, and
-`ios_manual_token_fallback` on degraded iOS fallback paths.
+paths, `android_legacy_fallback` on Android fallback paths, `ios_text_kit` on
+iOS normal-wrap benchmark paths, `ios_core_text` on alternate iOS native line
+layout paths, and `ios_manual_token_fallback` on degraded iOS fallback paths.
 
 The native implementation is split by responsibility across preparation,
 tokenization, line layout, diagnostics, constants, and native model files on
@@ -145,9 +146,9 @@ Current local validation is on React `19.2.3` and React Native `0.85.0`.
 
 ## Performance Snapshot
 
-Benchmarks are platform-specific. iOS uses Core Text and Android uses an
-RN-compatible StaticLayout path, so their numbers should be reported separately
-and never averaged together.
+Benchmarks are platform-specific. The current normal-wrap gate expects iOS
+TextKit and Android RN-compatible StaticLayout metadata, so their numbers should
+be reported separately and never averaged together.
 
 The most important comparison is the path an app would otherwise build with RN
 only:
@@ -174,12 +175,12 @@ Improvement headline:
 `Stable-height path improved by` is calculated as
 `(RN hidden measure time - Pretext layout time) / RN hidden measure time`.
 
-Latest local Maestro timing snapshot:
+Latest retained local Maestro timing snapshot:
 
-| Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                |
-| -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ------------------------------------- |
-| iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Debug simulator suite passed          |
-| Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed |
+| Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                               |
+| -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ---------------------------------------------------- |
+| iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Historical timing snapshot; rerun current suite gate |
+| Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed                |
 
 Hot relayout compute improvement:
 
@@ -279,11 +280,16 @@ Manual Maestro validation:
 ```sh
 yarn examples:ios
 yarn examples:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
 
-The latest parity artifacts are written under:
+Benchmark scripts write the latest summary and gate report under
+`example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`. Parity runs
+also write:
 
 - `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
 - `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`
