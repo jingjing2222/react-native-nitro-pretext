@@ -10,7 +10,7 @@ internal fun normalizeLayoutRequest(request: ParagraphLayoutRequest): NativeLayo
         top = finiteOrDefault(slice.top, 0.0),
         height = max(0.0, finiteOrDefault(slice.height, 0.0)),
         left = finiteOrDefault(slice.left, 0.0),
-        width = max(1.0, finiteOrDefault(slice.width, 1.0)),
+        width = max(0.0, finiteOrDefault(slice.width, 0.0)),
       )
     }
     .sortedBy { it.top }
@@ -282,7 +282,14 @@ private fun layoutWrappedLineLayouts(
     var rowHeight = defaultLineHeight
     var hitForcedBreak = false
 
-    for (constraint in resolveLineConstraints(request, top)) {
+    val constraints = resolveLineConstraints(request, top)
+
+    for (constraint in constraints) {
+      if (constraint.width <= 0.0) {
+        rowHeight = max(rowHeight, constraint.height)
+        continue
+      }
+
       while (cursor < units.size && isNonNewlineWhitespace(units[cursor].text)) {
         cursor += 1
       }
@@ -411,6 +418,8 @@ private fun layoutWrappedLineLayouts(
       top += rowHeight
     } else if (cursor >= units.size) {
       break
+    } else if (constraints.all { it.width <= 0.0 }) {
+      top += rowHeight
     }
 
     if (hitForcedBreak && cursor < units.size && units[cursor].text == NEWLINE_TOKEN) {
@@ -489,6 +498,7 @@ private fun resolveLineConstraints(
       NativeLineConstraint(
         left = request.left,
         width = request.width,
+        height = 0.0,
       ),
     )
   }
@@ -497,6 +507,7 @@ private fun resolveLineConstraints(
     NativeLineConstraint(
       left = slice.left,
       width = slice.width,
+      height = slice.height,
     )
   }
 }

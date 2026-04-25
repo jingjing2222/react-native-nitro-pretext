@@ -142,6 +142,7 @@ internal data class NativeShapeSlice(
 internal data class NativeLineConstraint(
   val left: Double,
   val width: Double,
+  val height: Double,
 )
 
 internal enum class TokenMode {

@@ -95,6 +95,9 @@ const lines = layout(prepared, {
 Multiple `shapeSlices` may share the same vertical band. In `output: "lines"`
 mode, Pretext fills those same-row slots from left to right before advancing to
 the next visual row, which supports text around two sides of an obstacle.
+Use `width: 0` for a constrained band that has no valid text slot; Pretext
+advances past that row without consuming text instead of falling back to the
+full paragraph width.
 
 Rich inline boxes are prepared with inline segment paragraphs and caller-owned
 box metrics, then read with `output: "rich"`. See the
@@ -195,24 +198,22 @@ surface number is reported as context, not as the layout-only gate.
 
 Strict parity contract:
 
-| Platform       | Contract source                   | Cases | Line count | Line text | Geometry | Status                           |
-| -------------- | --------------------------------- | ----: | ---------: | --------: | -------: | -------------------------------- |
-| iOS            | 260 Maestro parity cases          |   260 |      0/260 |     0/260 |    0/260 | Passed                           |
-| Android API 36 | previous 259-case parity snapshot |   259 |      0/259 |     0/259 |    0/259 | Rerun required for 260-case gate |
+| Platform       | Contract source          | Cases | Line count | Line text | Geometry | Status |
+| -------------- | ------------------------ | ----: | ---------: | --------: | -------: | ------ |
+| iOS            | 260 Maestro parity cases |   260 |      0/260 |     0/260 |    0/260 | Passed |
+| Android API 36 | 260 Maestro parity cases |   260 |      0/260 |     0/260 |    0/260 | Passed |
 
 The parity contract is no longer derived from repeated timing samples. It is a
 dedicated Maestro flow that executes 260 cases once per platform and requires
 line-count, exact raw line-text, and line-geometry parity to be `0/260`. The
 suite contains 259 raw RN `<Text onTextLayout>` cases plus one structural
-`shapeSlices` case that verifies same-row multi-slot output. The line-text
-comparison does not trim, normalize, or collapse newline, trailing whitespace,
-tab, or NBSP characters; display output may JSON-escape raw values, but
-comparison uses the unmodified RN payload.
+`shapeSlices` case that verifies same-row multi-slot output, blocked rows, and
+gap containment. The line-text comparison does not trim, normalize, or collapse
+newline, trailing whitespace, tab, or NBSP characters; display output may
+JSON-escape raw values, but comparison uses the unmodified RN payload.
 
-The latest iOS run completed the 260-case gate on April 26, 2026. Android API
-36 last passed the previous 259-case suite on April 25, 2026; rerun
-`benchmark:parity:android` on a connected Android device before reporting the
-260-case Android gate.
+The latest iOS and Android API 36 runs completed the 260-case gate on
+April 26, 2026.
 
 Current benchmark details and gate thresholds are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).

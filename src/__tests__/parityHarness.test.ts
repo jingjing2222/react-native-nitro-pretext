@@ -264,12 +264,12 @@ describe("RN Text parity harness contracts", () => {
 
   it("uses structural same-row oracle for shape slice parity cases", () => {
     const multiSlotLines = [
-      createLine("left slot"),
-      createLine("right slot", { left: 160 }),
+      createLine("left slot", { width: 90 }),
+      createLine("right slot", { left: 160, width: 70 }),
     ];
     const staleSingleSlotLines = [
-      createLine("left slot"),
-      createLine("next row", { top: 28 }),
+      createLine("left slot", { width: 90 }),
+      createLine("next row", { top: 28, width: 90 }),
     ];
 
     expect(
@@ -289,6 +289,27 @@ describe("RN Text parity harness contracts", () => {
           width: 0,
         },
         text: "shape oracle expected same-row multi-slot output",
+      },
+    ]);
+  });
+
+  it("rejects shape slice lines that cross blocked gaps", () => {
+    const intrudingLines = [
+      createLine("left slot crosses gap", { width: 130 }),
+      createLine("right slot", { left: 160, width: 70 }),
+    ];
+
+    expect(
+      materializeShapeSliceParityOracleLines(shapeParityCase, intrudingLines),
+    ).toEqual([
+      {
+        geometry: {
+          height: 0,
+          left: 0,
+          top: 0,
+          width: 0,
+        },
+        text: "shape oracle expected lines to stay inside shape slices",
       },
     ]);
   });

@@ -331,11 +331,10 @@ const SHAPE_SLICE_CASES: ParityCase[] = [
   {
     caseId: "parity-shape-001",
     category: "shape",
-    description: "Multi-slot shapeSlices fill both sides of the same row",
+    description: "Blocked shapeSlices row skips before multi-slot rows",
     rnTextProps: DEFAULT_RN_TEXT_PROPS,
     shapeSlices: [
-      { height: 28, left: 0, top: 0, width: 112 },
-      { height: 28, left: 188, top: 0, width: 112 },
+      { height: 28, left: 0, top: 0, width: 0 },
       { height: 28, left: 0, top: 28, width: 132 },
       { height: 28, left: 168, top: 28, width: 132 },
       { height: 28, left: 0, top: 56, width: 152 },

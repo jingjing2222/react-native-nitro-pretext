@@ -535,12 +535,18 @@ The number shorthand is equivalent to `{ width, output: "metrics" }`.
 
 ### `ParagraphShapeSlice`
 
-| Field    | Type     | Description                             |
-| -------- | -------- | --------------------------------------- |
-| `top`    | `number` | Vertical start of the constrained band. |
-| `height` | `number` | Band height.                            |
-| `left`   | `number` | Text x offset inside the band.          |
-| `width`  | `number` | Available text width inside the band.   |
+| Field    | Type     | Description                                                                                      |
+| -------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `top`    | `number` | Vertical start of the constrained band.                                                          |
+| `height` | `number` | Band height.                                                                                     |
+| `left`   | `number` | Text x offset inside the band.                                                                   |
+| `width`  | `number` | Available text width inside the band. Use `0` to mark a constrained row with no valid text slot. |
+
+Multiple slices may share the same vertical band. With `output: "lines"`,
+Pretext fills those same-row slots from left to right. A zero-width slice keeps
+the row constrained but blocked, so the fallback line engine advances to the
+next row without consuming text instead of treating the band as unconstrained
+full-width space.
 
 ### `InlineSegment`
 
@@ -588,8 +594,8 @@ Box segment fields:
 - Browser canvas pixel parity is explicitly out of scope.
 - Parity is gated by the 260-case Maestro suite: 259 strict raw RN
   `<Text onTextLayout>` cases plus one `shapeSlices` structural case for
-  same-row multi-slot output. Line text is compared exactly as RN
-  `onTextLayout` reports it.
+  blocked rows, same-row multi-slot output, and gap containment. Line text is
+  compared exactly as RN `onTextLayout` reports it.
 - Public offsets are source UTF-16 offsets.
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or

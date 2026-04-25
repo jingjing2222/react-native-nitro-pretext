@@ -87,16 +87,12 @@ function buildCircleShapeSlices({
     const leftWidth = blockedLeft;
     const rightWidth = width - blockedRight;
 
-    if (leftWidth < MIN_LINE_SLOT_WIDTH && rightWidth < MIN_LINE_SLOT_WIDTH) {
-      continue;
-    }
-
     if (leftWidth >= MIN_LINE_SLOT_WIDTH) {
       slices.push({
         height: lineHeight,
         left: 0,
         top,
-        width: Math.max(1, leftWidth),
+        width: leftWidth,
       });
     }
 
@@ -105,7 +101,16 @@ function buildCircleShapeSlices({
         height: lineHeight,
         left: blockedRight,
         top,
-        width: Math.max(1, rightWidth),
+        width: rightWidth,
+      });
+    }
+
+    if (leftWidth < MIN_LINE_SLOT_WIDTH && rightWidth < MIN_LINE_SLOT_WIDTH) {
+      slices.push({
+        height: lineHeight,
+        left: 0,
+        top,
+        width: 0,
       });
     }
   }
@@ -170,6 +175,7 @@ export function PretextReactNativeExampleScreen() {
     () =>
       PanResponder.create({
         onMoveShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponderCapture: () => true,
         onPanResponderGrant: () => {
           setIsDragging(true);
           dragStartRef.current = circleRef.current;
@@ -188,6 +194,7 @@ export function PretextReactNativeExampleScreen() {
           setIsDragging(false);
         },
         onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponderCapture: () => true,
       }),
     [updateCircle],
   );

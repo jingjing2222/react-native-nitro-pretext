@@ -62,27 +62,26 @@ under `examples/use-case/*`, with matching plain RN workarounds under
 RN `<Text>` parity is a dedicated strict raw Maestro contract, not a count
 inflated by repeated timing benchmark samples. The contract source is 260
 cases: 259 raw RN `<Text onTextLayout>` cases plus one structural
-`shapeSlices` case that verifies same-row multi-slot output. Each case has a
-stable `caseId`, text, width, style, and category, and is executed once per
-platform. The source of truth for raw RN text cases is RN's `onTextLayout` line
-payload; line text is compared without trimming, normalization, newline
-folding, trailing whitespace removal, tab conversion, or NBSP conversion.
+`shapeSlices` case that verifies blocked rows, same-row multi-slot output, and
+gap containment. Each case has a stable `caseId`, text, width, style, and
+category, and is executed once per platform. The source of truth for raw RN
+text cases is RN's `onTextLayout` line payload; line text is compared without
+trimming, normalization, newline folding, trailing whitespace removal, tab
+conversion, or NBSP conversion.
 
 Latest parity run:
 
-- Date: April 26, 2026 for the current iOS 260-case gate; April 25, 2026 for
-  the previous Android 259-case snapshot
+- Date: April 26, 2026
 - iOS target: iPhone 16 simulator, iOS 18.5
-- Android target: Pixel_9_Pro AVD, Android API 36 for the previous snapshot
+- Android target: Pixel_9_Pro AVD, Android API 36
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
-- Gate: pass on iOS; Android must be rerun on a connected device before
-  reporting the 260-case gate
+- Gate: pass on iOS and Android
 
 | Platform | Cases | Mismatches | Line count | Line text | Geometry | Contract candidates |
 | -------- | ----: | ---------: | ---------: | --------: | -------: | ------------------: |
 | iOS      |   260 |          0 |      0/260 |     0/260 |    0/260 |                   0 |
-| Android  |   259 |          0 |      0/259 |     0/259 |    0/259 |                   0 |
+| Android  |   260 |          0 |      0/260 |     0/260 |    0/260 |                   0 |
 
 Manual parity commands:
 
@@ -189,21 +188,17 @@ Dedicated RN Text parity contract:
 
 | Bucket               | Mismatches |
 | -------------------- | ---------: |
-| Line-count parity    |    `0/259` |
-| Line-text parity     |    `0/259` |
-| Line-geometry parity |    `0/259` |
+| Line-count parity    |    `0/260` |
+| Line-text parity     |    `0/260` |
+| Line-geometry parity |    `0/260` |
 
 The Android debug AVD run reports the current RN-compatible StaticLayout
 normal-wrap path, and it shows why platform-specific reporting matters.
 The layout-only hot path was `0.10 ms`; the full visible-surface median was
 slower than RN by `15.68 ms` because the final RN surface still dominates the
 render cost. The dedicated `benchmark:parity:android` flow is the blocking RN
-Text parity contract and currently passes at `0/259` under strict raw line-text
-comparison.
-
-This Android result is the previous 259-case snapshot. Re-run
-`benchmark:parity:android` after connecting an Android device to validate the
-current 260-case gate with the `shapeSlices` structural case.
+Text parity contract and currently passes at `0/260` under strict raw line-text
+comparison, including the `shapeSlices` blocked-row structural case.
 
 ## Resolved RN Text Parity History
 
@@ -214,7 +209,7 @@ Those counts are retained here only as resolved history:
 | Platform | Earlier report bucket    | Historical mismatch count | Current contract status |
 | -------- | ------------------------ | ------------------------: | ----------------------- |
 | iOS      | Sampled line-text parity |                  `35/240` | `0/260` resolved        |
-| Android  | Line-count parity        |                  `80/240` | `0/259` resolved        |
+| Android  | Line-count parity        |                  `80/240` | `0/260` resolved        |
 
 The current source of truth is the 260-case Maestro parity suite above.
 If a new mismatch appears, it should be promoted into a deterministic Maestro
@@ -283,7 +278,8 @@ minimum diagnostic sample counts, layout engine, renderer kind, parity role,
 Android `includeFontPadding`, and height metric source. The dedicated parity
 gate separately requires 260 completed cases and `0/260` line-count, line-text,
 and line-geometry mismatches against the final RN `<Text>` renderer plus the
-`shapeSlices` structural oracle.
+`shapeSlices` structural oracle for blocked rows, same-row slots, and gap
+containment.
 
 Static API example coverage is CI-safe:
 

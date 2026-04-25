@@ -226,7 +226,7 @@ internal func normalizeLayoutRequest(_ request: ParagraphLayoutRequest) -> Nativ
             top: finiteOrDefault(item.element.top, fallback: 0),
             height: max(0, finiteOrDefault(item.element.height, fallback: 0)),
             left: finiteOrDefault(item.element.left, fallback: 0),
-            width: max(1, finiteOrDefault(item.element.width, fallback: 1))
+            width: max(0, finiteOrDefault(item.element.width, fallback: 0))
         )))
     }
     let shapeSlices = indexedShapeSlices.sorted { left, right in
@@ -287,11 +287,11 @@ private func resolveLineConstraints(
         }
 
     guard !slices.isEmpty else {
-        return [NativeLineConstraint(left: request.left, width: request.width)]
+        return [NativeLineConstraint(left: request.left, width: request.width, height: 0)]
     }
 
     return slices.map { slice in
-        NativeLineConstraint(left: slice.left, width: slice.width)
+        NativeLineConstraint(left: slice.left, width: slice.width, height: slice.height)
     }
 }
 
@@ -701,7 +701,14 @@ private func layoutLineLayoutsFallback(
         var hitForcedBreak = false
         let breakAnywhere = request.wordBreak == wordBreakBreakAll
 
-        for constraint in resolveLineConstraints(request: request, top: top) {
+        let constraints = resolveLineConstraints(request: request, top: top)
+
+        for constraint in constraints {
+            if constraint.width <= 0 {
+                rowHeight = max(rowHeight, constraint.height)
+                continue
+            }
+
             while cursor < tokens.count && isNonNewlineWhitespace(tokens[cursor].text) {
                 cursor += 1
             }
@@ -829,6 +836,8 @@ private func layoutLineLayoutsFallback(
             top += rowHeight
         } else if cursor >= tokens.count {
             break
+        } else if constraints.allSatisfy({ $0.width <= 0 }) {
+            top += rowHeight
         }
 
         if hitForcedBreak && cursor < tokens.count && tokens[cursor].text == newlineToken {

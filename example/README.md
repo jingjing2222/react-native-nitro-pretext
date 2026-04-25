@@ -81,7 +81,8 @@ Benchmark routes:
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
 - `benchmark/parity`: 260-case strict parity contract covering raw RN
-  `<Text>` line output plus a `shapeSlices` multi-slot structural case.
+  `<Text>` line output plus a `shapeSlices` blocked-row and multi-slot
+  structural case.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -135,11 +136,9 @@ Latest benchmark runs:
 - Android `benchmark` suite: April 25, 2026 on Pixel_9_Pro AVD, API 36.
   RN median `70.65 ms`, Pretext visible median `86.33 ms`, layout-only median
   `0.10 ms`.
-- RN `<Text>`/`shapeSlices` parity suite: April 26, 2026 on iOS with
-  260 Maestro cases and `0/260` line-count, line-text, and geometry
-  mismatches. Android API 36 last passed the previous 259-case suite on
-  April 25, 2026; rerun Android parity on a connected device before reporting
-  the 260-case Android gate.
+- RN `<Text>`/`shapeSlices` parity suite: April 26, 2026 on iOS and Android
+  API 36 with 260 Maestro cases and `0/260` line-count, line-text, and
+  geometry mismatches.
 
 ## Example Verification
 

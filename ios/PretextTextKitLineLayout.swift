@@ -6,7 +6,7 @@ internal func layoutTextKitLineLayouts(
     lineHeight: Double,
     request: NativeLayoutRequest
 ) -> [NativeLineLayout] {
-    let constraint = NativeLineConstraint(left: request.left, width: request.width)
+    let constraint = NativeLineConstraint(left: request.left, width: request.width, height: 0)
     let textStorage = NSTextStorage(attributedString: prepared.attributedText)
     applyTextKitBaselineOffset(textStorage)
 
