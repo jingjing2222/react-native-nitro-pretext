@@ -157,6 +157,19 @@ print_latest_summary() {
     "$flow_key"
 }
 
+write_parity_artifacts() {
+  local debug_dir="$1"
+  local platform_name="$2"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  node "$APP_ROOT_DIR/maestro/scripts/format-parity-artifacts.js" \
+    "$latest_log" \
+    "$debug_dir" \
+    "$platform_name"
+}
+
 find_latest_log() {
   local debug_dir="$1"
   local latest_log
@@ -328,6 +341,10 @@ case "$PLATFORM_NAME" in
 esac
 
 print_latest_summary "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
+
+if [[ "$FLOW_KEY" == "parity" ]]; then
+  write_parity_artifacts "$DEBUG_DIR" "$PLATFORM_NAME"
+fi
 
 if [[ "${BENCHMARK_SKIP_GATE:-0}" != "1" ]]; then
   run_quality_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"

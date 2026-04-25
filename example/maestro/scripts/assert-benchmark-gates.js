@@ -143,6 +143,15 @@ function assertMin(state, label, value, threshold, formatter = String) {
   );
 }
 
+function assertArrayLength(state, label, value, threshold, formatter = String) {
+  if (threshold === undefined) {
+    return;
+  }
+
+  const actual = Array.isArray(value) ? value.length : null;
+  assertMax(state, label, actual, threshold, formatter);
+}
+
 function expectedCanonicalLayoutEngine(platformName) {
   if (platformName === "android") {
     return "android_measured_text_line_breaker";
@@ -263,6 +272,40 @@ function renderCheckLine(prefix, check) {
   return `${prefix} ${check.label} (actual ${check.actual}, expected ${check.threshold})`;
 }
 
+function formatMismatchValue(value) {
+  if (value === null || value === undefined) {
+    return "n/a";
+  }
+
+  return JSON.stringify(value);
+}
+
+function renderParityMismatchLine(mismatch) {
+  const firstDiff = mismatch?.firstDiff ?? {};
+  const lineIndex =
+    firstDiff.lineIndex === null || firstDiff.lineIndex === undefined
+      ? "n/a"
+      : String(firstDiff.lineIndex);
+
+  return `  ${mismatch?.caseId ?? "unknown-case"} [${mismatch?.category ?? "unknown"}] ${mismatch?.kind ?? "unknown-kind"} width=${mismatch?.width ?? "n/a"} firstDiff=${firstDiff.field ?? "n/a"} line=${lineIndex} rn=${formatMismatchValue(firstDiff.rnValue)} pretext=${formatMismatchValue(firstDiff.pretextValue)}`;
+}
+
+function renderParityMismatchSection(parityReport) {
+  const mismatches = Array.isArray(parityReport?.mismatches)
+    ? parityReport.mismatches
+    : [];
+
+  return [
+    "Parity Mismatch Details",
+    ...(mismatches.length === 0
+      ? ["  none"]
+      : mismatches.slice(0, 40).map(renderParityMismatchLine)),
+    ...(mismatches.length > 40
+      ? [`  ... ${mismatches.length - 40} more mismatches omitted`]
+      : []),
+  ];
+}
+
 const thresholds = resolveThresholds();
 const baseText = summary.baseText;
 const preparedView = summary.preparedView;
@@ -312,6 +355,54 @@ if (flow === "parity") {
     "parity completed cases",
     parity?.completedCases,
     parity?.caseCount,
+  );
+  assertEqual(
+    contractChecks,
+    "parity case count",
+    parity?.caseCount,
+    thresholds.expectedParityCaseCount,
+  );
+  assertMax(
+    contractChecks,
+    "parity failed cases",
+    parity?.failedCases,
+    thresholds.maxParityFailedCases,
+    formatCount,
+  );
+  assertMax(
+    contractChecks,
+    "parity mismatches",
+    parity?.mismatchCount,
+    thresholds.maxParityMismatches,
+    formatCount,
+  );
+  assertMax(
+    contractChecks,
+    "line-count parity mismatches",
+    parity?.lineCountMismatches,
+    thresholds.maxLineCountParityMismatches,
+    formatCount,
+  );
+  assertMax(
+    contractChecks,
+    "line-text parity mismatches",
+    parity?.lineTextMismatches,
+    thresholds.maxLineTextParityMismatches,
+    formatCount,
+  );
+  assertMax(
+    contractChecks,
+    "line-geometry parity mismatches",
+    parity?.lineGeometryMismatches,
+    thresholds.maxLineGeometryParityMismatches,
+    formatCount,
+  );
+  assertArrayLength(
+    contractChecks,
+    "parity mismatch detail count",
+    parity?.mismatches,
+    thresholds.maxParityMismatches,
+    formatCount,
   );
 }
 
@@ -447,6 +538,7 @@ const reportLines = [
   ...renderCheckSection("Timing Checks", timingChecks),
   "",
   ...renderCheckSection("Parity Contract Checks", contractChecks),
+  ...(flow === "parity" ? ["", ...renderParityMismatchSection(parity)] : []),
 ];
 
 const report = reportLines.join("\n").trimEnd();

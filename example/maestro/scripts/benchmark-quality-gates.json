@@ -16,7 +16,13 @@
       "requireCompleted": true
     },
     "parity": {
-      "requireCompleted": true
+      "requireCompleted": true,
+      "expectedParityCaseCount": 240,
+      "maxParityFailedCases": 0,
+      "maxParityMismatches": 0,
+      "maxLineCountParityMismatches": 0,
+      "maxLineTextParityMismatches": 0,
+      "maxLineGeometryParityMismatches": 0
     },
     "pretext-layout": {
       "requireCompleted": true,

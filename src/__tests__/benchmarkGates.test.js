@@ -147,9 +147,9 @@ function runParityGate(parityOverrides = {}) {
   const logPath = path.join(tempDir, "maestro.log");
   const reportPath = path.join(tempDir, "gate.txt");
   const parity = {
-    caseCount: 3,
+    caseCount: 240,
     completedAt: "10:00:02",
-    completedCases: 3,
+    completedCases: 240,
     failedCases: 0,
     geometryTolerance: 0.5,
     lineCountMismatches: 0,
@@ -175,6 +175,45 @@ function runParityGate(parityOverrides = {}) {
     "android",
     "parity",
   ]);
+
+  return fs.readFileSync(reportPath, "utf8");
+}
+
+function runParityGateFailure(parityOverrides = {}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-gate-"));
+  const logPath = path.join(tempDir, "maestro.log");
+  const reportPath = path.join(tempDir, "gate.txt");
+  const parity = {
+    caseCount: 240,
+    completedAt: "10:00:02",
+    completedCases: 240,
+    failedCases: 0,
+    geometryTolerance: 0.5,
+    lineCountMismatches: 0,
+    lineGeometryMismatches: 0,
+    lineTextMismatches: 0,
+    mismatchCount: 0,
+    mismatches: [],
+    platform: "android",
+    screen: "benchmark/parity",
+    status: "completed",
+    ...parityOverrides,
+  };
+
+  fs.writeFileSync(
+    logPath,
+    `I/ReactNativeJS: JsConsole: BENCHMARK_REPORT::benchmark/parity::${JSON.stringify(parity)}\n`,
+  );
+
+  expect(() =>
+    execFileSync(process.execPath, [
+      gateScript,
+      logPath,
+      reportPath,
+      "android",
+      "parity",
+    ]),
+  ).toThrow();
 
   return fs.readFileSync(reportPath, "utf8");
 }
@@ -231,10 +270,40 @@ describe("benchmark parity contract gates", () => {
     const report = runParityGate();
 
     expect(report).toContain("parity status == completed");
-    expect(report).toContain("parity completed cases == 3");
+    expect(report).toContain("parity case count == 240");
+    expect(report).toContain("line-text parity mismatches <= 0");
   });
 
   it("fails dedicated parity when not every case completes", () => {
-    expect(() => runParityGate({ completedCases: 2 })).toThrow();
+    expect(() => runParityGate({ completedCases: 239 })).toThrow();
+  });
+
+  it("fails dedicated parity on any mismatch and prints its location", () => {
+    const report = runParityGateFailure({
+      lineTextMismatches: 1,
+      mismatchCount: 1,
+      mismatches: [
+        {
+          caseId: "parity-latin-001",
+          category: "latin",
+          firstDiff: {
+            field: "text",
+            lineIndex: 0,
+            pretextValue: "expected",
+            rnValue: "actual",
+          },
+          kind: "line-text",
+          platform: "android",
+          pretextLines: [],
+          rnLines: [],
+          style: {},
+          width: 220,
+        },
+      ],
+    });
+
+    expect(report).toContain("Parity Mismatch Details");
+    expect(report).toContain("parity-latin-001 [latin] line-text");
+    expect(report).toContain('rn="actual" pretext="expected"');
   });
 });
