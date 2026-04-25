@@ -10,10 +10,6 @@ import type {
 
 export const PARITY_GEOMETRY_TOLERANCE = 0.5;
 
-function normalizeLineText(text: string): string {
-  return text.replace(/\r?\n/gu, "").replace(/[ \t\u00a0]+$/gu, "");
-}
-
 function roundGeometryValue(value: number): number {
   return Number(value.toFixed(2));
 }
@@ -39,14 +35,12 @@ function findLineTextDiff(
       continue;
     }
 
-    const rnText = normalizeLineText(rnLine.text);
-    const pretextText = normalizeLineText(pretextLine.text);
-    if (rnText !== pretextText) {
+    if (rnLine.text !== pretextLine.text) {
       return {
         field: "text",
         lineIndex,
-        pretextValue: pretextText,
-        rnValue: rnText,
+        pretextValue: pretextLine.text,
+        rnValue: rnLine.text,
       };
     }
   }

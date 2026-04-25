@@ -5,6 +5,10 @@ import {
   serializeParityAutomationReport,
 } from "../../example/src/benchmark/parity/automation";
 import { compareParityCaseLines } from "../../example/src/benchmark/parity/comparator";
+import {
+  advanceParityLayoutObservation,
+  createParityLayoutObservation,
+} from "../../example/src/benchmark/parity/settling";
 import type {
   ParityCase,
   ParityLineSnapshot,
@@ -142,7 +146,32 @@ describe("RN Text parity harness contracts", () => {
     });
   });
 
-  it("counts duplicate result mismatches once per case and kind", () => {
+  it.each([
+    ["hard newline", "Unit parity\n", "Unit parity"],
+    ["trailing spaces", "Unit parity   ", "Unit parity"],
+    ["tab", "Unit\tparity", "Unit parity"],
+    ["nonbreaking space", "Unit parity\u00a0", "Unit parity"],
+  ])("treats raw line text drift as mismatch: %s", (_, rnText, pretextText) => {
+    const mismatches = compareParityCaseLines(
+      parityCase,
+      [createLine(rnText)],
+      [createLine(pretextText)],
+      0.5,
+    );
+
+    expect(mismatches).toHaveLength(1);
+    expect(mismatches[0]).toMatchObject({
+      firstDiff: {
+        field: "text",
+        lineIndex: 0,
+        pretextValue: pretextText,
+        rnValue: rnText,
+      },
+      kind: "line-text",
+    });
+  });
+
+  it("counts duplicate result mismatches as observed", () => {
     const mismatches = compareParityCaseLines(
       parityCase,
       [createLine("Unit parity")],
@@ -173,14 +202,45 @@ describe("RN Text parity harness contracts", () => {
 
     expect(report).toMatchObject({
       completedCases: 1,
-      lineGeometryMismatches: 1,
-      lineTextMismatches: 1,
-      mismatchCount: 2,
+      lineGeometryMismatches: 2,
+      lineTextMismatches: 2,
+      mismatchCount: 4,
     });
     expect(report.mismatches.map((mismatch) => mismatch.kind)).toEqual([
       "line-text",
       "line-geometry",
+      "line-text",
+      "line-geometry",
     ]);
+  });
+
+  it("settles only after the latest RN line snapshot is stable", () => {
+    const firstObservation = createParityLayoutObservation({
+      caseId: parityCase.caseId,
+      eventVersion: 1,
+      lines: [createLine("first layout")],
+    });
+    const firstTick = advanceParityLayoutObservation(firstObservation);
+    expect(firstTick.isStable).toBe(false);
+
+    const finalObservation = createParityLayoutObservation({
+      caseId: parityCase.caseId,
+      eventVersion: 2,
+      lines: [createLine("final layout")],
+    });
+    const finalTickOne = advanceParityLayoutObservation(finalObservation);
+    const finalTickTwo = advanceParityLayoutObservation(
+      finalTickOne.observation,
+    );
+
+    expect(finalTickTwo).toMatchObject({
+      isStable: true,
+      observation: {
+        eventVersion: 2,
+        lines: [createLine("final layout")],
+        stableFrames: 2,
+      },
+    });
   });
 
   it("serializes parity reports with grouped mismatch transport", () => {
