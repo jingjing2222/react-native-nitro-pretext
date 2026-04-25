@@ -28,6 +28,13 @@ export function ExampleIndexScreen({ navigation }: Props) {
         </View>
 
         <ExampleLink
+          description="A draggable circle demo adapted from pretext-react-native-example, using Pretext line output and shapeSlices."
+          onPress={() => navigation.navigate("PretextReactNativeExample")}
+          testID="examples.open-pretext-react-native-example"
+          title="examples/pretext-react-native-example"
+        />
+
+        <ExampleLink
           description="Focused pages for prepare, layout outputs, hook lifecycle, namespace calls, and exported types."
           onPress={() => navigation.navigate("ExampleUseCaseIndex")}
           testID="examples.open-use-case"

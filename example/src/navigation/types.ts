@@ -22,5 +22,6 @@ export type AppStackParamList = {
   ExampleUseCaseLayoutRich: undefined;
   ExampleUseCaseNamespaceAndTypes: undefined;
   ExampleUseCasePrepare: undefined;
+  PretextReactNativeExample: undefined;
   Home: undefined;
 };
