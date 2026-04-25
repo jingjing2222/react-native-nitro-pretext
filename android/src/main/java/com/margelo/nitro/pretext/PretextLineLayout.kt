@@ -1,6 +1,5 @@
 package com.margelo.nitro.pretext
 
-import android.os.Build
 import kotlin.math.max
 import kotlin.math.min
 
@@ -51,45 +50,15 @@ internal fun layoutLineLayouts(
       request.wordBreak == WORD_BREAK_NORMAL &&
       !prepared.forceTokenLayout
 
-  val lineBreaker = corpus.lineBreaker
-  val measuredText = prepared.measuredText
-  val canUsePlatformLineBreaker =
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-      lineBreaker != null &&
-      measuredText != null &&
-      !prepared.forceTokenLayout &&
-      request.shapeSlices.isEmpty() &&
-      request.whiteSpace == WHITE_SPACE_NORMAL &&
-      request.wordBreak == WORD_BREAK_NORMAL
-
-  if (canUsePlatformLineBreaker) {
-    return Api29LineLayout.layoutLineLayouts(
-      text = prepared.text,
-      measuredText = measuredText,
-      lineBreaker = lineBreaker,
-      textPaint = corpus.textPaint,
-      defaultStyle = corpus.baseStyle,
-      runs = prepared.runs,
-      inlineBoxes = prepared.inlineBoxes,
-      width = request.width,
-      left = request.left,
-      defaultLineHeight = corpus.lineHeight,
-      includeFontPadding = corpus.includeFontPadding,
-    )
-  }
-
   if (canUseStaticLayout) {
     return StaticLayoutLineLayout.layoutLineLayouts(
       text = prepared.styledText,
       textPaint = corpus.textPaint,
-      runs = prepared.runs,
       inlineBoxes = prepared.inlineBoxes,
       width = request.width,
       left = request.left,
       defaultLineHeight = corpus.lineHeight,
       includeFontPadding = corpus.includeFontPadding,
-      textDirection = corpus.baseStyle.textDirection,
-      textLocale = corpus.baseStyle.locale,
     )
   }
 

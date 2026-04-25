@@ -62,14 +62,10 @@ function getRuntimeAndroidApiLevel(): number | null {
 
 export function getCanonicalPreparedLayoutEngine(
   platform: BenchmarkPlatform,
-  androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
+  _androidApiLevel: number | null = getRuntimeAndroidApiLevel(),
 ): BenchmarkLayoutEngine {
   if (platform === "android") {
-    if (androidApiLevel !== null && androidApiLevel < 29) {
-      return "android_static_layout_compat";
-    }
-
-    return "android_measured_text_line_breaker";
+    return "android_static_layout_compat";
   }
 
   if (platform === "ios") {

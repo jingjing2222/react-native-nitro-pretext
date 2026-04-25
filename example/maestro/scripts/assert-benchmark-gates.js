@@ -154,7 +154,7 @@ function assertArrayLength(state, label, value, threshold, formatter = String) {
 
 function expectedCanonicalLayoutEngine(platformName) {
   if (platformName === "android") {
-    return "android_measured_text_line_breaker";
+    return "android_static_layout_compat";
   }
 
   if (platformName === "ios") {

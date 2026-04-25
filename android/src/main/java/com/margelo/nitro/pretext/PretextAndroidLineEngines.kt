@@ -1,13 +1,17 @@
 package com.margelo.nitro.pretext
 
 import android.graphics.Paint
+import android.graphics.Rect
 import android.graphics.text.LineBreaker
 import android.graphics.text.MeasuredText
 import android.os.Build
+import android.text.BoringLayout
 import android.text.Layout
 import android.text.StaticLayout
+import android.text.TextDirectionHeuristics
 import android.text.TextPaint
 import kotlin.math.ceil
+import kotlin.math.floor
 import kotlin.math.max
 import kotlin.math.min
 
@@ -519,35 +523,22 @@ internal object StaticLayoutLineLayout {
   fun layoutLineLayouts(
     text: CharSequence,
     textPaint: TextPaint,
-    runs: List<NativeTextRun>,
     inlineBoxes: List<NativeInlineBox>,
     width: Double,
     left: Double,
     defaultLineHeight: Double,
     includeFontPadding: Boolean,
-    textDirection: ParagraphTextDirection,
-    textLocale: String,
   ): List<NativeLineLayout> {
+    val layoutWidth = max(1, floor(width).toInt())
+    val alignment = resolveReactLeftTextAlignment(text)
     val layout =
-      StaticLayout.Builder.obtain(
-        text,
-        0,
-        text.length,
-        textPaint,
-        max(1, ceil(width).toInt()),
+      createReactTextLayout(
+        text = text,
+        textPaint = textPaint,
+        layoutWidth = layoutWidth,
+        alignment = alignment,
+        includeFontPadding = includeFontPadding,
       )
-        .setAlignment(Layout.Alignment.ALIGN_NORMAL)
-        .setLineSpacing(0f, 1f)
-        .setIncludePad(includeFontPadding)
-        .setTextDirection(resolveTextDirectionHeuristic(textDirection, textLocale))
-        .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
-        .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
-        .apply {
-          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            setUseLineSpacingFromFallbacks(true)
-          }
-        }
-        .build()
 
     if (layout.lineCount == 0) {
       return listOf(
@@ -561,58 +552,102 @@ internal object StaticLayoutLineLayout {
           ascent = 0.0,
           descent = defaultLineHeight,
           layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
-          fallbackReason = FALLBACK_REASON_STATIC_LAYOUT_COMPAT,
+          fallbackReason = null,
         ),
       )
     }
 
     val lines = ArrayList<NativeLineLayout>(layout.lineCount)
-    var top = 0.0
+    val bounds = Rect()
 
     for (lineIndex in 0 until layout.lineCount) {
       val start = layout.getLineStart(lineIndex)
-      var end = layout.getLineEnd(lineIndex)
-      while (end > start && text[end - 1] == '\n') {
-        end -= 1
-      }
-      val lineTop = layout.getLineTop(lineIndex).toDouble()
-      val lineBottom = layout.getLineBottom(lineIndex).toDouble()
+      val end = layout.getLineEnd(lineIndex)
+      val endsWithNewLine = text.isNotEmpty() && end > 0 && text[end - 1] == '\n'
+      val lineWidth =
+        if (endsWithNewLine) {
+          layout.getLineMax(lineIndex)
+        } else {
+          layout.getLineWidth(lineIndex)
+        }.toDouble()
+      layout.getLineBounds(lineIndex, bounds)
       val baseline = layout.getLineBaseline(lineIndex).toDouble()
-      var ascent = lineTop - baseline
-      var descent = lineBottom - baseline
+      var ascent = layout.getLineAscent(lineIndex).toDouble()
+      var descent = layout.getLineDescent(lineIndex).toDouble()
       inlineBoxes.forEach { box ->
         if (box.end > start && box.start < end) {
           ascent = min(ascent, -box.baseline)
           descent = max(descent, box.height - box.baseline)
         }
       }
-      val actualHeight = max(0.0, descent - ascent)
-      val lineHeight =
-        max(
-          maxRequestedLineHeight(
-            runs,
-            defaultLineHeight,
-            start,
-            end,
-            inlineBoxes,
-          ),
-          actualHeight,
-        )
       lines += NativeLineLayout(
         textStart = start,
         textEnd = end,
-        width = layout.getLineWidth(lineIndex).toDouble(),
+        width = lineWidth,
         left = left + layout.getLineLeft(lineIndex).toDouble(),
-        top = top,
-        height = lineHeight,
+        top = bounds.top.toDouble(),
+        height = bounds.height().toDouble(),
         ascent = ascent,
         descent = descent,
         layoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT,
-        fallbackReason = FALLBACK_REASON_STATIC_LAYOUT_COMPAT,
+        fallbackReason = null,
       )
-      top += lineHeight
     }
 
     return lines
+  }
+
+  private fun createReactTextLayout(
+    text: CharSequence,
+    textPaint: TextPaint,
+    layoutWidth: Int,
+    alignment: Layout.Alignment,
+    includeFontPadding: Boolean,
+  ): Layout {
+    val boring = BoringLayout.isBoring(text, textPaint)
+    if (boring != null && boring.width <= layoutWidth) {
+      @Suppress("DEPRECATION")
+      return BoringLayout.make(
+        text,
+        textPaint,
+        layoutWidth,
+        alignment,
+        1f,
+        0f,
+        boring,
+        includeFontPadding,
+      )
+    }
+
+    return StaticLayout.Builder.obtain(
+      text,
+      0,
+      text.length,
+      textPaint,
+      layoutWidth,
+    )
+      .setAlignment(alignment)
+      .setLineSpacing(0f, 1f)
+      .setIncludePad(includeFontPadding)
+      .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
+      .setBreakStrategy(Layout.BREAK_STRATEGY_HIGH_QUALITY)
+      .setHyphenationFrequency(Layout.HYPHENATION_FREQUENCY_NONE)
+      .apply {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+          setUseLineSpacingFromFallbacks(true)
+        }
+      }
+      .build()
+  }
+
+  private fun resolveReactLeftTextAlignment(
+    text: CharSequence,
+  ): Layout.Alignment {
+    val isScriptRtl = TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)
+    return if (isScriptRtl) {
+      Layout.Alignment.ALIGN_OPPOSITE
+    } else {
+      Layout.Alignment.ALIGN_NORMAL
+    }
   }
 }

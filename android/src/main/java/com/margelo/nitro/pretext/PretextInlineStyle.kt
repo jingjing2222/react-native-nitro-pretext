@@ -10,12 +10,15 @@ import android.text.Spanned
 import android.text.TextDirectionHeuristic
 import android.text.TextDirectionHeuristics
 import android.text.TextPaint
+import android.text.style.LineHeightSpan
 import android.text.style.MetricAffectingSpan
 import android.text.style.ReplacementSpan
 import android.text.TextUtils
 import android.view.View
 import java.text.Bidi
 import java.util.Locale
+import kotlin.math.ceil
+import kotlin.math.floor
 
 internal const val FONT_STYLE_NORMAL = "normal"
 internal const val FONT_STYLE_ITALIC = "italic"
@@ -97,10 +100,12 @@ internal fun resolveTextStyle(segment: InlineSegment, baseStyle: NativeTextStyle
 
 internal fun createTextPaint(style: NativeTextStyle): TextPaint {
   return TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-    textSize = AndroidTextUnits.toPx(style.fontSize).toFloat()
+    textSize = resolveFontSizePx(style)
     typeface = resolveTypeface(style)
-    if (style.fontSize > 0 && style.letterSpacing != 0.0) {
-      letterSpacing = (style.letterSpacing / style.fontSize).toFloat()
+    isSubpixelText = true
+    val fontSizePx = resolveFontSizePx(style)
+    if (fontSizePx > 0f && style.letterSpacing != 0.0) {
+      letterSpacing = (AndroidTextUnits.toPx(style.letterSpacing) / fontSizePx).toFloat()
     }
     textLocale = resolveTextLocale(style.locale)
   }
@@ -140,6 +145,14 @@ internal fun buildStyledText(
       run.end,
       Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
     )
+    if (run.style.lineHeight > 0.0) {
+      spannable.setSpan(
+        InlineLineHeightSpan(run.style.lineHeight),
+        run.start,
+        run.end,
+        Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+      )
+    }
   }
   inlineBoxes.forEach { box ->
     if (box.end <= box.start) {
@@ -322,6 +335,10 @@ internal fun resolveLineHeightValue(lineHeight: Double, paint: Paint): Double {
   return if (lineHeight > 0) AndroidTextUnits.toPx(lineHeight) else paint.fontSpacing.toDouble()
 }
 
+private fun resolveFontSizePx(style: NativeTextStyle): Float {
+  return ceil(AndroidTextUnits.toPx(style.fontSize)).toFloat()
+}
+
 internal fun resolveTypeface(style: NativeTextStyle): Typeface {
   val fontStyle = resolveTypefaceStyle(style.fontWeight, style.fontStyle)
   return when (style.fontFamily.lowercase()) {
@@ -353,7 +370,7 @@ internal fun resolveTextLocale(localeTag: String): Locale {
 
 private fun resolveTypefaceStyle(fontWeight: String, fontStyle: String): Int {
   val wantsBold = when (fontWeight.lowercase()) {
-    "600", "700", "800", "900", "semibold", "bold", "heavy", "black" -> true
+    "700", "800", "900", "bold", "heavy", "black" -> true
     else -> false
   }
   val wantsItalic = fontStyle.lowercase() == FONT_STYLE_ITALIC
@@ -377,14 +394,40 @@ private class InlineMetricSpan(
   }
 
   private fun apply(textPaint: TextPaint) {
-    textPaint.textSize = AndroidTextUnits.toPx(style.fontSize).toFloat()
+    textPaint.textSize = resolveFontSizePx(style)
     textPaint.typeface = resolveTypeface(style)
-    textPaint.letterSpacing = if (style.fontSize > 0 && style.letterSpacing != 0.0) {
-      (style.letterSpacing / style.fontSize).toFloat()
+    textPaint.isSubpixelText = true
+    val fontSizePx = resolveFontSizePx(style)
+    textPaint.letterSpacing = if (fontSizePx > 0f && style.letterSpacing != 0.0) {
+      (AndroidTextUnits.toPx(style.letterSpacing) / fontSizePx).toFloat()
     } else {
       0.0f
     }
     textPaint.textLocale = resolveTextLocale(style.locale)
+  }
+}
+
+private class InlineLineHeightSpan(lineHeight: Double) : LineHeightSpan {
+  private val lineHeightPx = ceil(AndroidTextUnits.toPx(lineHeight)).toInt()
+
+  override fun chooseHeight(
+    text: CharSequence,
+    start: Int,
+    end: Int,
+    spanstartv: Int,
+    v: Int,
+    fm: Paint.FontMetricsInt,
+  ) {
+    val leading = lineHeightPx - ((-fm.ascent) + fm.descent)
+    fm.ascent -= ceil(leading / 2.0).toInt()
+    fm.descent += floor(leading / 2.0).toInt()
+
+    if (start == 0) {
+      fm.top = fm.ascent
+    }
+    if (end == text.length) {
+      fm.bottom = fm.descent
+    }
   }
 }
 

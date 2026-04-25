@@ -110,22 +110,20 @@ Height is native text-engine output. It is affected by font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
 
-| Platform          | Layout path                       | Status                                                              |
-| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical for normal-wrap requests without shape slices.            |
-| Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not the canonical parity path.                       |
-| iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
-| RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
+| Platform        | Layout path                       | Status                                                              |
+| --------------- | --------------------------------- | ------------------------------------------------------------------- |
+| Android API 24+ | RN-compatible `StaticLayout`      | Canonical for normal-wrap requests without shape slices.            |
+| iOS             | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
+| RN `<Text>`     | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
 
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
 If you turn it off in Pretext but leave RN `<Text>` at its default, height can
 drift.
 When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
-Diagnostics may report `android_static_layout_compat` or
-`android_legacy_fallback` on Android fallback paths, and
-`ios_manual_token_fallback` on degraded iOS fallback paths. Android API 24-28
-StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
+Diagnostics may report `android_static_layout_compat` on Android normal-wrap
+paths, `android_legacy_fallback` on Android fallback paths, and
+`ios_manual_token_fallback` on degraded iOS fallback paths.
 
 The native implementation is split by responsibility across preparation,
 tokenization, line layout, diagnostics, constants, and native model files on
@@ -138,7 +136,7 @@ both Android and iOS.
 | React                        | `*`           | Example app and local checks use React `19.2.3`.        |
 | React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
 | `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                       |
-| Android                      | API 24+       | API 29+ normal-wrap requests are the canonical target.  |
+| Android                      | API 24+       | Normal-wrap requests use RN-compatible StaticLayout.    |
 | iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
 
 Pretext keeps its React and `react-native-nitro-modules` peer ranges open as
@@ -147,9 +145,9 @@ Current local validation is on React `19.2.3` and React Native `0.85.0`.
 
 ## Performance Snapshot
 
-Benchmarks are platform-specific. iOS uses Core Text and Android API 29+ uses
-`MeasuredText + LineBreaker`, so their numbers should be reported separately and
-never averaged together.
+Benchmarks are platform-specific. iOS uses Core Text and Android uses an
+RN-compatible StaticLayout path, so their numbers should be reported separately
+and never averaged together.
 
 The most important comparison is the path an app would otherwise build with RN
 only:

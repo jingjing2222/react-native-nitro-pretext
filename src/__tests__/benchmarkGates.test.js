@@ -73,7 +73,7 @@ function createPreparedViewReport(overrides = {}) {
     ],
     computeHeightMetricSource: "platform_text_engine_metrics",
     computeIncludeFontPadding: true,
-    computeLayoutEngine: "android_measured_text_line_breaker",
+    computeLayoutEngine: "android_static_layout_compat",
     computeLayoutOnlyMedianMs: 1,
     computeLineTextParityChecks: 200,
     computeLineTextParityMismatches: 0,
@@ -100,7 +100,7 @@ function createPreparedViewReport(overrides = {}) {
     renderInteractionMedianMs: 50,
     renderInteractionP95Ms: 55,
     renderJankCount: 0,
-    renderLayoutEngine: "android_measured_text_line_breaker",
+    renderLayoutEngine: "android_static_layout_compat",
     renderLineTextParityChecks: 200,
     renderLineTextParityMismatches: 0,
     renderParityBucket: "canonical_prepared_compute",
@@ -232,7 +232,7 @@ describe("benchmark parity contract gates", () => {
 
   it("fails when canonical Android prepared layout uses the wrong engine", () => {
     expect(() =>
-      runGate({ computeLayoutEngine: "android_static_layout_compat" }),
+      runGate({ computeLayoutEngine: "android_measured_text_line_breaker" }),
     ).toThrow();
   });
 
