@@ -88,7 +88,8 @@ ios/generated
 android/generated
 
 # React Native Nitro Modules
-nitrogen/
+# Keep Nitrogen generated bridge files committed so git installs work without
+# requiring consumers to run code generation.
 
 # Maestro
 **/.maestro-artifacts/

@@ -78,6 +78,7 @@
     "test": "jest",
     "verify:api-examples": "node scripts/verify-api-example-map.js",
     "verify:native-source-size": "node scripts/verify-native-source-size.js",
+    "verify:package-contents": "node scripts/verify-package-contents.js",
     "verify:package-exports": "node scripts/verify-package-exports.js",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",

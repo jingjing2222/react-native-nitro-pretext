@@ -256,6 +256,7 @@ yarn verify:api-examples
 yarn verify:native-source-size
 yarn build
 yarn verify:package-exports
+yarn verify:package-contents
 ```
 
 CI runs the static, unit, package, and native build checks above. Maestro device
