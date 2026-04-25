@@ -1,7 +1,6 @@
 # 성공 흐름
-# benchmark landing -> benchmark/parity -> unique parity run complete -> parity report emitted
-# 사용하는 seed / selector anchor
-# benchmark/parity CTA text, parity screen title, parity automation status/report lines
+# benchmark landing -> benchmark/parity -> unique parity run complete
+# Android report payload은 RN logcat chunk로 수집하고 run-benchmark.sh가 maestro.log에 붙인다.
 appId: pretext.example
 ---
 - scrollUntilVisible:
@@ -18,19 +17,6 @@ appId: pretext.example
     visible:
       text: "AUTOMATION_STATUS::benchmark/parity::completed::.*"
     timeout: 180000
-- scrollUntilVisible:
-    direction: DOWN
-    element:
-      id: "benchmark.parity.report"
-    timeout: 20000
-- copyTextFrom:
-    id: "benchmark.parity.report"
-- runScript:
-    file: ../../../scripts/log-benchmark-report.js
-    env:
-      reportName: parity
-- assertTrue: ${output.reports.parity.status == 'completed'}
-- assertTrue: ${output.reports.parity.completedCases == output.reports.parity.caseCount}
 - takeScreenshot:
     path: .maestro-artifacts/parity-complete
 - tapOn: "Back to benchmark/\\*"

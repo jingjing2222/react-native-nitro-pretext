@@ -54,6 +54,35 @@ function createParityReport() {
   };
 }
 
+function createGroupedParityReport() {
+  const report = createParityReport();
+  const mismatch = report.mismatches[0];
+  const summary = { ...report };
+  delete summary.mismatches;
+
+  return {
+    ...summary,
+    mismatchGroups: [
+      {
+        caseId: mismatch.caseId,
+        category: mismatch.category,
+        platform: mismatch.platform,
+        pretextLines: mismatch.pretextLines,
+        rnLines: mismatch.rnLines,
+        style: mismatch.style,
+        width: mismatch.width,
+        mismatches: [
+          {
+            firstDiff: mismatch.firstDiff,
+            kind: mismatch.kind,
+          },
+        ],
+      },
+    ],
+    transportVersion: "parity-grouped-v1",
+  };
+}
+
 describe("parity Maestro artifacts", () => {
   it("writes summary, mismatch, and contract artifacts", () => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-parity-"));
@@ -93,6 +122,35 @@ describe("parity Maestro artifacts", () => {
         category: "latin",
         kind: "line-text",
         width: 220,
+      }),
+    ]);
+  });
+
+  it("expands grouped parity transport artifacts", () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-parity-"));
+    const logPath = path.join(tempDir, "maestro.log");
+    const parity = createGroupedParityReport();
+
+    fs.writeFileSync(
+      logPath,
+      `I/ReactNativeJS: JsConsole: BENCHMARK_REPORT::benchmark/parity::${JSON.stringify(parity)}\n`,
+    );
+
+    execFileSync(process.execPath, [artifactScript, logPath, tempDir, "ios"]);
+
+    const mismatches = JSON.parse(
+      fs.readFileSync(
+        path.join(tempDir, "latest-parity-mismatches.json"),
+        "utf8",
+      ),
+    );
+
+    expect(mismatches).toEqual([
+      expect.objectContaining({
+        caseId: "parity-latin-001",
+        kind: "line-text",
+        pretextLines: parity.mismatchGroups[0].pretextLines,
+        rnLines: parity.mismatchGroups[0].rnLines,
       }),
     ]);
   });

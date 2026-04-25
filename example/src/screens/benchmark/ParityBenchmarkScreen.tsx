@@ -1,5 +1,7 @@
 import type { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { useEffect, useRef } from "react";
 import {
+  Platform,
   ScrollView,
   Text,
   type TextLayoutEvent,
@@ -25,6 +27,40 @@ import {
 import type { AppStackParamList } from "../../navigation/types";
 
 type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkParity">;
+
+const ANDROID_LOGCAT_REPORT_CHUNK_SIZE = 3000;
+
+function logAndroidParityReportChunks(reportLine: string, reportKey: string) {
+  const totalChunks = Math.max(
+    1,
+    Math.ceil(reportLine.length / ANDROID_LOGCAT_REPORT_CHUNK_SIZE),
+  );
+
+  for (let index = 0; index < totalChunks; index += 1) {
+    const chunk = reportLine.slice(
+      index * ANDROID_LOGCAT_REPORT_CHUNK_SIZE,
+      (index + 1) * ANDROID_LOGCAT_REPORT_CHUNK_SIZE,
+    );
+    console.log(
+      [
+        "BENCHMARK_REPORT_CHUNK",
+        "benchmark/parity",
+        reportKey,
+        `${index + 1}/${totalChunks}`,
+        chunk,
+      ].join("::"),
+    );
+  }
+
+  console.log(
+    [
+      "BENCHMARK_REPORT_CHUNKS_DONE",
+      "benchmark/parity",
+      reportKey,
+      String(totalChunks),
+    ].join("::"),
+  );
+}
 
 function createRnTextStyle(parityCase: ParityCase): TextStyle {
   const style = parityCase.style;
@@ -72,8 +108,40 @@ export function ParityBenchmarkScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const parity = useParityHarness(PARITY_CASES);
   const reportLine = serializeParityAutomationReport(parity.report);
+  const loggedReportKeyRef = useRef<string | null>(null);
   const activeCase = parity.activeCase;
   const mismatchPreview = parity.report.mismatches.slice(0, 5);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") {
+      return;
+    }
+
+    if (parity.status === "running") {
+      loggedReportKeyRef.current = null;
+      return;
+    }
+
+    if (parity.status !== "completed" && parity.status !== "failed") {
+      return;
+    }
+
+    const reportKey = [
+      parity.report.platform,
+      parity.report.completedCases,
+      parity.report.mismatchCount,
+      parity.completedAt ?? "none",
+    ]
+      .join("-")
+      .replace(/[^a-z0-9_-]+/gi, "_");
+
+    if (loggedReportKeyRef.current === reportKey) {
+      return;
+    }
+
+    loggedReportKeyRef.current = reportKey;
+    logAndroidParityReportChunks(reportLine, reportKey);
+  }, [parity.completedAt, parity.report, parity.status, reportLine]);
 
   return (
     <View style={styles.appShell}>
@@ -123,6 +191,7 @@ export function ParityBenchmarkScreen({ navigation }: Props) {
           />
 
           <HeroAutomationPanel
+            reportAsInput
             reportLine={reportLine}
             reportTestID="benchmark.parity.report"
             statusLine={parity.statusLine}

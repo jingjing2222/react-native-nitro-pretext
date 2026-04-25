@@ -1,6 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 
-import { createParityAutomationReport } from "../../example/src/benchmark/parity/automation";
+import {
+  createParityAutomationReport,
+  serializeParityAutomationReport,
+} from "../../example/src/benchmark/parity/automation";
 import { compareParityCaseLines } from "../../example/src/benchmark/parity/comparator";
 import type {
   ParityCase,
@@ -99,5 +102,41 @@ describe("RN Text parity harness contracts", () => {
       screen: "benchmark/parity",
       status: "completed",
     });
+  });
+
+  it("serializes parity reports with grouped mismatch transport", () => {
+    const mismatches = compareParityCaseLines(
+      parityCase,
+      [createLine("Unit parity")],
+      [createLine("Unit mismatch", { width: 130 })],
+      0.5,
+    );
+    const report = createParityAutomationReport({
+      caseCount: 1,
+      completedAt: "10:00:00",
+      results: [
+        {
+          caseId: parityCase.caseId,
+          category: parityCase.category,
+          errorMessage: null,
+          mismatches,
+          platform: "unknown",
+        },
+      ],
+      status: "completed",
+    });
+    const serialized = serializeParityAutomationReport(report);
+    const transport = JSON.parse(serialized.slice(serialized.indexOf("{")));
+
+    expect(transport.mismatches).toBeUndefined();
+    expect(transport.mismatchGroups).toEqual([
+      expect.objectContaining({
+        caseId: "unit-parity-001",
+        mismatches: [
+          expect.objectContaining({ kind: "line-text" }),
+          expect.objectContaining({ kind: "line-geometry" }),
+        ],
+      }),
+    ]);
   });
 });

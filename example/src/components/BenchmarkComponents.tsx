@@ -1,5 +1,11 @@
 import { memo } from "react";
-import { ActivityIndicator, Pressable, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  Text,
+  View,
+} from "react-native";
 import type { TextLayoutEvent } from "react-native";
 
 import {
@@ -142,16 +148,21 @@ export function CatalogCard({
 }
 
 export function HeroAutomationPanel({
+  reportAsInput = false,
   reportLine,
   reportTestID,
   statusLine,
   statusTestID,
 }: {
+  reportAsInput?: boolean;
   reportLine: string;
   reportTestID: string;
   statusLine: string;
   statusTestID: string;
 }) {
+  const shouldRenderReportPlaceholder =
+    reportAsInput && Platform.OS !== "android";
+
   return (
     <View style={styles.heroAutomationPanel}>
       <Text style={styles.heroAutomationLabel}>Automation Export</Text>
@@ -164,15 +175,36 @@ export function HeroAutomationPanel({
           {statusLine}
         </Text>
       </Pressable>
-      <Pressable
-        accessibilityRole="button"
-        onPress={() => {}}
-        testID={reportTestID}
-      >
-        <Text selectable style={styles.heroAutomationText}>
-          {reportLine}
+      {shouldRenderReportPlaceholder ? (
+        <Pressable
+          accessibilityLabel={reportLine}
+          accessibilityRole="button"
+          onPress={() => {}}
+          testID={reportTestID}
+        >
+          <Text selectable style={styles.heroAutomationText}>
+            {`AUTOMATION_REPORT::benchmark/parity::${reportLine.length} bytes`}
+          </Text>
+        </Pressable>
+      ) : reportAsInput ? (
+        <Text
+          selectable
+          style={styles.heroAutomationText}
+          testID={reportTestID}
+        >
+          {`AUTOMATION_REPORT::benchmark/parity::${reportLine.length} bytes`}
         </Text>
-      </Pressable>
+      ) : (
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => {}}
+          testID={reportTestID}
+        >
+          <Text selectable style={styles.heroAutomationText}>
+            {reportLine}
+          </Text>
+        </Pressable>
+      )}
     </View>
   );
 }

@@ -36,6 +36,10 @@ case "$FLOW_NAME" in
     ;;
 esac
 
+if [[ "$FLOW_KEY" == "parity" && "$PLATFORM_NAME" == "android" ]]; then
+  FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/parity-android.yaml"
+fi
+
 log_step() {
   echo "[benchmark] $1"
 }
@@ -104,6 +108,37 @@ release_local_port_7001() {
     blocking_command="$(ps -p "$blocking_pid" -o command= || true)"
     die "Port 7001 is still busy after cleanup by '$blocking_command'. Free that port and rerun the benchmark."
   fi
+}
+
+start_android_logcat_capture() {
+  local device_id="$1"
+  local debug_dir="$2"
+
+  ANDROID_LOGCAT_FILE="$debug_dir/android-logcat.log"
+  mkdir -p "$debug_dir"
+
+  adb -s "$device_id" logcat -c >/dev/null 2>&1 || true
+  adb -s "$device_id" logcat -v time ReactNativeJS:I '*:S' >"$ANDROID_LOGCAT_FILE" 2>&1 &
+  ANDROID_LOGCAT_PID=$!
+}
+
+stop_android_logcat_capture() {
+  if [[ -n "${ANDROID_LOGCAT_PID:-}" ]]; then
+    kill "$ANDROID_LOGCAT_PID" >/dev/null 2>&1 || true
+    wait "$ANDROID_LOGCAT_PID" >/dev/null 2>&1 || true
+    ANDROID_LOGCAT_PID=""
+  fi
+}
+
+append_android_parity_report() {
+  local debug_dir="$1"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  node "$APP_ROOT_DIR/maestro/scripts/append-parity-logcat-report.js" \
+    "$ANDROID_LOGCAT_FILE" \
+    "$latest_log"
 }
 
 extract_android_driver_apks() {
@@ -200,6 +235,8 @@ run_quality_gate() {
 }
 
 cleanup() {
+  stop_android_logcat_capture
+
   if [[ -n "${ANDROID_DRIVER_PID:-}" ]]; then
     kill "$ANDROID_DRIVER_PID" >/dev/null 2>&1 || true
   fi
@@ -331,8 +368,23 @@ case "$PLATFORM_NAME" in
     ensure_android_app_ready "$ANDROID_DEVICE_ID"
     log_step "Running Maestro flow $FLOW_NAME on Android"
     ensure_android_maestro_driver "$ANDROID_DEVICE_ID" "$DEBUG_DIR"
+    if [[ "$FLOW_KEY" == "parity" ]]; then
+      start_android_logcat_capture "$ANDROID_DEVICE_ID" "$DEBUG_DIR"
+    fi
+    set +e
     JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true \
       maestro --platform android --device "$ANDROID_DEVICE_ID" test --no-reinstall-driver --debug-output "$DEBUG_DIR" "$FLOW_FILE"
+    MAESTRO_STATUS=$?
+    set -e
+    if [[ "$FLOW_KEY" == "parity" ]]; then
+      stop_android_logcat_capture
+      if [[ "$MAESTRO_STATUS" -eq 0 ]]; then
+        append_android_parity_report "$DEBUG_DIR"
+      fi
+    fi
+    if [[ "$MAESTRO_STATUS" -ne 0 ]]; then
+      exit "$MAESTRO_STATUS"
+    fi
     ;;
   *)
     echo "unsupported platform: $PLATFORM_NAME" >&2
