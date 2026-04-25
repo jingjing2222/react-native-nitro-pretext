@@ -1,23 +1,6 @@
 import CoreText
 import Foundation
 
-internal func buildParagraphLineRanges(
-    lineLayouts: [NativeLineLayout]
-) -> [ParagraphLineRange] {
-    lineLayouts.map { line in
-        ParagraphLineRange(
-            textStart: Double(line.textStartUTF16),
-            textEnd: Double(line.textEndUTF16),
-            top: line.top,
-            left: line.left,
-            width: line.width,
-            height: line.height,
-            ascent: line.ascent,
-            descent: line.descent
-        )
-    }
-}
-
 internal func buildInlineBoxFrames(
     paragraphIndex: Int,
     paragraph: NativePreparedParagraph,
@@ -342,10 +325,18 @@ private func layoutLineLayouts(
     textLocale: String,
     request: NativeLayoutRequest
 ) -> [NativeLineLayout] {
-    let canUseCoreText = request.shapeSlices.isEmpty
+    let canUseNativeLineEngine = request.shapeSlices.isEmpty
         && request.whiteSpace == whiteSpaceNormal
         && request.wordBreak == wordBreakNormal
-    guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout, canUseCoreText else {
+    if canUseNativeLineEngine && !prepared.forceTokenLayout && prepared.inlineBoxes.isEmpty {
+        return layoutTextKitLineLayouts(
+            prepared,
+            lineHeight: lineHeight,
+            request: request
+        )
+    }
+
+    guard let typesetter = prepared.typesetter, !prepared.forceTokenLayout, canUseNativeLineEngine else {
         if request.whiteSpace == whiteSpacePre {
             return layoutPreformattedLineLayoutsFallback(
                 prepared.breakUnits,

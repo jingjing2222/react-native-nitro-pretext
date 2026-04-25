@@ -37,11 +37,11 @@ describe("benchmark diagnostics", () => {
     });
   });
 
-  it("declares iOS prepared layout as Core Text", () => {
+  it("declares iOS prepared layout as TextKit", () => {
     expect(createBenchmarkDiagnostics("pretext-render", "ios")).toMatchObject({
       heightMetricSource: "platform_text_engine_metrics",
       includeFontPadding: null,
-      layoutEngine: "ios_core_text",
+      layoutEngine: "ios_text_kit",
       parityRole: "canonical_prepared_compute",
       rendererKind: "rn_text",
     });

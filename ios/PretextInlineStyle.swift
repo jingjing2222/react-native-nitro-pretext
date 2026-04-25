@@ -196,6 +196,13 @@ private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
     case .auto:
         paragraphStyle.baseWritingDirection = isRtlLocale(style.locale) ? .rightToLeft : .natural
     }
+    if style.lineHeight > 0 {
+        paragraphStyle.minimumLineHeight = style.lineHeight
+        paragraphStyle.maximumLineHeight = style.lineHeight
+    }
+    if #available(iOS 14.0, *) {
+        paragraphStyle.lineBreakStrategy = []
+    }
     return paragraphStyle
 }
 

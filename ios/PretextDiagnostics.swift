@@ -24,7 +24,7 @@ internal func buildParagraphLayoutDiagnostics(
         ruleLayer: ruleLayerPretextNative,
         canvasPixelParityTarget: false,
         textDirection: corpus.baseStyle.textDirection,
-        layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosCoreText,
+        layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosTextKit,
         heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
         fallbackReason: lineLayouts.compactMap { $0.fallbackReason }.first,
         driftKinds: driftKinds,
@@ -297,7 +297,7 @@ private func countBidiRuns(_ text: NSString) -> Int {
 
 private func collectLineDriftKinds(_ line: NativeLineLayout) -> [String] {
     var driftKinds: [String] = []
-    if line.layoutEngine != layoutEngineIosCoreText {
+    if !isNativeTextLayoutEngine(line.layoutEngine) {
         driftKinds.append(driftEngine)
     }
     if line.fallbackReason != nil {
@@ -320,7 +320,7 @@ private func collectDriftKinds(
         }
     }
 
-    if lineLayouts.contains(where: { $0.layoutEngine != layoutEngineIosCoreText || $0.fallbackReason != nil }) {
+    if lineLayouts.contains(where: { !isNativeTextLayoutEngine($0.layoutEngine) || $0.fallbackReason != nil }) {
         appendDrift(driftEngine)
     }
     if lineLayouts.contains(where: { $0.fallbackReason != nil }) {
@@ -346,6 +346,10 @@ private func collectDriftKinds(
         appendDrift(driftClusterBoundary)
     }
     return driftKinds
+}
+
+private func isNativeTextLayoutEngine(_ layoutEngine: String) -> Bool {
+    layoutEngine == layoutEngineIosTextKit || layoutEngine == layoutEngineIosCoreText
 }
 
 private func containsPotentialFallbackGlyph(_ text: NSString) -> Bool {

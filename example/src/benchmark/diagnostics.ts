@@ -73,7 +73,7 @@ export function getCanonicalPreparedLayoutEngine(
   }
 
   if (platform === "ios") {
-    return "ios_core_text";
+    return "ios_text_kit";
   }
 
   return "unknown";
@@ -269,6 +269,7 @@ function isBenchmarkLayoutEngine(
     "android_measured_text_line_breaker",
     "android_static_layout_compat",
     "ios_core_text",
+    "ios_text_kit",
     "ios_manual_token_fallback",
     "rn_text_compat",
     "unknown",

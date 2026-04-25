@@ -75,7 +75,7 @@ function mockCreateParagraphEngine() {
           ruleLayer: "pretext_native_rules",
           canvasPixelParityTarget: false,
           textDirection: "auto",
-          layoutEngine: "ios_core_text",
+          layoutEngine: "ios_text_kit",
           heightMetricSource: "platform_text_engine_metrics",
           driftKinds: [],
           heightMetricDrivers: ["font_metrics"],
@@ -135,7 +135,7 @@ function mockCreateParagraphEngine() {
           ruleLayer: "pretext_native_rules",
           canvasPixelParityTarget: false,
           textDirection: "auto",
-          layoutEngine: "ios_core_text",
+          layoutEngine: "ios_text_kit",
           heightMetricSource: "platform_text_engine_metrics",
           driftKinds: [],
           heightMetricDrivers: ["font_metrics"],
@@ -417,7 +417,7 @@ describe("react-native-nitro-pretext public API", () => {
       }),
     ).toMatchObject({
       output: "diagnostics",
-      paragraphs: [{ diagnostics: { layoutEngine: "ios_core_text" } }],
+      paragraphs: [{ diagnostics: { layoutEngine: "ios_text_kit" } }],
     });
     expect(
       PublicApi.Pretext.layout(prepared, { output: "rich", width: 260 }),

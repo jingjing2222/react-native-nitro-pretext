@@ -158,7 +158,7 @@ function expectedCanonicalLayoutEngine(platformName) {
   }
 
   if (platformName === "ios") {
-    return "ios_core_text";
+    return "ios_text_kit";
   }
 
   return null;

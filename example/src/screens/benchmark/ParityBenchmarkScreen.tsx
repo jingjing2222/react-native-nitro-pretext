@@ -246,7 +246,7 @@ export function ParityBenchmarkScreen({ navigation }: Props) {
                   materializeRnLines(event),
                 )
               }
-              style={[styles.paragraph, createRnTextStyle(activeCase)]}
+              style={[styles.parityParagraph, createRnTextStyle(activeCase)]}
               testID="benchmark.parity.active-text"
               {...activeCase.rnTextProps}
             >
