@@ -425,11 +425,17 @@ case "$PLATFORM_NAME" in
     set -e
     if [[ "$FLOW_KEY" == "parity" ]]; then
       stop_android_logcat_capture
-      if [[ "$MAESTRO_STATUS" -eq 0 ]]; then
-        append_android_parity_report "$DEBUG_DIR"
+      set +e
+      append_android_parity_report "$DEBUG_DIR"
+      APPEND_STATUS=$?
+      set -e
+      if [[ "$MAESTRO_STATUS" -ne 0 && "$APPEND_STATUS" -eq 0 ]]; then
+        log_step "Maestro exited non-zero after Android parity report capture; continuing to write artifacts and gate output."
+      elif [[ "$MAESTRO_STATUS" -eq 0 && "$APPEND_STATUS" -ne 0 ]]; then
+        exit "$APPEND_STATUS"
       fi
     fi
-    if [[ "$MAESTRO_STATUS" -ne 0 ]]; then
+    if [[ "$MAESTRO_STATUS" -ne 0 && "${APPEND_STATUS:-1}" -ne 0 ]]; then
       exit "$MAESTRO_STATUS"
     fi
     ;;

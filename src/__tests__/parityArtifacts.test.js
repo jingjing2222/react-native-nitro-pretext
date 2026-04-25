@@ -8,12 +8,14 @@ const artifactScript = path.join(
   rootDir,
   "example/maestro/scripts/format-parity-artifacts.js",
 );
+const PARITY_EXPECTED_CASE_COUNT = 259;
 
 function createParityReport() {
   return {
-    caseCount: 240,
+    caseCount: PARITY_EXPECTED_CASE_COUNT,
     completedAt: "10:00:02",
-    completedCases: 240,
+    completedCases: PARITY_EXPECTED_CASE_COUNT,
+    failedCaseResults: [],
     failedCases: 0,
     geometryTolerance: 0.5,
     lineCountMismatches: 0,

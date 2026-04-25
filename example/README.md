@@ -80,7 +80,7 @@ Benchmark routes:
 - `benchmark`: benchmark catalog.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
-- `benchmark/parity`: 240 unique-case strict raw RN `<Text>` parity contract.
+- `benchmark/parity`: 259 unique-case strict raw RN `<Text>` parity contract.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -136,7 +136,7 @@ Latest local benchmark status:
   RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
   `Pretext.layout()` returned the needed layout data in `8.59 ms`.
 - RN `<Text>` parity suite: passed on April 25, 2026 on iOS and Android with
-  240 unique strict raw Maestro cases and `0/240` line-count, line-text, and
+  259 unique strict raw Maestro cases and `0/259` line-count, line-text, and
   geometry mismatches.
 
 ## Example Verification

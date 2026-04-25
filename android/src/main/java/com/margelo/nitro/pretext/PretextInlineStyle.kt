@@ -343,16 +343,56 @@ private fun resolveFontSizePx(style: NativeTextStyle): Float {
 
 internal fun resolveTypeface(style: NativeTextStyle): Typeface {
   val fontStyle = resolveTypefaceStyle(style.fontWeight, style.fontStyle)
-  return when (style.fontFamily.lowercase()) {
-    "system", "default", "" -> Typeface.create(Typeface.DEFAULT, fontStyle)
-    "serif" -> Typeface.create(Typeface.SERIF, fontStyle)
-    "monospace" -> Typeface.create(Typeface.MONOSPACE, fontStyle)
-    else ->
-      try {
-        Typeface.create(style.fontFamily, fontStyle)
-      } catch (_: Exception) {
-        Typeface.create(Typeface.DEFAULT, fontStyle)
+  val baseTypeface =
+    when (style.fontFamily.lowercase()) {
+      "system", "default", "" -> Typeface.DEFAULT
+      "serif" -> Typeface.SERIF
+      "monospace" -> Typeface.MONOSPACE
+      else ->
+        try {
+          Typeface.create(style.fontFamily, Typeface.NORMAL)
+        } catch (_: Exception) {
+          Typeface.DEFAULT
+        }
+    }
+  return fontStyle.apply(baseTypeface)
+}
+
+private data class ResolvedTypefaceStyle(
+  val weight: Int,
+  val italic: Boolean,
+) {
+  private val nearestStyle: Int
+    get() =
+      when {
+        weight >= 700 && italic -> Typeface.BOLD_ITALIC
+        weight >= 700 -> Typeface.BOLD
+        italic -> Typeface.ITALIC
+        else -> Typeface.NORMAL
       }
+
+  fun apply(baseTypeface: Typeface): Typeface {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+      Typeface.create(baseTypeface, weight, italic)
+    } else {
+      Typeface.create(baseTypeface, nearestStyle)
+    }
+  }
+}
+
+private fun parseFontWeight(fontWeight: String): Int {
+  return when (fontWeight.lowercase()) {
+    "100" -> 100
+    "200" -> 200
+    "300" -> 300
+    "400", "normal", "" -> 400
+    "500" -> 500
+    "600" -> 600
+    "700", "bold" -> 700
+    "800" -> 800
+    "900", "heavy", "black" -> 900
+    else ->
+      fontWeight.toIntOrNull()?.takeIf { it in 1..1000 } ?: 400
   }
 }
 
@@ -370,18 +410,11 @@ internal fun resolveTextLocale(localeTag: String): Locale {
   }
 }
 
-private fun resolveTypefaceStyle(fontWeight: String, fontStyle: String): Int {
-  val wantsBold = when (fontWeight.lowercase()) {
-    "700", "800", "900", "bold", "heavy", "black" -> true
-    else -> false
-  }
-  val wantsItalic = fontStyle.lowercase() == FONT_STYLE_ITALIC
-  return when {
-    wantsBold && wantsItalic -> Typeface.BOLD_ITALIC
-    wantsBold -> Typeface.BOLD
-    wantsItalic -> Typeface.ITALIC
-    else -> Typeface.NORMAL
-  }
+private fun resolveTypefaceStyle(fontWeight: String, fontStyle: String): ResolvedTypefaceStyle {
+  return ResolvedTypefaceStyle(
+    weight = parseFontWeight(fontWeight),
+    italic = fontStyle.lowercase() == FONT_STYLE_ITALIC,
+  )
 }
 
 private class InlineMetricSpan(

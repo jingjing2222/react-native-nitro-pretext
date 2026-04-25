@@ -26,6 +26,7 @@ function groupForKey(key) {
   const next = {
     chunks: new Map(),
     doneTotal: null,
+    encoding: "raw",
     lastSeenLine: 0,
     total: null,
   };
@@ -33,46 +34,49 @@ function groupForKey(key) {
   return next;
 }
 
-logcat.split(/\r?\n/u).forEach((line, lineIndex) => {
-  const chunkMarker = "BENCHMARK_REPORT_CHUNK::benchmark/parity::";
-  const chunkStart = line.indexOf(chunkMarker);
-  if (chunkStart >= 0) {
-    const payload = line.slice(chunkStart + chunkMarker.length);
-    const firstSeparator = payload.indexOf("::");
-    const secondSeparator =
-      firstSeparator < 0 ? -1 : payload.indexOf("::", firstSeparator + 2);
-
-    if (firstSeparator < 0 || secondSeparator < 0) {
-      return;
-    }
-
-    const key = payload.slice(0, firstSeparator);
-    const progress = payload.slice(firstSeparator + 2, secondSeparator);
-    const chunk = payload.slice(secondSeparator + 2);
-    const progressMatch = /^(\d+)\/(\d+)$/u.exec(progress);
-    if (!progressMatch) {
-      return;
-    }
-
-    const index = Number(progressMatch[1]);
-    const total = Number(progressMatch[2]);
-    const group = groupForKey(key);
-    group.chunks.set(index, chunk);
-    group.lastSeenLine = lineIndex;
-    group.total = total;
-    return;
+function parseChunkLine(line, lineIndex, marker, encoding) {
+  const chunkStart = line.indexOf(marker);
+  if (chunkStart < 0) {
+    return false;
   }
 
-  const doneMarker = "BENCHMARK_REPORT_CHUNKS_DONE::benchmark/parity::";
-  const doneStart = line.indexOf(doneMarker);
+  const payload = line.slice(chunkStart + marker.length);
+  const firstSeparator = payload.indexOf("::");
+  const secondSeparator =
+    firstSeparator < 0 ? -1 : payload.indexOf("::", firstSeparator + 2);
+
+  if (firstSeparator < 0 || secondSeparator < 0) {
+    return true;
+  }
+
+  const key = payload.slice(0, firstSeparator);
+  const progress = payload.slice(firstSeparator + 2, secondSeparator);
+  const chunk = payload.slice(secondSeparator + 2);
+  const progressMatch = /^(\d+)\/(\d+)$/u.exec(progress);
+  if (!progressMatch) {
+    return true;
+  }
+
+  const index = Number(progressMatch[1]);
+  const total = Number(progressMatch[2]);
+  const group = groupForKey(key);
+  group.chunks.set(index, chunk);
+  group.encoding = encoding;
+  group.lastSeenLine = lineIndex;
+  group.total = total;
+  return true;
+}
+
+function parseDoneLine(line, lineIndex, marker) {
+  const doneStart = line.indexOf(marker);
   if (doneStart < 0) {
-    return;
+    return false;
   }
 
-  const payload = line.slice(doneStart + doneMarker.length);
+  const payload = line.slice(doneStart + marker.length);
   const firstSeparator = payload.indexOf("::");
   if (firstSeparator < 0) {
-    return;
+    return true;
   }
 
   const key = payload.slice(0, firstSeparator);
@@ -80,6 +84,36 @@ logcat.split(/\r?\n/u).forEach((line, lineIndex) => {
   const group = groupForKey(key);
   group.doneTotal = total;
   group.lastSeenLine = lineIndex;
+  return true;
+}
+
+logcat.split(/\r?\n/u).forEach((line, lineIndex) => {
+  if (
+    parseChunkLine(
+      line,
+      lineIndex,
+      "BENCHMARK_REPORT_CHUNK_URI::benchmark/parity::",
+      "uri",
+    ) ||
+    parseChunkLine(
+      line,
+      lineIndex,
+      "BENCHMARK_REPORT_CHUNK::benchmark/parity::",
+      "raw",
+    ) ||
+    parseDoneLine(
+      line,
+      lineIndex,
+      "BENCHMARK_REPORT_CHUNKS_DONE_URI::benchmark/parity::",
+    ) ||
+    parseDoneLine(
+      line,
+      lineIndex,
+      "BENCHMARK_REPORT_CHUNKS_DONE::benchmark/parity::",
+    )
+  ) {
+    return;
+  }
 });
 
 const completeGroups = [...groups.entries()]
@@ -97,7 +131,7 @@ if (completeGroups.length === 0) {
 
 const [reportKey, group] = completeGroups[0];
 const total = group.doneTotal ?? group.total;
-const reportLine = Array.from({ length: total }, (_, index) => {
+const encodedReportLine = Array.from({ length: total }, (_, index) => {
   const chunk = group.chunks.get(index + 1);
   if (chunk === undefined) {
     throw new Error(
@@ -106,6 +140,10 @@ const reportLine = Array.from({ length: total }, (_, index) => {
   }
   return chunk;
 }).join("");
+const reportLine =
+  group.encoding === "uri"
+    ? decodeURIComponent(encodedReportLine)
+    : encodedReportLine;
 
 const prefix = "AUTOMATION_REPORT::benchmark/parity::";
 if (!reportLine.startsWith(prefix)) {

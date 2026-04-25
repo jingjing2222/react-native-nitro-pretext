@@ -141,6 +141,14 @@ describe("RN Text parity harness contracts", () => {
     expect(report).toMatchObject({
       caseCount: 2,
       completedCases: 2,
+      failedCaseResults: [
+        {
+          caseId: parityCase.caseId,
+          category: parityCase.category,
+          errorMessage: "duplicate layout event failed",
+          platform: "unknown",
+        },
+      ],
       failedCases: 1,
       mismatchCount: 0,
     });

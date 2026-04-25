@@ -22,12 +22,17 @@ function textsForCategory(category: ParityCaseCategory): string[] {
   ).map((parityCase) => parityCase.text);
 }
 
+const EXPECTED_PARITY_CASE_COUNT = Object.values(
+  PARITY_CASE_DISTRIBUTION,
+).reduce((sum, count) => sum + count, 0);
+
 describe("RN Text parity corpus", () => {
-  it("contains 240 unique parity cases", () => {
-    expect(PARITY_CASES).toHaveLength(240);
+  it("contains unique parity cases beyond the original 240-case corpus", () => {
+    expect(EXPECTED_PARITY_CASE_COUNT).toBeGreaterThan(240);
+    expect(PARITY_CASES).toHaveLength(EXPECTED_PARITY_CASE_COUNT);
     expect(
       new Set(PARITY_CASES.map((parityCase) => parityCase.caseId)).size,
-    ).toBe(240);
+    ).toBe(EXPECTED_PARITY_CASE_COUNT);
   });
 
   it("matches the fixed category distribution", () => {
@@ -45,7 +50,7 @@ describe("RN Text parity corpus", () => {
       ),
     );
 
-    expect(signatures.size).toBe(240);
+    expect(signatures.size).toBe(EXPECTED_PARITY_CASE_COUNT);
     for (const parityCase of PARITY_CASES) {
       expect(parityCase.width).toBeGreaterThan(0);
       expect(parityCase.style).toBeTruthy();
@@ -66,11 +71,63 @@ describe("RN Text parity corpus", () => {
     const whitespaceTexts = textsForCategory("whitespace");
 
     expect(whitespaceTexts.some((text) => text.endsWith("   "))).toBe(true);
+    expect(whitespaceTexts.some((text) => text.startsWith("   "))).toBe(true);
+    expect(whitespaceTexts.some((text) => text.startsWith("\t"))).toBe(true);
+    expect(whitespaceTexts.some((text) => text.startsWith("\u00a0"))).toBe(
+      true,
+    );
+    expect(whitespaceTexts.some((text) => text.startsWith("\n"))).toBe(true);
     expect(whitespaceTexts.some((text) => text.endsWith("\t\t"))).toBe(true);
     expect(whitespaceTexts.some((text) => text.includes("\t"))).toBe(true);
     expect(whitespaceTexts.some((text) => text.includes("\u00a0"))).toBe(true);
     expect(whitespaceTexts.some((text) => text.includes("\n\n"))).toBe(true);
     expect(whitespaceTexts.some((text) => text.endsWith("\n"))).toBe(true);
+  });
+
+  it("crosses hard-script buckets with style variants", () => {
+    const styleCrossCases = PARITY_CASES.filter(
+      (parityCase) => parityCase.category === "style-cross",
+    );
+
+    expect(styleCrossCases).toHaveLength(
+      PARITY_CASE_DISTRIBUTION["style-cross"],
+    );
+    expect(
+      styleCrossCases.some(
+        (parityCase) =>
+          parityCase.text.includes("🧑‍🚀") &&
+          parityCase.style.includeFontPadding === false,
+      ),
+    ).toBe(true);
+    expect(
+      styleCrossCases.some(
+        (parityCase) =>
+          /[\u0e00-\u0e7f]/u.test(parityCase.text) &&
+          parityCase.style.letterSpacing !== 0,
+      ),
+    ).toBe(true);
+    expect(
+      styleCrossCases.some(
+        (parityCase) =>
+          /[\u0900-\u097f]/u.test(parityCase.text) &&
+          parityCase.style.fontWeight === "500",
+      ),
+    ).toBe(true);
+    expect(
+      styleCrossCases.some(
+        (parityCase) =>
+          /[\u0600-\u06ff]/u.test(parityCase.text) &&
+          parityCase.style.textDirection === "rtl",
+      ),
+    ).toBe(true);
+    expect(
+      styleCrossCases.some(
+        (parityCase) =>
+          parityCase.style.textDirection === "auto" &&
+          /[A-Za-z]/u.test(parityCase.text) &&
+          /[\u0600-\u06ff]/u.test(parityCase.text),
+      ),
+    ).toBe(true);
   });
 
   it("keeps category-specific hard cases without suffix inflation", () => {

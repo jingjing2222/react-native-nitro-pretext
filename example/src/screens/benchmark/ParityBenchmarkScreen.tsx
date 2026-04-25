@@ -31,19 +31,20 @@ type Props = NativeStackScreenProps<AppStackParamList, "BenchmarkParity">;
 const ANDROID_LOGCAT_REPORT_CHUNK_SIZE = 3000;
 
 function logAndroidParityReportChunks(reportLine: string, reportKey: string) {
+  const encodedReportLine = encodeURIComponent(reportLine);
   const totalChunks = Math.max(
     1,
-    Math.ceil(reportLine.length / ANDROID_LOGCAT_REPORT_CHUNK_SIZE),
+    Math.ceil(encodedReportLine.length / ANDROID_LOGCAT_REPORT_CHUNK_SIZE),
   );
 
   for (let index = 0; index < totalChunks; index += 1) {
-    const chunk = reportLine.slice(
+    const chunk = encodedReportLine.slice(
       index * ANDROID_LOGCAT_REPORT_CHUNK_SIZE,
       (index + 1) * ANDROID_LOGCAT_REPORT_CHUNK_SIZE,
     );
     console.log(
       [
-        "BENCHMARK_REPORT_CHUNK",
+        "BENCHMARK_REPORT_CHUNK_URI",
         "benchmark/parity",
         reportKey,
         `${index + 1}/${totalChunks}`,
@@ -54,7 +55,7 @@ function logAndroidParityReportChunks(reportLine: string, reportKey: string) {
 
   console.log(
     [
-      "BENCHMARK_REPORT_CHUNKS_DONE",
+      "BENCHMARK_REPORT_CHUNKS_DONE_URI",
       "benchmark/parity",
       reportKey,
       String(totalChunks),
@@ -64,10 +65,16 @@ function logAndroidParityReportChunks(reportLine: string, reportKey: string) {
 
 function createRnTextStyle(parityCase: ParityCase): TextStyle {
   const style = parityCase.style;
+  const fontFamily = style.fontFamily ?? "";
+  const normalizedFontFamily = fontFamily.trim().toLowerCase();
+  const shouldApplyFontFamily =
+    normalizedFontFamily !== "" &&
+    normalizedFontFamily !== "default" &&
+    normalizedFontFamily !== "system";
 
   return {
     color: "#22211f",
-    fontFamily: style.fontFamily,
+    ...(shouldApplyFontFamily ? { fontFamily } : {}),
     fontSize: style.fontSize,
     includeFontPadding: style.includeFontPadding ?? true,
     letterSpacing: style.letterSpacing,

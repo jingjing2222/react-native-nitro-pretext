@@ -4,6 +4,7 @@ import type {
   ParityAutomationReport,
   ParityAutomationStatus,
   ParityCaseResult,
+  ParityFailedCaseResult,
   ParityMismatch,
 } from "./types";
 
@@ -37,6 +38,19 @@ function countFailedCaseIds(results: ParityCaseResult[]): number {
       .filter((result) => result.errorMessage !== null)
       .map((result) => result.caseId),
   ).size;
+}
+
+function collectFailedCaseResults(
+  results: ParityCaseResult[],
+): ParityFailedCaseResult[] {
+  return results
+    .filter((result) => result.errorMessage !== null)
+    .map((result) => ({
+      caseId: result.caseId,
+      category: result.category,
+      errorMessage: result.errorMessage ?? "Unknown parity error",
+      platform: result.platform,
+    }));
 }
 
 function groupMismatchesForTransport(
@@ -100,6 +114,7 @@ export function createParityAutomationReport(args: {
     caseCount: args.caseCount,
     completedAt: args.completedAt,
     completedCases: countUniqueCaseIds(args.results),
+    failedCaseResults: collectFailedCaseResults(args.results),
     failedCases: countFailedCaseIds(args.results),
     geometryTolerance: PARITY_GEOMETRY_TOLERANCE,
     lineCountMismatches: countMismatchesByKind(mismatches, "line-count"),

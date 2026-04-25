@@ -17,7 +17,7 @@
     },
     "parity": {
       "requireCompleted": true,
-      "expectedParityCaseCount": 240,
+      "expectedParityCaseCount": 259,
       "maxParityFailedCases": 0,
       "maxParityMismatches": 0,
       "maxLineCountParityMismatches": 0,

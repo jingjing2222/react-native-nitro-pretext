@@ -672,7 +672,7 @@ internal object StaticLayoutLineLayout {
       when (textDirection) {
         ParagraphTextDirection.LTR -> false
         ParagraphTextDirection.RTL -> true
-        ParagraphTextDirection.AUTO -> isRtlLocale(textLocale)
+        ParagraphTextDirection.AUTO -> false
       }
     val isScriptRtl =
       text.isNotEmpty() && TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)

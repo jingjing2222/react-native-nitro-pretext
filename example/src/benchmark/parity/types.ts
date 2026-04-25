@@ -8,6 +8,7 @@ export type ParityCaseCategory =
   | "latin"
   | "rtl"
   | "style"
+  | "style-cross"
   | "thai"
   | "whitespace";
 
@@ -70,6 +71,13 @@ export type ParityCaseResult = {
   platform: ParityPlatform;
 };
 
+export type ParityFailedCaseResult = {
+  caseId: string;
+  category: ParityCaseCategory;
+  errorMessage: string;
+  platform: ParityPlatform;
+};
+
 export type ParityAutomationStatus =
   | "completed"
   | "failed"
@@ -80,6 +88,7 @@ export type ParityAutomationReport = {
   caseCount: number;
   completedAt: string | null;
   completedCases: number;
+  failedCaseResults: ParityFailedCaseResult[];
   failedCases: number;
   geometryTolerance: number;
   lineCountMismatches: number;

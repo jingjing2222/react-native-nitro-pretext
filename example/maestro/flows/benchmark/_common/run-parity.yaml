@@ -16,7 +16,7 @@ appId: pretext.example
 - tapOn: "Run RN Text Parity"
 - extendedWaitUntil:
     visible:
-      text: "AUTOMATION_STATUS::benchmark/parity::completed::.*"
+      text: "AUTOMATION_STATUS::benchmark/parity::(completed|failed)::.*"
     timeout: 180000
 - scrollUntilVisible:
     direction: DOWN
@@ -29,8 +29,6 @@ appId: pretext.example
     file: ../../../scripts/log-benchmark-report.js
     env:
       reportName: parity
-- assertTrue: ${output.reports.parity.status == 'completed'}
-- assertTrue: ${output.reports.parity.completedCases == output.reports.parity.caseCount}
 - takeScreenshot:
     path: .maestro-artifacts/parity-complete
 - tapOn: "Back to benchmark/\\*"

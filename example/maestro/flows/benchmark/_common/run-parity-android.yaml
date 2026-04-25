@@ -15,7 +15,7 @@ appId: pretext.example
 - tapOn: "Run RN Text Parity"
 - extendedWaitUntil:
     visible:
-      text: "AUTOMATION_STATUS::benchmark/parity::completed::.*"
+      text: "AUTOMATION_STATUS::benchmark/parity::(completed|failed)::.*"
     timeout: 180000
 - takeScreenshot:
     path: .maestro-artifacts/parity-complete

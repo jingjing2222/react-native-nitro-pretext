@@ -4,7 +4,7 @@ Date: 2026-04-25
 
 ## Scope
 
-Session 9 reruns the same 240 unique strict raw RN Text parity cases on iOS and
+Session 9 reruns the same 259 unique strict raw RN Text parity cases on iOS and
 Android after the platform-specific TextKit and StaticLayout work. The goal is
 to confirm that shared TypeScript comparator/report code and platform fixes
 still agree on the common Maestro parity contract.
@@ -20,8 +20,8 @@ MAESTRO_ANDROID_DEVICE_ID=emulator-5554 yarn benchmark:parity:android
 
 | Platform | Completed | Cases | Mismatches | Line count | Line text | Geometry | Contract candidates |
 | -------- | --------- | ----: | ---------: | ---------: | --------: | -------: | ------------------: |
-| iOS      | 22:57:03  |   240 |          0 |      0/240 |     0/240 |    0/240 |                   0 |
-| Android  | 22:57:58  |   240 |          0 |      0/240 |     0/240 |    0/240 |                   0 |
+| iOS      | 23:23:40  |   259 |          0 |      0/259 |     0/259 |    0/259 |                   0 |
+| Android  | 23:24:29  |   259 |          0 |      0/259 |     0/259 |    0/259 |                   0 |
 
 ## Artifact Locations
 

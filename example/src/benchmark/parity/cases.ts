@@ -24,8 +24,9 @@ export const PARITY_CASE_DISTRIBUTION = {
   latin: 30,
   rtl: 25,
   style: 15,
+  "style-cross": 15,
   thai: 25,
-  whitespace: 20,
+  whitespace: 24,
 } satisfies Record<ParityCaseCategory, number>;
 
 const DEFAULT_RN_TEXT_PROPS: ParityRnTextProps = {
@@ -263,6 +264,10 @@ const EMOJI_TEXTS = [
 ];
 
 const WHITESPACE_TEXTS = [
+  "   Leading spaces start this fixture and must remain in RN text.",
+  "\tLeading tab starts this fixture before ordinary prose.",
+  "\u00a0Leading NBSP starts this fixture before regular text.",
+  "\nLeading newline starts with an empty first source line.",
   "Leading and trailing spaces   should keep line snapshots predictable.   ",
   "Tabs\tinside\tcopy are compared exactly as RN Text reports them.",
   "A hard line\nbreak appears before another sentence in the same case.",
@@ -321,6 +326,159 @@ const STYLE_VARIANTS: PretextStyle[] = [
   { ...PARITY_BASE_STYLE, fontSize: 20, lineHeight: 34, letterSpacing: 0.4 },
 ];
 
+const STYLE_CROSS_CASES: ParityCase[] = [
+  {
+    caseId: "parity-style-cross-001",
+    category: "style-cross",
+    description: "Emoji fallback with includeFontPadding disabled",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, includeFontPadding: false },
+    text: "Emoji padding off 🧑‍🚀 and flags 🇰🇷🇺🇸 wrap near the edge.",
+    width: 244,
+  },
+  {
+    caseId: "parity-style-cross-002",
+    category: "style-cross",
+    description: "Emoji fallback with exact medium font weight",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, fontWeight: "500" },
+    text: "Medium emoji text 👩🏽‍💻 keeps fallback glyph width exact.",
+    width: 260,
+  },
+  {
+    caseId: "parity-style-cross-003",
+    category: "style-cross",
+    description: "Thai no-space text with lineHeight and letterSpacing",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: {
+      ...PARITY_BASE_STYLE,
+      letterSpacing: 0.1,
+      lineHeight: 30,
+    },
+    text: "ข้อความไทยยาวไม่มีช่องว่างและมีระยะตัวอักษรเล็กน้อย",
+    width: 228,
+  },
+  {
+    caseId: "parity-style-cross-004",
+    category: "style-cross",
+    description: "Thai no-space text with Android font padding disabled",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: {
+      ...PARITY_BASE_STYLE,
+      includeFontPadding: false,
+    },
+    text: "ภาษาไทยพร้อมสระและวรรณยุกต์ต้องคงขอบเขตบรรทัด",
+    width: 212,
+  },
+  {
+    caseId: "parity-style-cross-005",
+    category: "style-cross",
+    description: "Indic complex clusters with exact medium font weight",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, fontWeight: "500" },
+    text: "हिन्दी में संयुक्ताक्षर और मात्रा exact weight के साथ मापे जाते हैं।",
+    width: 276,
+  },
+  {
+    caseId: "parity-style-cross-006",
+    category: "style-cross",
+    description: "Indic complex clusters with letterSpacing and lineHeight",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: {
+      ...PARITY_BASE_STYLE,
+      letterSpacing: 0.2,
+      lineHeight: 30,
+    },
+    text: "বাংলা যুক্তাক্ষর ও মাত্রা ছোট প্রস্থে একইভাবে ভাঙে।",
+    width: 244,
+  },
+  {
+    caseId: "parity-style-cross-007",
+    category: "style-cross",
+    description: "Full Arabic text under explicit RTL paragraph direction",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, textDirection: "rtl" },
+    text: "النص العربي الكامل مع اتجاه صريح يجب أن يحافظ على المحاذاة.",
+    width: 292,
+  },
+  {
+    caseId: "parity-style-cross-008",
+    category: "style-cross",
+    description: "Hebrew text under explicit RTL paragraph direction",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: {
+      ...PARITY_BASE_STYLE,
+      lineHeight: 32,
+      textDirection: "rtl",
+    },
+    text: "טקסט עברי עם כיוון מפורש וגובה שורה גבוה נשאר יציב.",
+    width: 260,
+  },
+  {
+    caseId: "parity-style-cross-009",
+    category: "style-cross",
+    description: "AUTO direction with mixed LTR and RTL source text",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, lineHeight: 30, textDirection: "auto" },
+    text: "Auto direction mixes English then العربية near the wrap boundary.",
+    width: 244,
+  },
+  {
+    caseId: "parity-style-cross-010",
+    category: "style-cross",
+    description: "Korean and CJK text with semibold weight and letterSpacing",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, fontWeight: "600", letterSpacing: 0.2 },
+    text: "한국어와 中文이 semibold 폭에서 같은 줄 경계를 유지한다.",
+    width: 308,
+  },
+  {
+    caseId: "parity-style-cross-011",
+    category: "style-cross",
+    description: "Japanese text with italic style and taller lineHeight",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, fontStyle: "italic", lineHeight: 30 },
+    text: "日本語の斜体スタイルでも行の文字列を厳密に比較します。",
+    width: 276,
+  },
+  {
+    caseId: "parity-style-cross-012",
+    category: "style-cross",
+    description: "Leading spaces with includeFontPadding disabled",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, includeFontPadding: false },
+    text: "   Leading styled spaces must not be trimmed at source offset zero.",
+    width: 228,
+  },
+  {
+    caseId: "parity-style-cross-013",
+    category: "style-cross",
+    description: "Mixed emoji and RTL text under explicit RTL direction",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, textDirection: "rtl" },
+    text: "مرحبا ✅ ثم نص عربي طويل مع emoji عند حد الالتفاف.",
+    width: 260,
+  },
+  {
+    caseId: "parity-style-cross-014",
+    category: "style-cross",
+    description: "CJK text with includeFontPadding disabled",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, includeFontPadding: false, lineHeight: 30 },
+    text: "漢字とかなのpaddingなし行高を同じ契約で検証します。",
+    width: 292,
+  },
+  {
+    caseId: "parity-style-cross-015",
+    category: "style-cross",
+    description: "Latin exact medium weight near a wrap boundary",
+    rnTextProps: DEFAULT_RN_TEXT_PROPS,
+    style: { ...PARITY_BASE_STYLE, fontWeight: "500" },
+    text: "Medium weight 500 changes glyph metrics before wrapping finishes.",
+    width: 236,
+  },
+];
+
 type CaseBuilderConfig = {
   category: ParityCaseCategory;
   count: number;
@@ -357,6 +515,12 @@ function createParityCases({
       width,
     };
   });
+}
+
+if (STYLE_CROSS_CASES.length !== PARITY_CASE_DISTRIBUTION["style-cross"]) {
+  throw new Error(
+    `Expected ${PARITY_CASE_DISTRIBUTION["style-cross"]} fixed style-cross parity cases, got ${STYLE_CROSS_CASES.length}`,
+  );
 }
 
 export const PARITY_CASES: ParityCase[] = [
@@ -425,4 +589,5 @@ export const PARITY_CASES: ParityCase[] = [
       STYLE_VARIANTS[index % STYLE_VARIANTS.length] ?? PARITY_BASE_STYLE,
     texts: STYLE_TEXTS,
   }),
+  ...STYLE_CROSS_CASES,
 ];

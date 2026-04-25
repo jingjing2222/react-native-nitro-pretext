@@ -29,6 +29,9 @@ if (!parity) {
 }
 
 const mismatches = Array.isArray(parity.mismatches) ? parity.mismatches : [];
+const failedCaseResults = Array.isArray(parity.failedCaseResults)
+  ? parity.failedCaseResults
+  : [];
 
 function valueForDisplay(value) {
   if (value === null || value === undefined) {
@@ -89,6 +92,10 @@ function formatMismatchLine(mismatch) {
   return `  ${mismatch.caseId ?? "unknown-case"} [${mismatch.category ?? "unknown"}] ${mismatch.kind ?? "unknown-kind"} width=${mismatch.width ?? "n/a"} firstDiff=${firstDiff.field ?? "n/a"} line=${lineIndex} rn=${valueForDisplay(firstDiff.rnValue)} pretext=${valueForDisplay(firstDiff.pretextValue)}`;
 }
 
+function formatFailedCaseLine(failedCase) {
+  return `  ${failedCase.caseId ?? "unknown-case"} [${failedCase.category ?? "unknown"}] ${valueForDisplay(failedCase.errorMessage)}`;
+}
+
 function writeJson(filePath, value) {
   fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
 }
@@ -124,6 +131,14 @@ const summaryLines = [
     `${formatCount(parity.lineGeometryMismatches)}/${formatCount(parity.caseCount)} mismatches`,
   ),
   labelValue("contract candidates", formatCount(contracts.length)),
+  "",
+  "Failed Case Details",
+  ...(failedCaseResults.length === 0
+    ? ["  none"]
+    : failedCaseResults.slice(0, 40).map(formatFailedCaseLine)),
+  ...(failedCaseResults.length > 40
+    ? [`  ... ${failedCaseResults.length - 40} more failed cases omitted`]
+    : []),
   "",
   "Mismatch Details",
   ...(mismatches.length === 0

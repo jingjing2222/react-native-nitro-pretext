@@ -201,13 +201,13 @@ Latest local strict raw RN `<Text onTextLayout>` parity contract:
 
 | Platform       | Contract source                     | Cases | Line count | Line text | Geometry | Status |
 | -------------- | ----------------------------------- | ----: | ---------: | --------: | -------: | ------ |
-| iOS            | 240 strict raw Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
-| Android API 36 | 240 strict raw Maestro parity cases |   240 |      0/240 |     0/240 |    0/240 | Passed |
+| iOS            | 259 strict raw Maestro parity cases |   259 |      0/259 |     0/259 |    0/259 | Passed |
+| Android API 36 | 259 strict raw Maestro parity cases |   259 |      0/259 |     0/259 |    0/259 | Passed |
 
 The parity contract is no longer derived from repeated timing samples. It is a
-dedicated Maestro flow that executes 240 unique cases once per platform and
+dedicated Maestro flow that executes 259 unique cases once per platform and
 requires line-count, exact raw line-text, and line-geometry parity to be
-`0/240`. The line-text comparison does not trim, normalize, or collapse newline,
+`0/259`. The line-text comparison does not trim, normalize, or collapse newline,
 trailing whitespace, tab, or NBSP characters; display output may JSON-escape
 raw values, but comparison uses the unmodified RN payload.
 
@@ -238,7 +238,7 @@ The example app is split into learning examples and benchmark routes:
   you would otherwise manage yourself.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
-- `benchmark/parity`: RN `<Text>` parity contract using 240 unique Maestro
+- `benchmark/parity`: RN `<Text>` parity contract using 259 unique Maestro
   cases.
 - `benchmark/base-text` and `benchmark/pretext-layout`: validation screens for
   compatibility, timing, and parity diagnostics.

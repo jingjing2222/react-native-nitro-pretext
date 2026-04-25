@@ -247,6 +247,18 @@ class AndroidStaticLayoutParityFixtureTest {
           style = baseStyle(fontWeight = "600", letterSpacing = 0.2),
         ),
         Fixture(
+          id = "android-font-weight-500-exact",
+          text = "Medium weight 500 changes glyph metrics before the wrap boundary.",
+          width = 236.0,
+          style = baseStyle(fontWeight = "500"),
+        ),
+        Fixture(
+          id = "android-auto-rtl-locale-ltr-text",
+          text = "Auto direction with Arabic locale keeps RN layoutDirection alignment.",
+          width = 244.0,
+          style = baseStyle(locale = "ar-EG"),
+        ),
+        Fixture(
           id = "android-emoji-zwj-fallback",
           text = "Status 👩🏽‍💻 ships with flags 🇰🇷🇺🇸 and family emoji 👨‍👩‍👧‍👦 in one card.",
           width = 260.0,
@@ -308,20 +320,49 @@ class AndroidStaticLayoutParityFixtureTest {
     }
 
     private fun resolveOracleTypeface(style: ParagraphStyle): Typeface {
-      val wantsBold =
-        when (style.fontWeight?.lowercase()) {
-          "700", "800", "900", "bold", "heavy", "black" -> true
-          else -> false
+      val fontStyle =
+        OracleTypefaceStyle(
+          weight = parseOracleFontWeight(style.fontWeight),
+          italic = style.fontStyle == FONT_STYLE_ITALIC,
+        )
+      return fontStyle.apply(Typeface.DEFAULT)
+    }
+
+    private data class OracleTypefaceStyle(
+      val weight: Int,
+      val italic: Boolean,
+    ) {
+      private val nearestStyle: Int
+        get() =
+          when {
+            weight >= 700 && italic -> Typeface.BOLD_ITALIC
+            weight >= 700 -> Typeface.BOLD
+            italic -> Typeface.ITALIC
+            else -> Typeface.NORMAL
+          }
+
+      fun apply(baseTypeface: Typeface): Typeface {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+          Typeface.create(baseTypeface, weight, italic)
+        } else {
+          Typeface.create(baseTypeface, nearestStyle)
         }
-      val wantsItalic = style.fontStyle == FONT_STYLE_ITALIC
-      val typefaceStyle =
-        when {
-          wantsBold && wantsItalic -> Typeface.BOLD_ITALIC
-          wantsBold -> Typeface.BOLD
-          wantsItalic -> Typeface.ITALIC
-          else -> Typeface.NORMAL
-        }
-      return Typeface.create(Typeface.DEFAULT, typefaceStyle)
+      }
+    }
+
+    private fun parseOracleFontWeight(fontWeight: String?): Int {
+      return when (fontWeight?.lowercase()) {
+        null, "", "400", "normal" -> 400
+        "100" -> 100
+        "200" -> 200
+        "300" -> 300
+        "500" -> 500
+        "600" -> 600
+        "700", "bold" -> 700
+        "800" -> 800
+        "900", "heavy", "black" -> 900
+        else -> fontWeight.toIntOrNull()?.takeIf { it in 1..1000 } ?: 400
+      }
     }
 
     private fun resolveReactBoringMetrics(
@@ -350,7 +391,7 @@ class AndroidStaticLayoutParityFixtureTest {
         when (textDirection) {
           ParagraphTextDirection.LTR -> false
           ParagraphTextDirection.RTL -> true
-          ParagraphTextDirection.AUTO -> isRtlLocale(textLocale)
+          ParagraphTextDirection.AUTO -> false
         }
       val isScriptRtl =
         text.isNotEmpty() && TextDirectionHeuristics.FIRSTSTRONG_LTR.isRtl(text, 0, text.length)

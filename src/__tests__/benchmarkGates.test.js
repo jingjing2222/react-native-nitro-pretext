@@ -8,6 +8,7 @@ const gateScript = path.join(
   rootDir,
   "example/maestro/scripts/assert-benchmark-gates.js",
 );
+const PARITY_EXPECTED_CASE_COUNT = 259;
 
 function createHeightDriftBuckets() {
   return {
@@ -147,9 +148,10 @@ function runParityGate(parityOverrides = {}) {
   const logPath = path.join(tempDir, "maestro.log");
   const reportPath = path.join(tempDir, "gate.txt");
   const parity = {
-    caseCount: 240,
+    caseCount: PARITY_EXPECTED_CASE_COUNT,
     completedAt: "10:00:02",
-    completedCases: 240,
+    completedCases: PARITY_EXPECTED_CASE_COUNT,
+    failedCaseResults: [],
     failedCases: 0,
     geometryTolerance: 0.5,
     lineCountMismatches: 0,
@@ -184,9 +186,10 @@ function runParityGateFailure(parityOverrides = {}) {
   const logPath = path.join(tempDir, "maestro.log");
   const reportPath = path.join(tempDir, "gate.txt");
   const parity = {
-    caseCount: 240,
+    caseCount: PARITY_EXPECTED_CASE_COUNT,
     completedAt: "10:00:02",
-    completedCases: 240,
+    completedCases: PARITY_EXPECTED_CASE_COUNT,
+    failedCaseResults: [],
     failedCases: 0,
     geometryTolerance: 0.5,
     lineCountMismatches: 0,
@@ -270,12 +273,16 @@ describe("benchmark parity contract gates", () => {
     const report = runParityGate();
 
     expect(report).toContain("parity status == completed");
-    expect(report).toContain("parity case count == 240");
+    expect(report).toContain(
+      `parity case count == ${PARITY_EXPECTED_CASE_COUNT}`,
+    );
     expect(report).toContain("line-text parity mismatches <= 0");
   });
 
   it("fails dedicated parity when not every case completes", () => {
-    expect(() => runParityGate({ completedCases: 239 })).toThrow();
+    expect(() =>
+      runParityGate({ completedCases: PARITY_EXPECTED_CASE_COUNT - 1 }),
+    ).toThrow();
   });
 
   it("fails dedicated parity on any mismatch and prints its location", () => {
