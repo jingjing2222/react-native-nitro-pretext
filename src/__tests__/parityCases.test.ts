@@ -46,4 +46,24 @@ describe("RN Text parity corpus", () => {
       expect(parityCase.text.length).toBeGreaterThan(0);
     }
   });
+
+  it("keeps iOS TextKit style regression cases in the corpus", () => {
+    const casesById = new Map(
+      PARITY_CASES.map((parityCase) => [parityCase.caseId, parityCase]),
+    );
+
+    expect(casesById.get("parity-latin-001")?.style.letterSpacing).toBe(0);
+    expect(casesById.get("parity-style-007")).toMatchObject({
+      style: { fontFamily: "monospace" },
+      width: 260,
+    });
+    expect(casesById.get("parity-style-008")).toMatchObject({
+      style: { fontFamily: "serif" },
+      width: 340,
+    });
+    expect(casesById.get("parity-style-009")).toMatchObject({
+      style: { textDirection: "rtl" },
+      width: 228,
+    });
+  });
 });
