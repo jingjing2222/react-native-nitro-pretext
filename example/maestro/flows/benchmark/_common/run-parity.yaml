@@ -1,0 +1,35 @@
+# 성공 흐름
+# benchmark landing -> benchmark/parity -> unique parity run complete -> parity report emitted
+# 사용하는 seed / selector anchor
+# benchmark/parity CTA text, parity screen title, parity automation status/report lines
+appId: pretext.example
+---
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "Open benchmark/parity"
+    timeout: 20000
+- tapOn: "Open benchmark/parity"
+- assertVisible: "Run RN Text parity as unique cases\\."
+- assertVisible:
+    text: "AUTOMATION_STATUS::benchmark/parity::idle::.*"
+- tapOn: "Run RN Text Parity"
+- extendedWaitUntil:
+    visible:
+      text: "AUTOMATION_STATUS::benchmark/parity::(completed|failed)::.*"
+    timeout: 180000
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      id: "benchmark.parity.report"
+    timeout: 20000
+- copyTextFrom:
+    id: "benchmark.parity.report"
+- runScript:
+    file: ../../../scripts/log-benchmark-report.js
+    env:
+      reportName: parity
+- takeScreenshot:
+    path: .maestro-artifacts/parity-complete
+- tapOn: "Back to benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."

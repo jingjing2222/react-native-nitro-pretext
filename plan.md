@@ -12,10 +12,13 @@
 
 ## Platform Contract
 
-- Android API 29+ canonical layout uses `MeasuredText + LineBreaker`.
-- Android API 24-28 remains supported as a named legacy fallback only.
-- iOS canonical layout uses Core Text: `CTTypesetter + CTLine`.
+- Android API 24+ normal-wrap layout uses RN-compatible `StaticLayout`.
+- Android rule-layer requests may use named fallback paths when token layout is
+  required.
+- iOS normal-wrap layout uses TextKit; alternate native line-layout paths may
+  report Core Text diagnostics.
 - RN `<Text>` is the expected visible renderer, but not the correctness source.
+- RN `<Text>` parity is gated by the 240 unique-case Maestro parity suite.
 - Android `includeFontPadding` defaults to `true` to match RN `<Text>`.
 - Height must account for font metrics, explicit `lineHeight`, fallback fonts,
   emoji, locale, `includeFontPadding`, text direction, and line-break strategy.
@@ -80,7 +83,7 @@ Each session is completed independently:
 - [x] Rewrote README as a simple public-facing layout-only introduction.
 - [x] Rewrote `docs/api.md` around `Pretext`, `prepare`, `layout`, and `usePretextLayout`.
 - [x] Updated the benchmark report without local artifact links.
-- [x] Made Android API 29+ performance/accuracy scope explicit.
+- [x] Made Android validation scope explicit.
 - [x] Verified with `yarn fmt:check`, `yarn typecheck`, and `git diff --check`.
 - [x] Committed as `3735606 docs: simplify Pretext API documentation`.
 
@@ -110,7 +113,8 @@ Each session is completed independently:
 
 - Android release-device benchmark numbers are still required before publishing
   Android speedup claims.
-- Android API 24-28 is supported as fallback, not canonical parity.
+- Android device/API-specific benchmark and parity claims still require target
+  reruns; the latest local Android validation is API 36.
 - RN `<Text>` pixel parity depends on matching style, font fallback, locale,
   line-height, text direction, and Android `includeFontPadding` policy.
 - Browser canvas pixel parity is explicitly out of scope.

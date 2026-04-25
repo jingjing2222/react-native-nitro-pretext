@@ -81,24 +81,6 @@ internal func resolveFont(style: NativeTextStyle) -> UIFont {
         return UIFont.systemFont(ofSize: size, weight: resolvedWeight)
     }
 
-    switch normalizedFamily.lowercased() {
-    case "monospace":
-        let monospaced = UIFont.monospacedSystemFont(ofSize: size, weight: resolvedWeight)
-        return applyItalicIfNeeded(monospaced, wantsItalic: wantsItalic, size: size)
-    case "serif":
-        let serif = UIFont(name: "TimesNewRomanPSMT", size: size)
-            ?? UIFont(name: "Times New Roman", size: size)
-            ?? UIFont.systemFont(ofSize: size, weight: resolvedWeight)
-        return applyFontTraits(
-            serif,
-            size: size,
-            weight: resolvedWeight,
-            wantsItalic: wantsItalic
-        )
-    default:
-        break
-    }
-
     let baseFont = resolveNamedFont(normalizedFamily, size: size)
         ?? UIFont.systemFont(ofSize: size, weight: resolvedWeight)
     return applyFontTraits(
@@ -177,9 +159,7 @@ internal func textAttributes(
     var attributes: [NSAttributedString.Key: Any] = [
         .font: font ?? resolveFont(style: style)
     ]
-    if style.letterSpacing != 0 {
-        attributes[.kern] = style.letterSpacing
-    }
+    attributes[.kern] = style.letterSpacing
     attributes[NSAttributedString.Key(rawValue: kCTLanguageAttributeName as String)] =
         resolveLocaleIdentifier(style.locale)
     attributes[.paragraphStyle] = paragraphStyle(for: style)
@@ -188,6 +168,8 @@ internal func textAttributes(
 
 private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
     let paragraphStyle = NSMutableParagraphStyle()
+    paragraphStyle.alignment = .left
+    paragraphStyle.lineBreakMode = .byWordWrapping
     switch style.textDirection {
     case .ltr:
         paragraphStyle.baseWritingDirection = .leftToRight
@@ -195,6 +177,13 @@ private func paragraphStyle(for style: NativeTextStyle) -> NSParagraphStyle {
         paragraphStyle.baseWritingDirection = .rightToLeft
     case .auto:
         paragraphStyle.baseWritingDirection = isRtlLocale(style.locale) ? .rightToLeft : .natural
+    }
+    if style.lineHeight > 0 {
+        paragraphStyle.minimumLineHeight = style.lineHeight
+        paragraphStyle.maximumLineHeight = style.lineHeight
+    }
+    if #available(iOS 14.0, *) {
+        paragraphStyle.lineBreakStrategy = []
     }
     return paragraphStyle
 }
@@ -229,20 +218,6 @@ private func resolveLocaleIdentifier(_ localeIdentifier: String) -> String {
     let trimmed = localeIdentifier.trimmingCharacters(in: .whitespacesAndNewlines)
     let resolvedIdentifier = trimmed.isEmpty ? Locale.current.identifier : trimmed
     return resolvedIdentifier.replacingOccurrences(of: "_", with: "-")
-}
-
-private func applyItalicIfNeeded(
-    _ font: UIFont,
-    wantsItalic: Bool,
-    size: Double
-) -> UIFont {
-    guard wantsItalic else {
-        return font
-    }
-
-    let descriptor = font.fontDescriptor.withSymbolicTraits(font.fontDescriptor.symbolicTraits.union(.traitItalic))
-        ?? font.fontDescriptor
-    return UIFont(descriptor: descriptor, size: size)
 }
 
 private func applyFontTraits(

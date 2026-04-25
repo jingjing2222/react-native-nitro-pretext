@@ -9,7 +9,7 @@ APP_ID="${MAESTRO_APP_ID:-pretext.example}"
 cd "$APP_ROOT_DIR"
 
 if [[ -z "$FLOW_NAME" || -z "$PLATFORM_NAME" ]]; then
-  echo "usage: bash example/maestro/scripts/run-benchmark.sh <suite|base-text|pretext-layout> <ios|android>" >&2
+  echo "usage: bash example/maestro/scripts/run-benchmark.sh <suite|base-text|pretext-layout|parity> <ios|android>" >&2
   exit 1
 fi
 
@@ -26,11 +26,19 @@ case "$FLOW_NAME" in
     FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/pretext-layout.yaml"
     FLOW_KEY="pretext-layout"
     ;;
+  parity)
+    FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/parity.yaml"
+    FLOW_KEY="parity"
+    ;;
   *)
     echo "unsupported flow: $FLOW_NAME" >&2
     exit 1
     ;;
 esac
+
+if [[ "$FLOW_KEY" == "parity" && "$PLATFORM_NAME" == "android" ]]; then
+  FLOW_FILE="$APP_ROOT_DIR/maestro/flows/benchmark/parity-android.yaml"
+fi
 
 log_step() {
   echo "[benchmark] $1"
@@ -39,6 +47,26 @@ log_step() {
 die() {
   echo "[benchmark] $1" >&2
   exit 1
+}
+
+benchmark_command_hint() {
+  case "$FLOW_KEY:$PLATFORM_NAME" in
+    parity:ios)
+      echo "yarn benchmark:parity:ios"
+      ;;
+    parity:android)
+      echo "yarn benchmark:parity:android"
+      ;;
+    *:ios)
+      echo "yarn benchmark:ios"
+      ;;
+    *:android)
+      echo "yarn benchmark:android"
+      ;;
+    *)
+      echo "the benchmark command"
+      ;;
+  esac
 }
 
 release_android_forward_7001() {
@@ -102,6 +130,37 @@ release_local_port_7001() {
   fi
 }
 
+start_android_logcat_capture() {
+  local device_id="$1"
+  local debug_dir="$2"
+
+  ANDROID_LOGCAT_FILE="$debug_dir/android-logcat.log"
+  mkdir -p "$debug_dir"
+
+  adb -s "$device_id" logcat -c >/dev/null 2>&1 || true
+  adb -s "$device_id" logcat -v time ReactNativeJS:I '*:S' >"$ANDROID_LOGCAT_FILE" 2>&1 &
+  ANDROID_LOGCAT_PID=$!
+}
+
+stop_android_logcat_capture() {
+  if [[ -n "${ANDROID_LOGCAT_PID:-}" ]]; then
+    kill "$ANDROID_LOGCAT_PID" >/dev/null 2>&1 || true
+    wait "$ANDROID_LOGCAT_PID" >/dev/null 2>&1 || true
+    ANDROID_LOGCAT_PID=""
+  fi
+}
+
+append_android_parity_report() {
+  local debug_dir="$1"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  node "$APP_ROOT_DIR/maestro/scripts/append-parity-logcat-report.js" \
+    "$ANDROID_LOGCAT_FILE" \
+    "$latest_log"
+}
+
 extract_android_driver_apks() {
   local target_dir="$1"
   mkdir -p "$target_dir"
@@ -153,11 +212,30 @@ print_latest_summary() {
     "$flow_key"
 }
 
+write_parity_artifacts() {
+  local debug_dir="$1"
+  local platform_name="$2"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  node "$APP_ROOT_DIR/maestro/scripts/format-parity-artifacts.js" \
+    "$latest_log" \
+    "$debug_dir" \
+    "$platform_name"
+}
+
 find_latest_log() {
   local debug_dir="$1"
   local latest_log
+  local tests_dir="$debug_dir/.maestro/tests"
 
-  latest_log="$(find "$debug_dir/.maestro/tests" -name "maestro.log" | sort | tail -n 1)"
+  if [[ ! -d "$tests_dir" ]]; then
+    echo "No Maestro test output directory found under $debug_dir" >&2
+    return 1
+  fi
+
+  latest_log="$(find "$tests_dir" -type f -name "maestro.log" 2>/dev/null | sort | tail -n 1)"
   if [[ -z "$latest_log" ]]; then
     echo "No maestro.log found under $debug_dir" >&2
     return 1
@@ -182,7 +260,30 @@ run_quality_gate() {
     "$flow_key"
 }
 
+write_skipped_gate() {
+  local debug_dir="$1"
+  local platform_name="$2"
+  local flow_key="$3"
+  local latest_log
+
+  latest_log="$(find_latest_log "$debug_dir")"
+
+  local gate_file="$debug_dir/latest-gate.txt"
+  {
+    printf '%s\n' "Benchmark Quality Gate"
+    printf '  %-20s %s\n' "profile" "${BENCHMARK_GATE_PROFILE:-local}"
+    printf '  %-20s %s\n' "platform" "$platform_name"
+    printf '  %-20s %s\n' "flow" "$flow_key"
+    printf '  %-20s %s\n' "log" "$latest_log"
+    printf '  %-20s %s\n' "status" "skipped"
+    printf '\n%s\n' "BENCHMARK_SKIP_GATE=1 was set. This run is for artifact capture only and is not validation."
+  } >"$gate_file"
+  log_step "Skipped benchmark quality gate; wrote $gate_file"
+}
+
 cleanup() {
+  stop_android_logcat_capture
+
   if [[ -n "${ANDROID_DRIVER_PID:-}" ]]; then
     kill "$ANDROID_DRIVER_PID" >/dev/null 2>&1 || true
   fi
@@ -213,7 +314,7 @@ ensure_ios_app_ready() {
   fi
 
   if ! xcrun simctl get_app_container "$device_id" "$APP_ID" app >/dev/null 2>&1; then
-    die "App $APP_ID is not installed on simulator $device_id. Build and install it first, then rerun yarn benchmark:ios."
+    die "App $APP_ID is not installed on simulator $device_id. Build and install it first, then rerun $(benchmark_command_hint)."
   fi
 
   log_step "Launching $APP_ID"
@@ -263,7 +364,7 @@ ensure_android_app_ready() {
   fi
 
   if ! adb -s "$device_id" shell pm path "$APP_ID" 2>/dev/null | grep -q '^package:'; then
-    die "App $APP_ID is not installed on Android device $device_id. Build and install it first, then rerun yarn benchmark:android."
+    die "App $APP_ID is not installed on Android device $device_id. Build and install it first, then rerun $(benchmark_command_hint)."
   fi
 
   log_step "Waking device and launching $APP_ID"
@@ -289,7 +390,7 @@ run_ios_benchmark() {
       return 0
     fi
 
-    if ! rg -q 'iOS driver not ready in time' "$attempt_log" || [[ "$attempt" -ge "$max_attempts" ]]; then
+    if ! grep -q 'iOS driver not ready in time' "$attempt_log" || [[ "$attempt" -ge "$max_attempts" ]]; then
       return 1
     fi
 
@@ -314,8 +415,29 @@ case "$PLATFORM_NAME" in
     ensure_android_app_ready "$ANDROID_DEVICE_ID"
     log_step "Running Maestro flow $FLOW_NAME on Android"
     ensure_android_maestro_driver "$ANDROID_DEVICE_ID" "$DEBUG_DIR"
+    if [[ "$FLOW_KEY" == "parity" ]]; then
+      start_android_logcat_capture "$ANDROID_DEVICE_ID" "$DEBUG_DIR"
+    fi
+    set +e
     JAVA_TOOL_OPTIONS=-Djava.net.preferIPv4Stack=true \
       maestro --platform android --device "$ANDROID_DEVICE_ID" test --no-reinstall-driver --debug-output "$DEBUG_DIR" "$FLOW_FILE"
+    MAESTRO_STATUS=$?
+    set -e
+    if [[ "$FLOW_KEY" == "parity" ]]; then
+      stop_android_logcat_capture
+      set +e
+      append_android_parity_report "$DEBUG_DIR"
+      APPEND_STATUS=$?
+      set -e
+      if [[ "$MAESTRO_STATUS" -ne 0 && "$APPEND_STATUS" -eq 0 ]]; then
+        log_step "Maestro exited non-zero after Android parity report capture; continuing to write artifacts and gate output."
+      elif [[ "$MAESTRO_STATUS" -eq 0 && "$APPEND_STATUS" -ne 0 ]]; then
+        exit "$APPEND_STATUS"
+      fi
+    fi
+    if [[ "$MAESTRO_STATUS" -ne 0 && "${APPEND_STATUS:-1}" -ne 0 ]]; then
+      exit "$MAESTRO_STATUS"
+    fi
     ;;
   *)
     echo "unsupported platform: $PLATFORM_NAME" >&2
@@ -325,6 +447,12 @@ esac
 
 print_latest_summary "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
 
+if [[ "$FLOW_KEY" == "parity" ]]; then
+  write_parity_artifacts "$DEBUG_DIR" "$PLATFORM_NAME"
+fi
+
 if [[ "${BENCHMARK_SKIP_GATE:-0}" != "1" ]]; then
   run_quality_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
+else
+  write_skipped_gate "$DEBUG_DIR" "$PLATFORM_NAME" "$FLOW_KEY"
 fi

@@ -21,10 +21,10 @@ workarounds live under `examples/non-use-case/*`.
 
 | Dependency                   | Package range         | Notes                                               |
 | ---------------------------- | --------------------- | --------------------------------------------------- |
-| React                        | `*`                   | App-supplied peer; current validation uses 19.2.3.  |
-| React Native                 | `>=0.81.0`            | Package peer floor; current validation uses 0.85.0. |
+| React                        | `*`                   | App-supplied peer; example app uses 19.2.3.         |
+| React Native                 | `>=0.81.0`            | Package peer floor; example app uses 0.85.0.        |
 | `react-native-nitro-modules` | `*`                   | Nitro runtime dependency used by the native module. |
-| Example app                  | React Native `0.85.0` | Current local validation and native build target.   |
+| Example app                  | React Native `0.85.0` | Native build and Maestro benchmark target.          |
 
 Pretext keeps its React and Nitro Modules peer ranges open. The stricter React
 Native `>=0.81.0` peer floor is defined by Pretext, and
@@ -32,12 +32,13 @@ Native `>=0.81.0` peer floor is defined by Pretext, and
 
 ## Platform Contract
 
-| Platform          | Layout path                       | Notes                                                               |
-| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical for normal-wrap requests without shape slices.            |
-| Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not canonical parity. Do not benchmark as canonical. |
-| iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
-| RN `<Text>`       | final visible renderer            | Not the correctness source. Match render styles to reduce drift.    |
+| Platform                 | Layout path                  | Notes                                                           |
+| ------------------------ | ---------------------------- | --------------------------------------------------------------- |
+| Android API 24+          | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.        |
+| iOS                      | TextKit normal-wrap layout   | Current benchmark gate path for plain normal-wrap requests.     |
+| iOS                      | Core Text native line layout | Used by alternate native line-layout paths such as rich inline. |
+| RN `<Text onTextLayout>` | strict parity oracle         | Dedicated Maestro contract for raw line count, text, geometry.  |
+| Visible RN `<Text>`      | final renderer               | Match render styles because Pretext does not draw final pixels. |
 
 Height is not derived from `fontSize`. It depends on font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
@@ -50,13 +51,13 @@ match the style used for Pretext layout. The biggest Android footgun is
 `includeFontPadding`: RN `<Text>` defaults it to `true`, and Pretext also
 defaults it to `true`. Changing one side without the other can change height.
 Android accepts RN logical layout units from JS and converts them to native px
-before calling `MeasuredText` and `LineBreaker`; returned dimensions are
-converted back to RN layout units.
+before native layout; returned dimensions are converted back to RN layout
+units.
 
-On Android API 29+, non-normal rule requests such as `shapeSlices`,
+On Android, non-normal rule requests such as `shapeSlices`,
 `whiteSpace: "pre"`, `wordBreak: "break-all"`, and forced token layout may
-report a named fallback engine instead of the canonical `MeasuredText +
-LineBreaker` path.
+report a named fallback engine instead of the canonical StaticLayout compat
+path.
 
 ## `prepare(text, style)`
 
@@ -153,7 +154,7 @@ const rich = layout(preparedInlineParagraphs, {
 | `width`       | `number`                                          | required    | Available text width.                                        |
 | `output`      | `"metrics" \| "lines" \| "diagnostics" \| "rich"` | `"metrics"` | Amount of layout data to return.                             |
 | `left`        | `number`                                          | `0`         | Base x offset for returned line geometry.                    |
-| `shapeSlices` | `ParagraphShapeSlice[]`                           | `[]`        | Per-band constraints for obstacle-aware layout.              |
+| `shapeSlices` | `ParagraphShapeSlice[]`                           | `[]`        | Obstacle-aware layout; same-band slices fill left to right.  |
 | `whiteSpace`  | `"normal" \| "pre" \| string`                     | `"normal"`  | Whitespace rule. Current native support is normal/pre.       |
 | `wordBreak`   | `"normal" \| "break-all" \| string`               | `"normal"`  | Word break rule. Current native support is normal/break-all. |
 
@@ -257,20 +258,20 @@ type PretextDiagnosticsLayout = {
 
 `ParagraphLayoutDiagnostics`:
 
-| Field                     | Description                                                                                                                                       |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `normalizedRequest`       | Request actually used by native layout.                                                                                                           |
-| `ruleLayer`               | Pretext rule layer over native engines.                                                                                                           |
-| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                                                                      |
-| `layoutEngine`            | `android_measured_text_line_breaker`, `android_static_layout_compat`, `android_legacy_fallback`, `ios_core_text`, or `ios_manual_token_fallback`. |
-| `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                          |
-| `fallbackReason`          | Present when a fallback path was used, for example `static_layout_compat` or `manual_height_estimate`.                                            |
-| `driftKinds`              | Native layout drift classes such as `engine_drift`, `padding_drift`, `algorithm_rule_drift`, `height_metric_drift`, and related classes.          |
-| `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                          |
-| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                           |
-| `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                                                                      |
-| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                                                                     |
-| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                                                                     |
+| Field                     | Description                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `normalizedRequest`       | Request actually used by native layout.                                                                                                  |
+| `ruleLayer`               | Pretext rule layer over native engines.                                                                                                  |
+| `canvasPixelParityTarget` | Always `false`; browser canvas pixel parity is not a target.                                                                             |
+| `layoutEngine`            | `android_static_layout_compat`, `android_legacy_fallback`, `ios_text_kit`, `ios_core_text`, or `ios_manual_token_fallback`.              |
+| `heightMetricSource`      | Normally `platform_text_engine_metrics`.                                                                                                 |
+| `fallbackReason`          | Present when a degraded fallback path was used, for example `manual_height_estimate`.                                                    |
+| `driftKinds`              | Native layout drift classes such as `engine_drift`, `padding_drift`, `algorithm_rule_drift`, `height_metric_drift`, and related classes. |
+| `heightMetricDrivers`     | Drivers such as `font_metrics`, `fallback_font`, `emoji_fallback`, `locale`, and `include_font_padding`.                                 |
+| `breakTable`              | Hard breaks, native soft breaks, grapheme boundaries, and atomic spans.                                                                  |
+| `boundaryMap`             | UTF-16, grapheme, run, break, atomic-span, and cluster-violation boundaries.                                                             |
+| `complexShapeCounters`    | Bidi, emoji, complex cluster, and cluster violation counters.                                                                            |
+| `lineDiagnostics`         | Per-line engine, direction, height source, fallback, drift, and cluster data.                                                            |
 
 Nested diagnostics types:
 
@@ -534,12 +535,20 @@ The number shorthand is equivalent to `{ width, output: "metrics" }`.
 
 ### `ParagraphShapeSlice`
 
-| Field    | Type     | Description                             |
-| -------- | -------- | --------------------------------------- |
-| `top`    | `number` | Vertical start of the constrained band. |
-| `height` | `number` | Band height.                            |
-| `left`   | `number` | Text x offset inside the band.          |
-| `width`  | `number` | Available text width inside the band.   |
+| Field    | Type     | Description                                                                                      |
+| -------- | -------- | ------------------------------------------------------------------------------------------------ |
+| `top`    | `number` | Vertical start of the constrained band.                                                          |
+| `height` | `number` | Band height.                                                                                     |
+| `left`   | `number` | Text x offset inside the band.                                                                   |
+| `width`  | `number` | Available text width inside the band. Use `0` to mark a constrained row with no valid text slot. |
+
+Multiple slices may share the same vertical band. With `output: "lines"`,
+Pretext fills those same-row slots from left to right. A zero-width slice keeps
+the row constrained but blocked, so the fallback line engine advances to the
+next row without consuming text instead of treating the band as unconstrained
+full-width space. If the next unbreakable token is wider than a constrained
+slot, Pretext skips that slot and advances until the token can fit or the shape
+constraint ends.
 
 ### `InlineSegment`
 
@@ -585,8 +594,13 @@ Box segment fields:
 ## Compatibility Notes
 
 - Browser canvas pixel parity is explicitly out of scope.
+- Parity is gated by the 260-case Maestro suite: 259 strict raw RN
+  `<Text onTextLayout>` cases plus one `shapeSlices` structural case for
+  blocked rows, same-row multi-slot output, and gap containment. Line text is
+  compared exactly as RN `onTextLayout` reports it.
 - Public offsets are source UTF-16 offsets.
 - Visual order belongs to the final renderer.
 - Do not split surrogate pairs, ZWJ emoji, flags, combining sequences, or
   complex-script clusters in caller code.
-- Android API 24-28 is a supported fallback, not the canonical parity target.
+- Documented Android benchmark and parity snapshots target API 36; rerun older
+  supported API levels before making device-specific claims for them.

@@ -68,6 +68,8 @@
     "examples:android": "yarn workspace react-native-nitro-pretext-example examples:android",
     "benchmark:ios": "yarn workspace react-native-nitro-pretext-example benchmark:ios",
     "benchmark:android": "yarn workspace react-native-nitro-pretext-example benchmark:android",
+    "benchmark:parity:ios": "yarn workspace react-native-nitro-pretext-example benchmark:parity:ios",
+    "benchmark:parity:android": "yarn workspace react-native-nitro-pretext-example benchmark:parity:android",
     "clean": "del-cli android/build example/android/build example/android/app/build example/ios/build lib dist",
     "build": "del-cli lib dist && bob build && node scripts/patch-module-imports.js && tsc -p tsconfig.build.json",
     "prepack": "yarn build",

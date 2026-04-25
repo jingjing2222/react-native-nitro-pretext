@@ -24,7 +24,7 @@ internal func buildParagraphLayoutDiagnostics(
         ruleLayer: ruleLayerPretextNative,
         canvasPixelParityTarget: false,
         textDirection: corpus.baseStyle.textDirection,
-        layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosCoreText,
+        layoutEngine: lineLayouts.first?.layoutEngine ?? layoutEngineIosTextKit,
         heightMetricSource: heightMetricSourcePlatformTextEngineMetrics,
         fallbackReason: lineLayouts.compactMap { $0.fallbackReason }.first,
         driftKinds: driftKinds,
@@ -76,9 +76,14 @@ private func buildParagraphBreakTable(
     lineLayouts: [NativeLineLayout]
 ) -> ParagraphBreakTable {
     let textLength = paragraph.text.length
+    let hardBreaks = collectHardBreaks(paragraph.text)
+    let hardBreakOffsets = Set(hardBreaks.map { Int($0.offset) })
     let nativeSoftBreaks = lineLayouts.dropLast().compactMap { line -> ParagraphBreakOpportunity? in
         let offset = line.textEndUTF16
         guard offset > 0, offset < textLength else {
+            return nil
+        }
+        guard !hardBreakOffsets.contains(offset) else {
             return nil
         }
         guard paragraph.text.character(at: offset) != 0x0A else {
@@ -92,7 +97,7 @@ private func buildParagraphBreakTable(
     }
 
     return ParagraphBreakTable(
-        hardBreaks: collectHardBreaks(paragraph.text),
+        hardBreaks: hardBreaks,
         nativeSoftBreaks: nativeSoftBreaks,
         graphemeBoundaries: collectGraphemeBoundaries(paragraph.text),
         atomicSpans: paragraph.atomicSpans.map { span in
@@ -297,7 +302,7 @@ private func countBidiRuns(_ text: NSString) -> Int {
 
 private func collectLineDriftKinds(_ line: NativeLineLayout) -> [String] {
     var driftKinds: [String] = []
-    if line.layoutEngine != layoutEngineIosCoreText {
+    if !isNativeTextLayoutEngine(line.layoutEngine) {
         driftKinds.append(driftEngine)
     }
     if line.fallbackReason != nil {
@@ -320,7 +325,7 @@ private func collectDriftKinds(
         }
     }
 
-    if lineLayouts.contains(where: { $0.layoutEngine != layoutEngineIosCoreText || $0.fallbackReason != nil }) {
+    if lineLayouts.contains(where: { !isNativeTextLayoutEngine($0.layoutEngine) || $0.fallbackReason != nil }) {
         appendDrift(driftEngine)
     }
     if lineLayouts.contains(where: { $0.fallbackReason != nil }) {
@@ -346,6 +351,10 @@ private func collectDriftKinds(
         appendDrift(driftClusterBoundary)
     }
     return driftKinds
+}
+
+private func isNativeTextLayoutEngine(_ layoutEngine: String) -> Bool {
+    layoutEngine == layoutEngineIosTextKit || layoutEngine == layoutEngineIosCoreText
 }
 
 private func containsPotentialFallbackGlyph(_ text: NSString) -> Bool {

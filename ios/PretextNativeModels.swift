@@ -215,4 +215,6 @@ internal struct NativeShapeSlice: Hashable {
 internal struct NativeLineConstraint {
     let left: Double
     let width: Double
+    let height: Double
+    let isShapeConstrained: Bool
 }

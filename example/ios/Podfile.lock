@@ -26,7 +26,7 @@ PODS:
     - ReactCommon/turbomodule/core
     - ReactNativeDependencies
     - Yoga
-  - Pretext (0.0.1):
+  - Pretext (1.0.0):
     - hermes-engine
     - NitroModules
     - RCTRequired
@@ -2153,7 +2153,7 @@ SPEC CHECKSUMS:
   FBLazyVector: c00c20551d40126351a6783c47ce75f5b374851b
   hermes-engine: 1e8eb01c86285629598e66bf75db4f4f7408fc06
   NitroModules: 8146b7b58cd5a478a21485fc2a0d542076f9f1ba
-  Pretext: b5c6a5c41ebddfd87fe3d67f07341fe8e664760a
+  Pretext: 62ea9e280fbb1e35da922cd1a03be60ae79abe72
   RCTDeprecation: 3bb167081b134461cfeb875ff7ae1945f8635257
   RCTRequired: 74839f55d5058a133a0bc4569b0afec750957f64
   RCTSwiftUI: 87a316382f3eab4dd13d2a0d0fd2adcce917361a

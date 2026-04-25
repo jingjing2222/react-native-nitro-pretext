@@ -8,6 +8,7 @@ const gateScript = path.join(
   rootDir,
   "example/maestro/scripts/assert-benchmark-gates.js",
 );
+const PARITY_EXPECTED_CASE_COUNT = 260;
 
 function createHeightDriftBuckets() {
   return {
@@ -73,7 +74,7 @@ function createPreparedViewReport(overrides = {}) {
     ],
     computeHeightMetricSource: "platform_text_engine_metrics",
     computeIncludeFontPadding: true,
-    computeLayoutEngine: "android_measured_text_line_breaker",
+    computeLayoutEngine: "android_static_layout_compat",
     computeLayoutOnlyMedianMs: 1,
     computeLineTextParityChecks: 200,
     computeLineTextParityMismatches: 0,
@@ -100,7 +101,7 @@ function createPreparedViewReport(overrides = {}) {
     renderInteractionMedianMs: 50,
     renderInteractionP95Ms: 55,
     renderJankCount: 0,
-    renderLayoutEngine: "android_measured_text_line_breaker",
+    renderLayoutEngine: "android_static_layout_compat",
     renderLineTextParityChecks: 200,
     renderLineTextParityMismatches: 0,
     renderParityBucket: "canonical_prepared_compute",
@@ -142,6 +143,84 @@ function runGate(preparedOverrides = {}) {
   return fs.readFileSync(reportPath, "utf8");
 }
 
+function runParityGate(parityOverrides = {}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-gate-"));
+  const logPath = path.join(tempDir, "maestro.log");
+  const reportPath = path.join(tempDir, "gate.txt");
+  const parity = {
+    caseCount: PARITY_EXPECTED_CASE_COUNT,
+    completedAt: "10:00:02",
+    completedCases: PARITY_EXPECTED_CASE_COUNT,
+    failedCaseResults: [],
+    failedCases: 0,
+    geometryTolerance: 0.5,
+    lineCountMismatches: 0,
+    lineGeometryMismatches: 0,
+    lineTextMismatches: 0,
+    mismatchCount: 0,
+    mismatches: [],
+    platform: "android",
+    screen: "benchmark/parity",
+    status: "completed",
+    ...parityOverrides,
+  };
+
+  fs.writeFileSync(
+    logPath,
+    `I/ReactNativeJS: JsConsole: BENCHMARK_REPORT::benchmark/parity::${JSON.stringify(parity)}\n`,
+  );
+
+  execFileSync(process.execPath, [
+    gateScript,
+    logPath,
+    reportPath,
+    "android",
+    "parity",
+  ]);
+
+  return fs.readFileSync(reportPath, "utf8");
+}
+
+function runParityGateFailure(parityOverrides = {}) {
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "pretext-gate-"));
+  const logPath = path.join(tempDir, "maestro.log");
+  const reportPath = path.join(tempDir, "gate.txt");
+  const parity = {
+    caseCount: PARITY_EXPECTED_CASE_COUNT,
+    completedAt: "10:00:02",
+    completedCases: PARITY_EXPECTED_CASE_COUNT,
+    failedCaseResults: [],
+    failedCases: 0,
+    geometryTolerance: 0.5,
+    lineCountMismatches: 0,
+    lineGeometryMismatches: 0,
+    lineTextMismatches: 0,
+    mismatchCount: 0,
+    mismatches: [],
+    platform: "android",
+    screen: "benchmark/parity",
+    status: "completed",
+    ...parityOverrides,
+  };
+
+  fs.writeFileSync(
+    logPath,
+    `I/ReactNativeJS: JsConsole: BENCHMARK_REPORT::benchmark/parity::${JSON.stringify(parity)}\n`,
+  );
+
+  expect(() =>
+    execFileSync(process.execPath, [
+      gateScript,
+      logPath,
+      reportPath,
+      "android",
+      "parity",
+    ]),
+  ).toThrow();
+
+  return fs.readFileSync(reportPath, "utf8");
+}
+
 describe("benchmark parity contract gates", () => {
   it("separates timing checks from parity contract checks", () => {
     const report = runGate();
@@ -156,7 +235,7 @@ describe("benchmark parity contract gates", () => {
 
   it("fails when canonical Android prepared layout uses the wrong engine", () => {
     expect(() =>
-      runGate({ computeLayoutEngine: "android_static_layout_compat" }),
+      runGate({ computeLayoutEngine: "android_measured_text_line_breaker" }),
     ).toThrow();
   });
 
@@ -188,5 +267,50 @@ describe("benchmark parity contract gates", () => {
 
   it("fails when the layout-only hot path exceeds the gate", () => {
     expect(() => runGate({ computeLayoutOnlyMedianMs: 20 })).toThrow();
+  });
+
+  it("accepts the dedicated parity benchmark flow", () => {
+    const report = runParityGate();
+
+    expect(report).toContain("parity status == completed");
+    expect(report).toContain(
+      `parity case count == ${PARITY_EXPECTED_CASE_COUNT}`,
+    );
+    expect(report).toContain("line-text parity mismatches <= 0");
+  });
+
+  it("fails dedicated parity when not every case completes", () => {
+    expect(() =>
+      runParityGate({ completedCases: PARITY_EXPECTED_CASE_COUNT - 1 }),
+    ).toThrow();
+  });
+
+  it("fails dedicated parity on any mismatch and prints its location", () => {
+    const report = runParityGateFailure({
+      lineTextMismatches: 1,
+      mismatchCount: 1,
+      mismatches: [
+        {
+          caseId: "parity-latin-001",
+          category: "latin",
+          firstDiff: {
+            field: "text",
+            lineIndex: 0,
+            pretextValue: "expected",
+            rnValue: "actual",
+          },
+          kind: "line-text",
+          platform: "android",
+          pretextLines: [],
+          rnLines: [],
+          style: {},
+          width: 220,
+        },
+      ],
+    });
+
+    expect(report).toContain("Parity Mismatch Details");
+    expect(report).toContain("parity-latin-001 [latin] line-text");
+    expect(report).toContain('rn="actual" pretext="expected"');
   });
 });

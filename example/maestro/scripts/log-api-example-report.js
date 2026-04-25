@@ -22,6 +22,30 @@ function isPositiveNumber(value) {
   return typeof value === "number" && Number.isFinite(value) && value > 0;
 }
 
+function isNonNegativeNumber(value) {
+  return typeof value === "number" && Number.isFinite(value) && value >= 0;
+}
+
+function optionalNumber(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function optionalNumberList(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return [];
+  }
+
+  return value
+    .split(",")
+    .map((item) => Number(item.trim()))
+    .filter((item) => Number.isFinite(item));
+}
+
 for (const field of required) {
   assertReport(field in report, `report is missing ${field}`);
 }
@@ -128,6 +152,88 @@ if (routePath === "examples/use-case/namespace-and-types") {
     Array.isArray(report.exportedTypes) && report.exportedTypes.length >= 20,
     "must enumerate exported type helpers",
   );
+}
+
+if (routePath === "examples/pretext-react-native-example") {
+  const minCircleMoves = optionalNumber(
+    typeof minimumCircleMoves === "undefined" ? null : minimumCircleMoves,
+  );
+  const minCircleSamples = optionalNumber(
+    typeof minimumCircleSamples === "undefined" ? null : minimumCircleSamples,
+  );
+  const requiredCircleGridCells = optionalNumberList(
+    typeof requiredGridCells === "undefined" ? "" : requiredGridCells,
+  );
+
+  assertReport(report.previewWidth > 0, "must measure preview width");
+  assertReport(report.lineCount > 0, "must produce line geometry");
+  assertReport(report.shapeSliceCount > 0, "must produce circle shape slices");
+  assertReport(
+    isNonNegativeNumber(report.shapeLayoutClearance),
+    "must report shape layout clearance",
+  );
+  assertReport(
+    report.intrudingLineCount === 0,
+    "must keep lines outside the circle obstacle",
+  );
+  assertReport(
+    report.minObstacleClearance === null || report.minObstacleClearance >= -0.5,
+    "must report non-negative obstacle clearance",
+  );
+  assertReport(
+    isNonNegativeNumber(report.circleMoveCount),
+    "must report circle move count",
+  );
+  assertReport(
+    isNonNegativeNumber(report.motionSampledPositionCount),
+    "must report sampled circle positions",
+  );
+  assertReport(
+    Array.isArray(report.motionVisitedGridCells),
+    "must report visited circle grid cells",
+  );
+  assertReport(
+    report.motionVisitedGridCellCount === report.motionVisitedGridCells.length,
+    "must report visited circle grid cell count",
+  );
+  assertReport(
+    report.motionSampledPositionCount >= report.circleMoveCount,
+    "must sample at least once per completed circle move",
+  );
+  assertReport(
+    report.motionMaxIntrudingLineCount === 0,
+    "must keep every sampled circle position outside text",
+  );
+  assertReport(
+    report.motionIntrudingSampleCount === 0,
+    "must not observe any intruding circle position",
+  );
+  assertReport(
+    report.motionMinObstacleClearance === null ||
+      report.motionMinObstacleClearance >= -0.5,
+    "must report non-negative sampled obstacle clearance",
+  );
+
+  if (minCircleMoves !== null) {
+    assertReport(
+      report.circleMoveCount >= minCircleMoves,
+      `must complete at least ${minCircleMoves} circle moves`,
+    );
+  }
+
+  if (minCircleSamples !== null) {
+    assertReport(
+      report.motionSampledPositionCount >= minCircleSamples,
+      `must sample at least ${minCircleSamples} circle positions`,
+    );
+  }
+
+  for (const cell of requiredCircleGridCells) {
+    assertReport(
+      report.motionVisitedGridCells.includes(cell),
+      `must visit circle grid cell ${cell}`,
+    );
+  }
 }
 
 if (routePath.startsWith("examples/non-use-case/")) {

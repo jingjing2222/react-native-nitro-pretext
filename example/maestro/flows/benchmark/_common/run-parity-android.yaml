@@ -1,0 +1,23 @@
+# 성공 흐름
+# benchmark landing -> benchmark/parity -> unique parity run complete
+# Android report payload은 RN logcat chunk로 수집하고 run-benchmark.sh가 maestro.log에 붙인다.
+appId: pretext.example
+---
+- scrollUntilVisible:
+    direction: DOWN
+    element:
+      text: "Open benchmark/parity"
+    timeout: 20000
+- tapOn: "Open benchmark/parity"
+- assertVisible: "Run RN Text parity as unique cases\\."
+- assertVisible:
+    text: "AUTOMATION_STATUS::benchmark/parity::idle::.*"
+- tapOn: "Run RN Text Parity"
+- extendedWaitUntil:
+    visible:
+      text: "AUTOMATION_STATUS::benchmark/parity::(completed|failed)::.*"
+    timeout: 180000
+- takeScreenshot:
+    path: .maestro-artifacts/parity-complete
+- tapOn: "Back to benchmark/\\*"
+- assertVisible: "Benchmark routes stay isolated from API examples\\."

@@ -1,18 +1,12 @@
 package com.margelo.nitro.pretext
 
-import android.os.Build
-
 internal fun buildParagraphLayoutDiagnostics(
   paragraph: NativePreparedParagraph,
   corpus: NativePreparedCorpus,
   request: NativeLayoutRequest,
   lineLayouts: List<NativeLineLayout>,
 ): ParagraphLayoutDiagnostics {
-  val canonicalLayoutEngine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-    LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER
-  } else {
-    LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK
-  }
+  val canonicalLayoutEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT
   val layoutEngine = lineLayouts.firstOrNull()?.layoutEngine ?: canonicalLayoutEngine
   val fallbackReason = lineLayouts.firstNotNullOfOrNull { it.fallbackReason }
   val breakTable = buildParagraphBreakTable(paragraph, lineLayouts)
@@ -301,11 +295,7 @@ private fun collectDriftKinds(
   boundaryMap: ParagraphBoundaryMap,
 ): List<String> {
   val driftKinds = LinkedHashSet<String>()
-  val canonicalEngine = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-    LAYOUT_ENGINE_ANDROID_MEASURED_TEXT_LINE_BREAKER
-  } else {
-    LAYOUT_ENGINE_ANDROID_LEGACY_FALLBACK
-  }
+  val canonicalEngine = LAYOUT_ENGINE_ANDROID_STATIC_LAYOUT_COMPAT
   if (lineLayouts.any { it.layoutEngine != canonicalEngine || it.fallbackReason != null }) {
     driftKinds += DRIFT_ENGINE
   }

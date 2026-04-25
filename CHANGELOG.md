@@ -37,12 +37,14 @@
 
   Native layout contract:
 
-  - Android API 29+ normal-wrap requests use the canonical `MeasuredText +
-LineBreaker` path.
-  - Android API 24-28 remains supported through StaticLayout/legacy fallback
-    paths and is not the canonical parity or performance target.
-  - iOS uses Core Text `CTTypesetter + CTLine`.
+  - Android API 24+ normal-wrap requests use the RN-compatible `StaticLayout`
+    path.
+  - Android rule-layer requests that require token layout may report named
+    fallback paths such as `android_legacy_fallback`.
+  - iOS normal-wrap requests use TextKit; alternate native line-layout paths may
+    report Core Text diagnostics.
   - Android `includeFontPadding` defaults to `true` to align with RN `<Text>`.
+  - RN `<Text>` parity is gated by the 240 unique-case Maestro parity suite.
   - React and `react-native-nitro-modules` keep open peer ranges as `*`.
   - React Native `>=0.81.0` is the package peer floor. The example app and
     latest local validation use React `19.2.3` and React Native `0.85.0`.
@@ -59,8 +61,8 @@ LineBreaker` path.
     iOS and Android numbers separately, and show the measured-layout improvement
     percentage for the hidden RN `<Text onLayout>` path versus `Pretext.layout()`.
   - The latest local Android API 36 Maestro suite passes the layout-only benchmark
-    gate; RN `<Text>` parity drift remains diagnostic and is not the correctness
-    source.
+    gate, and the dedicated iOS/Android RN `<Text>` parity suite passes at
+    `0/240`.
   - Added `ts-prune` as a development dead-export check and removed stale
     TypeScript/example exports found during the audit.
 

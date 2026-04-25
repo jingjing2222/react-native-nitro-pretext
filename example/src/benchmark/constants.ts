@@ -123,6 +123,15 @@ export const styles = StyleSheet.create({
     letterSpacing: BENCHMARK_STYLE.letterSpacing,
     textAlign: "left",
   },
+  parityParagraph: {
+    borderRadius: 18,
+    backgroundColor: "#fffdf8",
+    color: "#22211f",
+    fontSize: BENCHMARK_STYLE.fontSize,
+    lineHeight: BENCHMARK_STYLE.lineHeight,
+    letterSpacing: BENCHMARK_STYLE.letterSpacing,
+    textAlign: "left",
+  },
   paragraphSurface: {
     borderRadius: 18,
     backgroundColor: "#fffdf8",

@@ -2,6 +2,7 @@ export type AppStackParamList = {
   BenchmarkBaseText: undefined;
   BenchmarkIndex: undefined;
   BenchmarkMeasuredLayoutCaseStudy: undefined;
+  BenchmarkParity: undefined;
   BenchmarkPretextLayout: undefined;
   ExampleIndex: undefined;
   ExampleNonUseCaseDiagnostics: undefined;
@@ -21,5 +22,6 @@ export type AppStackParamList = {
   ExampleUseCaseLayoutRich: undefined;
   ExampleUseCaseNamespaceAndTypes: undefined;
   ExampleUseCasePrepare: undefined;
+  PretextReactNativeExample: undefined;
   Home: undefined;
 };

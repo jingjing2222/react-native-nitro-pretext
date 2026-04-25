@@ -15,6 +15,15 @@
     "base-text": {
       "requireCompleted": true
     },
+    "parity": {
+      "requireCompleted": true,
+      "expectedParityCaseCount": 260,
+      "maxParityFailedCases": 0,
+      "maxParityMismatches": 0,
+      "maxLineCountParityMismatches": 0,
+      "maxLineTextParityMismatches": 0,
+      "maxLineGeometryParityMismatches": 0
+    },
     "pretext-layout": {
       "requireCompleted": true,
       "maxPrepareMs": 3000,

@@ -13,9 +13,45 @@ function buildSummary(reports, suite) {
     suite ?? {
       baseText: reports["benchmark/base-text"] ?? null,
       combined: reports["benchmark/index"] ?? null,
+      parity: reports["benchmark/parity"] ?? null,
       preparedView: reports["benchmark/pretext-layout"] ?? null,
     }
   );
+}
+
+function expandParityReport(report) {
+  if (
+    report.screen !== "benchmark/parity" ||
+    !Array.isArray(report.mismatchGroups)
+  ) {
+    return report;
+  }
+
+  const mismatches = report.mismatchGroups.flatMap((group) =>
+    (Array.isArray(group.mismatches) ? group.mismatches : []).map(
+      (mismatch) => ({
+        caseId: group.caseId,
+        category: group.category,
+        firstDiff: mismatch.firstDiff,
+        kind: mismatch.kind,
+        platform: group.platform ?? report.platform,
+        pretextLines: group.pretextLines ?? [],
+        rnLines: group.rnLines ?? [],
+        shapeSlices: group.shapeSlices,
+        style: group.style ?? null,
+        width: group.width ?? null,
+      }),
+    ),
+  );
+
+  const expandedReport = { ...report };
+  delete expandedReport.mismatchGroups;
+  delete expandedReport.transportVersion;
+
+  return {
+    ...expandedReport,
+    mismatches,
+  };
 }
 
 function parseBenchmarkLog(logContents) {
@@ -41,7 +77,9 @@ function parseBenchmarkLog(logContents) {
 
       const screen = reportPayload.slice(0, separatorIndex);
       const rawJson = reportPayload.slice(separatorIndex + 2);
-      reports[screen] = safeParseJson(rawJson, `report for ${screen}`);
+      reports[screen] = expandParityReport(
+        safeParseJson(rawJson, `report for ${screen}`),
+      );
       continue;
     }
 
@@ -55,7 +93,12 @@ function parseBenchmarkLog(logContents) {
 
   const summary = buildSummary(reports, suite);
 
-  if (!summary.baseText && !summary.combined && !summary.preparedView) {
+  if (
+    !summary.baseText &&
+    !summary.combined &&
+    !summary.parity &&
+    !summary.preparedView
+  ) {
     throw new Error("No benchmark events found in maestro.log");
   }
 

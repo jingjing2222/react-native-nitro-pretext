@@ -7,6 +7,10 @@ screen ask for paragraph height, line count, line ranges, diagnostics, and rich
 inline box frames before mounting the visible UI. It does not render text for
 you, and it does not use hidden `<Text onLayout>` measurement views.
 
+## DEMO
+
+![Pretext demo](./DEMO.gif)
+
 ## Why It Exists
 
 Many React Native layouts need text geometry before they can place visible
@@ -85,9 +89,21 @@ const lines = layout(prepared, {
   width: 280,
   left: 12,
   output: "lines",
-  shapeSlices: [{ top: 0, height: 96, left: 24, width: 256 }],
+  shapeSlices: [
+    { top: 0, height: 24, left: 0, width: 120 },
+    { top: 0, height: 24, left: 180, width: 100 },
+  ],
 });
 ```
+
+Multiple `shapeSlices` may share the same vertical band. In `output: "lines"`
+mode, Pretext fills those same-row slots from left to right before advancing to
+the next visual row, which supports text around two sides of an obstacle.
+Use `width: 0` for a constrained band that has no valid text slot; Pretext
+advances past that row without consuming text instead of falling back to the
+full paragraph width. If the next unbreakable token is wider than a constrained
+slot, Pretext skips that slot and advances until the token can fit or the shape
+constraint ends.
 
 Rich inline boxes are prepared with inline segment paragraphs and caller-owned
 box metrics, then read with `output: "rich"`. See the
@@ -110,22 +126,22 @@ Height is native text-engine output. It is affected by font metrics,
 `lineHeight`, fallback fonts, emoji, locale, Android `includeFontPadding`, text
 direction, and the platform line breaking strategy.
 
-| Platform          | Layout path                       | Status                                                              |
-| ----------------- | --------------------------------- | ------------------------------------------------------------------- |
-| Android API 29+   | `MeasuredText + LineBreaker`      | Canonical for normal-wrap requests without shape slices.            |
-| Android API 24-28 | `StaticLayout` compat/fallback    | Supported, but not the canonical parity path.                       |
-| iOS               | Core Text `CTTypesetter + CTLine` | Canonical iOS path.                                                 |
-| RN `<Text>`       | final visible renderer            | Not the correctness source. Match styles carefully to reduce drift. |
+| Platform                 | Layout path                  | Status                                                         |
+| ------------------------ | ---------------------------- | -------------------------------------------------------------- |
+| Android API 24+          | RN-compatible `StaticLayout` | Canonical for normal-wrap requests without shape slices.       |
+| iOS                      | TextKit normal-wrap layout   | Current benchmark gate path for normal text.                   |
+| RN `<Text onTextLayout>` | strict parity oracle         | Dedicated Maestro contract for raw line count, text, geometry. |
+| Visible RN `<Text>`      | final renderer               | Match styles carefully because Pretext does not draw pixels.   |
 
 Android `includeFontPadding` defaults to `true` to match RN `<Text>` defaults.
 If you turn it off in Pretext but leave RN `<Text>` at its default, height can
 drift.
 When `lineHeight` is omitted, Pretext uses platform font metrics instead of a
 `fontSize` heuristic.
-Diagnostics may report `android_static_layout_compat` or
-`android_legacy_fallback` on Android fallback paths, and
-`ios_manual_token_fallback` on degraded iOS fallback paths. Android API 24-28
-StaticLayout diagnostics include `fallbackReason: "static_layout_compat"`.
+Diagnostics may report `android_static_layout_compat` on Android normal-wrap
+paths, `android_legacy_fallback` on Android fallback paths, `ios_text_kit` on
+iOS normal-wrap benchmark paths, `ios_core_text` on alternate iOS native line
+layout paths, and `ios_manual_token_fallback` on degraded iOS fallback paths.
 
 The native implementation is split by responsibility across preparation,
 tokenization, line layout, diagnostics, constants, and native model files on
@@ -133,23 +149,23 @@ both Android and iOS.
 
 ## Compatibility
 
-| Dependency                   | Package range | Current validation                                      |
-| ---------------------------- | ------------- | ------------------------------------------------------- |
-| React                        | `*`           | Example app and local checks use React `19.2.3`.        |
-| React Native                 | `>=0.81.0`    | Example app and local checks use React Native `0.85.0`. |
-| `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                       |
-| Android                      | API 24+       | API 29+ normal-wrap requests are the canonical target.  |
-| iOS                          | RN default    | Example app currently targets iOS 15.1.                 |
+| Dependency                   | Package range | Example target                                       |
+| ---------------------------- | ------------- | ---------------------------------------------------- |
+| React                        | `*`           | Example app uses React `19.2.3`.                     |
+| React Native                 | `>=0.81.0`    | Example app uses React Native `0.85.0`.              |
+| `react-native-nitro-modules` | `*`           | Required runtime peer dependency.                    |
+| Android                      | API 24+       | Normal-wrap requests use RN-compatible StaticLayout. |
+| iOS                          | RN default    | Example app currently targets iOS 15.1.              |
 
 Pretext keeps its React and `react-native-nitro-modules` peer ranges open as
 `*` and documents/enforces its own React Native peer floor as `>=0.81.0`.
-Current local validation is on React `19.2.3` and React Native `0.85.0`.
+The bundled example app is on React `19.2.3` and React Native `0.85.0`.
 
 ## Performance Snapshot
 
-Benchmarks are platform-specific. iOS uses Core Text and Android API 29+ uses
-`MeasuredText + LineBreaker`, so their numbers should be reported separately and
-never averaged together.
+Benchmarks are platform-specific. The current normal-wrap gate expects iOS
+TextKit and Android RN-compatible StaticLayout metadata, so their numbers should
+be reported separately and never averaged together.
 
 The most important comparison is the path an app would otherwise build with RN
 only:
@@ -159,46 +175,53 @@ only:
 | Hidden RN `<Text>` + `onLayout` | Mount hidden measurement tree, wait for callbacks, apply height, render visible UI. |
 | `prepare()` + `layout()`        | Measure in the native text engine first, then render visible UI with known height.  |
 
-Latest local measured-layout case study:
+Latest Maestro timing snapshot:
 
-| Platform       | Target                                    | RN hidden measure time | Pretext layout time | Render passes | Layout shifts | Status           |
-| -------------- | ----------------------------------------- | ---------------------: | ------------------: | ------------: | ------------: | ---------------- |
-| iOS            | iPhone 16 simulator, debug, April 24 2026 |            `129.16 ms` |           `1.55 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
-| Android API 36 | Pixel_9_Pro AVD, debug, April 25 2026     |            `174.95 ms` |           `8.59 ms` |      `2 -> 1` |      `1 -> 0` | Verified locally |
+| Platform       | Target                                 | RN `<Text>` median | Pretext visible surface median | Delta vs RN | Pretext hot layout median | Prepare once |
+| -------------- | -------------------------------------- | -----------------: | -----------------------------: | ----------: | ------------------------: | -----------: |
+| iOS            | iPhone 16 simulator, iOS 18.5, Release |        `188.11 ms` |                    `197.40 ms` |  `+9.29 ms` |                 `0.02 ms` |   `44.72 ms` |
+| Android API 36 | Pixel_9_Pro AVD, API 36, release APK   |         `23.80 ms` |                     `22.43 ms` |  `-1.37 ms` |                 `0.03 ms` |   `50.46 ms` |
 
-Improvement headline:
-
-| Platform       | Stable-height path improved by | Time removed before visible UI is stable | Relative speedup |
-| -------------- | -----------------------------: | ---------------------------------------: | ---------------: |
-| iOS            |                        `98.8%` |                              `127.61 ms` |          `83.3x` |
-| Android API 36 |                        `95.1%` |                              `166.36 ms` |          `20.4x` |
-
-`Stable-height path improved by` is calculated as
-`(RN hidden measure time - Pretext layout time) / RN hidden measure time`.
-
-Latest local Maestro timing snapshot:
-
-| Platform       | RN `<Text>` median | Pretext visible surface median | Pretext hot layout median | Prepare once | Status                                |
-| -------------- | -----------------: | -----------------------------: | ------------------------: | -----------: | ------------------------------------- |
-| iOS            |        `247.11 ms` |                    `230.95 ms` |                 `0.23 ms` |   `47.40 ms` | Debug simulator suite passed          |
-| Android API 36 |         `54.55 ms` |                     `85.01 ms` |                 `0.06 ms` |  `140.01 ms` | Debug AVD suite and local gate passed |
+Negative delta means the Pretext visible surface was faster in that run;
+positive delta means it was slower. The visible-surface number includes the
+final RN `<Text>` render. The hot-layout number is the layout-only relayout
+cost after paragraph state has already been prepared.
 
 Hot relayout compute improvement:
 
 | Platform       | Hot layout compute vs RN `<Text>` median | Relative compute speedup |
 | -------------- | ---------------------------------------: | -----------------------: |
-| iOS            |                                  `99.9%` |                `1074.4x` |
-| Android API 36 |                                  `99.9%` |                 `909.2x` |
+| iOS            |                                 `99.99%` |                `9405.5x` |
+| Android API 36 |                                  `99.9%` |                 `793.3x` |
 
 The measured-layout case study is the render optimization claim: Pretext
 removes the hidden measurement `<Text>` surface, so the screen does not need a
 measurement render followed by a corrected visible render. The Maestro timing
 suite is a different contract: it includes the final visible RN `<Text>`
-surface. On the Android debug AVD run, the hot layout path was `0.06 ms`, but
-the full visible-surface median was slower than RN by `30.46 ms`; that visible
-surface number is reported as context, not as the layout-only gate.
+surface. On the Android API 36 run above, the hot layout path was `0.03 ms`, and
+the full visible-surface median was faster than RN by `1.37 ms`; that visible
+surface number is still reported as context, not as the layout-only gate.
 
-Current benchmark details and validation limits are in the
+Strict parity contract:
+
+| Platform       | Contract source          | Cases | Line count | Line text | Geometry | Status |
+| -------------- | ------------------------ | ----: | ---------: | --------: | -------: | ------ |
+| iOS            | 260 Maestro parity cases |   260 |      0/260 |     0/260 |    0/260 | Passed |
+| Android API 36 | 260 Maestro parity cases |   260 |      0/260 |     0/260 |    0/260 | Passed |
+
+The parity contract is no longer derived from repeated timing samples. It is a
+dedicated Maestro flow that executes 260 cases once per platform and requires
+line-count, exact raw line-text, and line-geometry parity to be `0/260`. The
+suite contains 259 raw RN `<Text onTextLayout>` cases plus one structural
+`shapeSlices` case that verifies same-row multi-slot output, blocked rows, and
+gap containment. The line-text comparison does not trim, normalize, or collapse
+newline, trailing whitespace, tab, or NBSP characters; display output may
+JSON-escape raw values, but comparison uses the unmodified RN payload.
+
+The latest iOS Release simulator app and Android API 36 release APK runs
+completed the 260-case gate on April 26, 2026.
+
+Current benchmark details and gate thresholds are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).
 
 ## Install
@@ -225,7 +248,9 @@ The example app is split into learning examples and benchmark routes:
   you would otherwise manage yourself.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
-- `benchmark/base-text` and `benchmark/pretext-layout`: validation screens for
+- `benchmark/parity`: RN `<Text>` and `shapeSlices` parity contract using 260
+  Maestro cases.
+- `benchmark/base-text` and `benchmark/pretext-layout`: benchmark screens for
   compatibility, timing, and parity diagnostics.
 
 Run it locally:
@@ -263,12 +288,31 @@ CI runs the static, unit, package, and native build checks above. Maestro device
 flows are manual only because they depend on installed apps, simulators/devices,
 Metro, and API/example routes that may intentionally change.
 
-Manual Maestro validation:
+Manual Maestro runs:
 
 ```sh
 yarn examples:ios
 yarn examples:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
+
+Benchmark scripts write the latest summary and quality-gate report under
+`example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
+`BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git,
+so any `latest-gate.txt` there is generated output, not a tracked result. Parity
+runs also write:
+
+- `example/.maestro-artifacts/ios-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/ios-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/ios-parity/latest-parity-contracts.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-summary.txt`
+- `example/.maestro-artifacts/android-parity/latest-parity-mismatches.json`
+- `example/.maestro-artifacts/android-parity/latest-parity-contracts.json`
 
 Example native builds:
 

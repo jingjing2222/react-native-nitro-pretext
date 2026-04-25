@@ -80,6 +80,9 @@ Benchmark routes:
 - `benchmark`: benchmark catalog.
 - `benchmark/base-text`: RN `<Text>` compatibility baseline.
 - `benchmark/pretext-layout`: Pretext layout benchmark screen.
+- `benchmark/parity`: 260-case strict parity contract covering raw RN
+  `<Text>` line output plus a `shapeSlices` narrow-slot, blocked-row, and
+  multi-slot structural case.
 - `benchmark/measured-layout`: case study for hidden RN measurement versus
   `Pretext.layout()` before render.
 
@@ -95,28 +98,67 @@ yarn workspace react-native-nitro-pretext-example build:android
 For iOS device signing, see the scripts in `example/package.json`. Simulator
 runs default to `iPhone 16`; set `IOS_SIMULATOR` when you need another target.
 
+For release Maestro snapshots, install a release app before running the flows:
+
+```sh
+xcodebuild -workspace example/ios/PretextExample.xcworkspace \
+  -scheme PretextExample \
+  -configuration Release \
+  -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  -derivedDataPath example/ios/build \
+  build
+xcrun simctl install <simulator-udid> \
+  example/ios/build/Build/Products/Release-iphonesimulator/PretextExample.app
+
+(cd example/android && ./gradlew assembleRelease --no-daemon --console=plain \
+  -PreactNativeArchitectures=arm64-v8a)
+adb -s <adb-serial> install -r \
+  example/android/app/build/outputs/apk/release/app-release.apk
+```
+
 ## Benchmarks
 
 The benchmark scripts are Maestro drivers. They expect the example app to
 already be installed and, for debug builds, Metro to already be running.
+Release builds do not use Metro.
 
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
+MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
+MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 ```
 
-Android canonical benchmark claims require API 29+ because the canonical
-Android engine is `MeasuredText + LineBreaker`. API 24-28 runs use
-`StaticLayout` compat or legacy fallback paths only.
+Android normal-wrap benchmark claims currently use the RN-compatible
+`StaticLayout` path on the API 36 AVD. Android API 24+ is supported,
+but rerun the target device/API before making device-specific performance or
+parity claims.
 
-Latest local benchmark status:
+Benchmark scripts write the latest summary and quality-gate report under
+`example/.maestro-artifacts/<platform>-<flow>/latest-summary.txt` and
+`example/.maestro-artifacts/<platform>-<flow>/latest-gate.txt`.
+`BENCHMARK_SKIP_GATE=1` writes a skipped gate report for artifact capture only;
+do not report that as a benchmark result. `.maestro-artifacts` is ignored by git,
+so generated `latest-gate.txt` files must be regenerated before making a parity
+claim.
+Parity runs also write `latest-parity-summary.txt`,
+`latest-parity-mismatches.json`, and `latest-parity-contracts.json` in the
+matching `ios-parity` or `android-parity` artifact directory. The parity
+comparator uses raw RN `onTextLayout` line text exactly; escaped values in the
+artifact files are for display only.
 
-- iOS `benchmark` suite: passed on April 24, 2026 with an iPhone 16 simulator.
-- Android `benchmark` suite: completed on April 25, 2026 with a Pixel_9_Pro AVD
-  on API 36. The canonical engine metadata and local layout-only gate passed.
-- Android `benchmark/measured-layout`: verified on the same API 36 AVD. Hidden
-  RN `<Text>` + `onLayout` reached first stable height in `174.95 ms`;
-  `Pretext.layout()` returned the needed layout data in `8.59 ms`.
+Latest benchmark runs:
+
+- iOS `benchmark` suite: April 26, 2026 on iPhone 16 simulator, iOS 18.5,
+  Release app. RN median `188.11 ms`, Pretext visible median `197.40 ms`,
+  layout-only median `0.02 ms`.
+- Android `benchmark` suite: April 26, 2026 on Pixel_9_Pro AVD, API 36,
+  release APK. RN median `23.80 ms`, Pretext visible median `22.43 ms`,
+  layout-only median `0.03 ms`.
+- RN `<Text>`/`shapeSlices` parity suite: April 26, 2026 on the same Release
+  iOS app and Android release APK with 260 Maestro cases and `0/260`
+  line-count, line-text, and geometry mismatches.
 
 ## Example Verification
 
@@ -125,6 +167,24 @@ The API example map is verified from the repository root:
 ```sh
 yarn verify:api-examples
 ```
+
+The draggable `examples/pretext-react-native-example` page also has a Maestro
+flow that performs 20 circle moves across a 3x3 preview grid and asserts the
+exported geometry report keeps both the final state and every sampled motion
+state outside the obstacle (`intrudingLineCount: 0`,
+`motionMaxIntrudingLineCount: 0`) while visiting all cells `1` through `9`:
+
+```sh
+maestro --platform ios test example/maestro/flows/examples/pretext-react-native-example.yaml
+maestro --platform android test example/maestro/flows/examples/pretext-react-native-example.yaml
+```
+
+Latest Release run on April 26, 2026 passed on iOS and Android:
+
+| Platform | Moves | Visited grid cells  | Final intrusions | Motion max intrusions | Motion min clearance |
+| -------- | ----: | ------------------- | ---------------: | --------------------: | -------------------: |
+| iOS      |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |                 `20` |
+| Android  |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |              `19.99` |
 
 That gate checks `docs/api.md`, `apiExampleManifest`, navigation types, linking
 config, registered stack screens, example index cards, and automation report

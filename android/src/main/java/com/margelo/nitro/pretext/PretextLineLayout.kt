@@ -1,6 +1,5 @@
 package com.margelo.nitro.pretext
 
-import android.os.Build
 import kotlin.math.max
 import kotlin.math.min
 
@@ -11,7 +10,7 @@ internal fun normalizeLayoutRequest(request: ParagraphLayoutRequest): NativeLayo
         top = finiteOrDefault(slice.top, 0.0),
         height = max(0.0, finiteOrDefault(slice.height, 0.0)),
         left = finiteOrDefault(slice.left, 0.0),
-        width = max(1.0, finiteOrDefault(slice.width, 1.0)),
+        width = max(0.0, finiteOrDefault(slice.width, 0.0)),
       )
     }
     .sortedBy { it.top }
@@ -51,38 +50,10 @@ internal fun layoutLineLayouts(
       request.wordBreak == WORD_BREAK_NORMAL &&
       !prepared.forceTokenLayout
 
-  val lineBreaker = corpus.lineBreaker
-  val measuredText = prepared.measuredText
-  val canUsePlatformLineBreaker =
-    Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q &&
-      lineBreaker != null &&
-      measuredText != null &&
-      !prepared.forceTokenLayout &&
-      request.shapeSlices.isEmpty() &&
-      request.whiteSpace == WHITE_SPACE_NORMAL &&
-      request.wordBreak == WORD_BREAK_NORMAL
-
-  if (canUsePlatformLineBreaker) {
-    return Api29LineLayout.layoutLineLayouts(
-      text = prepared.text,
-      measuredText = measuredText,
-      lineBreaker = lineBreaker,
-      textPaint = corpus.textPaint,
-      defaultStyle = corpus.baseStyle,
-      runs = prepared.runs,
-      inlineBoxes = prepared.inlineBoxes,
-      width = request.width,
-      left = request.left,
-      defaultLineHeight = corpus.lineHeight,
-      includeFontPadding = corpus.includeFontPadding,
-    )
-  }
-
   if (canUseStaticLayout) {
     return StaticLayoutLineLayout.layoutLineLayouts(
       text = prepared.styledText,
       textPaint = corpus.textPaint,
-      runs = prepared.runs,
       inlineBoxes = prepared.inlineBoxes,
       width = request.width,
       left = request.left,
@@ -307,88 +278,153 @@ private fun layoutWrappedLineLayouts(
       break
     }
 
-    val constraint = resolveLineConstraint(request, top)
-    var end = cursor
-    var currentWidth = 0.0
-    var lastBreakAfter = -1
+    val rowLines = ArrayList<NativeLineLayout>()
+    var rowHeight = defaultLineHeight
     var hitForcedBreak = false
 
-    while (end < units.size) {
-      val token = units[end]
+    val constraints = resolveLineConstraints(request, top)
 
-      if (token.text == NEWLINE_TOKEN) {
+    for (constraint in constraints) {
+      rowHeight = max(rowHeight, constraint.height)
+
+      if (constraint.width <= 0.0) {
+        continue
+      }
+
+      while (cursor < units.size && isNonNewlineWhitespace(units[cursor].text)) {
+        cursor += 1
+      }
+
+      if (cursor >= units.size) {
+        break
+      }
+
+      if (units[cursor].text == NEWLINE_TOKEN) {
+        if (rowLines.isEmpty()) {
+          val newline = units[cursor]
+          val newlineHeight = max(defaultLineHeight, newline.lineHeight)
+          rowHeight = max(rowHeight, newlineHeight)
+          rowLines += NativeLineLayout(
+            textStart = newline.start,
+            textEnd = newline.start,
+            width = 0.0,
+            left =
+              resolveAlignedLineLeft(
+                constraintLeft = constraint.left,
+                constraintWidth = constraint.width,
+                lineWidth = 0.0,
+                lineText = "",
+                textDirection = textDirection,
+                textLocale = textLocale,
+              ),
+            top = top,
+            height = newlineHeight,
+            ascent = 0.0,
+            descent = newlineHeight,
+          )
+        }
         hitForcedBreak = true
         break
       }
 
-      if (currentWidth + token.width <= constraint.width || end == cursor) {
-        currentWidth += token.width
-        end += 1
-        if (allowBreakAfterEveryUnit || isNonNewlineWhitespace(token.text)) {
-          lastBreakAfter = end
-        }
+      if (constraint.isShapeConstrained && units[cursor].width > constraint.width) {
         continue
       }
 
-      if (lastBreakAfter > cursor) {
-        end = lastBreakAfter
+      var end = cursor
+      var currentWidth = 0.0
+      var lastBreakAfter = -1
+
+      while (end < units.size) {
+        val token = units[end]
+
+        if (token.text == NEWLINE_TOKEN) {
+          hitForcedBreak = true
+          break
+        }
+
+        if (currentWidth + token.width <= constraint.width || end == cursor) {
+          currentWidth += token.width
+          end += 1
+          if (allowBreakAfterEveryUnit || isNonNewlineWhitespace(token.text)) {
+            lastBreakAfter = end
+          }
+          continue
+        }
+
+        if (lastBreakAfter > cursor) {
+          end = lastBreakAfter
+        }
+        break
       }
-      break
+
+      val trimmedEnd = trimTrailingWhitespaceEnd(units, cursor, end)
+      if (trimmedEnd == cursor) {
+        val fallback = units[cursor]
+        val hasVisibleText = fallback.text.trim().isNotEmpty()
+        val fallbackLineHeight =
+          if (fallback.lineHeight > 0.0) {
+            max(defaultLineHeight, max(fallback.lineHeight, fallback.descent - fallback.ascent))
+          } else {
+            defaultLineHeight
+          }
+        rowHeight = max(rowHeight, fallbackLineHeight)
+        rowLines += NativeLineLayout(
+          textStart = fallback.start,
+          textEnd = if (hasVisibleText) fallback.end else fallback.start,
+          width = fallback.width,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = fallback.width,
+              lineText = fallback.text,
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
+          top = top,
+          height = fallbackLineHeight,
+          ascent = fallback.ascent,
+          descent = max(fallback.descent, fallbackLineHeight + fallback.ascent),
+        )
+        cursor += 1
+      } else {
+        val metrics = fallbackLineMetrics(units, cursor, trimmedEnd, defaultLineHeight)
+        val lineWidth = sumWidths(units, cursor, trimmedEnd)
+        rowHeight = max(rowHeight, metrics.lineHeight)
+        rowLines += NativeLineLayout(
+          textStart = units[cursor].start,
+          textEnd = units[trimmedEnd - 1].end,
+          width = lineWidth,
+          left =
+            resolveAlignedLineLeft(
+              constraintLeft = constraint.left,
+              constraintWidth = constraint.width,
+              lineWidth = lineWidth,
+              lineText = lineTextFromTokens(units, cursor, trimmedEnd),
+              textDirection = textDirection,
+              textLocale = textLocale,
+            ),
+          top = top,
+          height = metrics.lineHeight,
+          ascent = metrics.ascent,
+          descent = metrics.descent,
+        )
+        cursor = end
+      }
+
+      if (hitForcedBreak) {
+        break
+      }
     }
 
-    val trimmedEnd = trimTrailingWhitespaceEnd(units, cursor, end)
-    if (trimmedEnd == cursor) {
-      val fallback = units[cursor]
-      val hasVisibleText = fallback.text.trim().isNotEmpty()
-      val fallbackLineHeight =
-        if (fallback.lineHeight > 0.0) {
-          max(defaultLineHeight, max(fallback.lineHeight, fallback.descent - fallback.ascent))
-        } else {
-          defaultLineHeight
-        }
-      lines += NativeLineLayout(
-        textStart = fallback.start,
-        textEnd = if (hasVisibleText) fallback.end else fallback.start,
-        width = fallback.width,
-        left =
-          resolveAlignedLineLeft(
-            constraintLeft = constraint.left,
-            constraintWidth = constraint.width,
-            lineWidth = fallback.width,
-            lineText = fallback.text,
-            textDirection = textDirection,
-            textLocale = textLocale,
-          ),
-        top = top,
-        height = fallbackLineHeight,
-        ascent = fallback.ascent,
-        descent = max(fallback.descent, fallbackLineHeight + fallback.ascent),
-      )
-      top += fallbackLineHeight
-      cursor += 1
-    } else {
-      val metrics = fallbackLineMetrics(units, cursor, trimmedEnd, defaultLineHeight)
-      val lineWidth = sumWidths(units, cursor, trimmedEnd)
-      lines += NativeLineLayout(
-        textStart = units[cursor].start,
-        textEnd = units[trimmedEnd - 1].end,
-        width = lineWidth,
-        left =
-          resolveAlignedLineLeft(
-            constraintLeft = constraint.left,
-            constraintWidth = constraint.width,
-            lineWidth = lineWidth,
-            lineText = lineTextFromTokens(units, cursor, trimmedEnd),
-            textDirection = textDirection,
-            textLocale = textLocale,
-          ),
-        top = top,
-        height = metrics.lineHeight,
-        ascent = metrics.ascent,
-        descent = metrics.descent,
-      )
-      top += metrics.lineHeight
-      cursor = end
+    if (rowLines.isNotEmpty()) {
+      lines += rowLines.map { line -> line.withHeight(rowHeight) }
+      top += rowHeight
+    } else if (cursor >= units.size) {
+      break
+    } else if (constraints.any { it.isShapeConstrained }) {
+      top += rowHeight
     }
 
     if (hitForcedBreak && cursor < units.size && units[cursor].text == NEWLINE_TOKEN) {
@@ -451,18 +487,47 @@ private fun resolveLineConstraint(
   request: NativeLayoutRequest,
   top: Double,
 ): NativeLineConstraint {
-  val slice = request.shapeSlices.firstOrNull { top >= it.top && top < it.top + it.height }
-  return if (slice == null) {
-    NativeLineConstraint(
-      left = request.left,
-      width = request.width,
+  return resolveLineConstraints(request, top).first()
+}
+
+private fun resolveLineConstraints(
+  request: NativeLayoutRequest,
+  top: Double,
+): List<NativeLineConstraint> {
+  val slices = request.shapeSlices
+    .filter { top >= it.top && top < it.top + it.height }
+    .sortedBy { it.left }
+
+  if (slices.isEmpty()) {
+    return listOf(
+      NativeLineConstraint(
+        left = request.left,
+        width = request.width,
+        height = 0.0,
+        isShapeConstrained = false,
+      ),
     )
-  } else {
+  }
+
+  return slices.map { slice ->
     NativeLineConstraint(
       left = slice.left,
       width = slice.width,
+      height = slice.height,
+      isShapeConstrained = true,
     )
   }
+}
+
+private fun NativeLineLayout.withHeight(rowHeight: Double): NativeLineLayout {
+  if (height == rowHeight) {
+    return this
+  }
+
+  return copy(
+    height = rowHeight,
+    descent = max(descent, rowHeight + ascent),
+  )
 }
 
 private fun trimTrailingWhitespaceEnd(

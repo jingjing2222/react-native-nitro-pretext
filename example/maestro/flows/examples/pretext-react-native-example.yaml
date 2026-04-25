@@ -1,0 +1,67 @@
+appId: pretext.example
+---
+- launchApp:
+    clearState: true
+- tapOn:
+    id: "home.open-examples"
+- tapOn:
+    id: "examples.open-pretext-react-native-example"
+- assertVisible: "Draggable shape reflow"
+- assertVisible:
+    id: "examples.pretext-react-native-example.circle"
+
+# Exercise the shape as a motion contract, not just a final snapshot.
+# The grid target ids move the circle through a 3x3 preview grid:
+# 1-2-3 / 4-5-6 / 7-8-9. The report fails if any sampled position lets text
+# intrude into the circle obstacle.
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.1"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.2"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.3"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.6"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.9"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.8"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.7"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.4"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.5"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.9"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.3"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.1"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.7"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.8"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.2"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.6"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.4"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.1"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.5"
+- tapOn:
+    id: "examples.pretext-react-native-example.grid-cell.9"
+- copyTextFrom:
+    text: "API_EXAMPLE_REPORT::examples/pretext-react-native-example::.*"
+- runScript:
+    file: ../../scripts/log-api-example-report.js
+    env:
+      reportPrefix: API_EXAMPLE_REPORT
+      routePath: examples/pretext-react-native-example
+      requiredFields: circleMoveCount,circleX,circleY,intrudingLineCount,lineCount,minObstacleClearance,motionIntrudingSampleCount,motionMaxIntrudingLineCount,motionMinObstacleClearance,motionSampledPositionCount,motionVisitedGridCellCount,motionVisitedGridCells,obstacleRadius,previewWidth,shapeLayoutClearance,shapeSliceCount
+      minimumCircleMoves: "20"
+      minimumCircleSamples: "20"
+      requiredGridCells: "1,2,3,4,5,6,7,8,9"

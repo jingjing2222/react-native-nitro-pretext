@@ -8,8 +8,10 @@ import { HomeScreen } from "./screens/HomeScreen";
 import { BaseTextBenchmarkScreen } from "./screens/benchmark/BaseTextBenchmarkScreen";
 import { BenchmarkIndexScreen } from "./screens/benchmark/BenchmarkIndexScreen";
 import { BenchmarkMeasuredLayoutCaseStudyScreen } from "./screens/benchmark/BenchmarkMeasuredLayoutCaseStudyScreen";
+import { ParityBenchmarkScreen } from "./screens/benchmark/ParityBenchmarkScreen";
 import { PretextLayoutBenchmarkScreen } from "./screens/benchmark/PretextLayoutBenchmarkScreen";
 import { ExampleIndexScreen } from "./screens/examples/ExampleIndexScreen";
+import { PretextReactNativeExampleScreen } from "./screens/examples/PretextReactNativeExampleScreen";
 import { ExampleNonUseCaseDiagnosticsScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseDiagnosticsScreen";
 import { ExampleNonUseCaseIndexScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseIndexScreen";
 import { ExampleNonUseCaseLayoutLinesScreen } from "./screens/examples/non-use-case/ExampleNonUseCaseLayoutLinesScreen";
@@ -48,9 +50,11 @@ const linking = {
       Home: "",
       BenchmarkIndex: "benchmark",
       BenchmarkBaseText: "benchmark/base-text",
+      BenchmarkParity: "benchmark/parity",
       BenchmarkPretextLayout: "benchmark/pretext-layout",
       BenchmarkMeasuredLayoutCaseStudy: "benchmark/measured-layout",
       ExampleIndex: "examples",
+      PretextReactNativeExample: "examples/pretext-react-native-example",
       ExampleUseCaseIndex: "examples/use-case",
       ExampleUseCasePrepare: "examples/use-case/prepare",
       ExampleUseCaseLayoutMetrics: "examples/use-case/layout-metrics",
@@ -114,6 +118,11 @@ export default function App() {
               options={{ title: "benchmark/pretext-layout" }}
             />
             <Stack.Screen
+              component={ParityBenchmarkScreen}
+              name="BenchmarkParity"
+              options={{ title: "benchmark/parity" }}
+            />
+            <Stack.Screen
               component={BenchmarkMeasuredLayoutCaseStudyScreen}
               name="BenchmarkMeasuredLayoutCaseStudy"
               options={{ title: "benchmark/measured-layout" }}
@@ -122,6 +131,11 @@ export default function App() {
               component={ExampleIndexScreen}
               name="ExampleIndex"
               options={{ title: "examples/*" }}
+            />
+            <Stack.Screen
+              component={PretextReactNativeExampleScreen}
+              name="PretextReactNativeExample"
+              options={{ title: "examples/pretext-react-native-example" }}
             />
             <Stack.Screen
               component={ExampleUseCaseIndexScreen}

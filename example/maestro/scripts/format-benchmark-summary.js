@@ -28,6 +28,7 @@ const { summary } = readBenchmarkLog(logPath);
 const baseText = summary.baseText;
 const preparedView = summary.preparedView;
 const combined = summary.combined;
+const parity = summary.parity;
 const performanceRatio =
   combined?.preparedMedianMs !== null &&
   combined?.preparedMedianMs !== undefined &&
@@ -317,6 +318,32 @@ if (combined) {
     ),
     "",
     ...buildComparisonNotes(),
+    "",
+  );
+}
+
+if (parity) {
+  reportLines.push("RN Text Parity");
+  reportLines.push(
+    labelValue("completed", parity.completedAt ?? "n/a"),
+    labelValue("status", parity.status ?? "n/a"),
+    labelValue(
+      "cases",
+      `${formatCount(parity.completedCases)}/${formatCount(parity.caseCount)}`,
+    ),
+    labelValue("mismatches", formatCount(parity.mismatchCount)),
+    labelValue(
+      "line count",
+      `${formatCount(parity.lineCountMismatches)}/${formatCount(parity.caseCount)} mismatches`,
+    ),
+    labelValue(
+      "line text",
+      `${formatCount(parity.lineTextMismatches)}/${formatCount(parity.caseCount)} mismatches`,
+    ),
+    labelValue(
+      "line geometry",
+      `${formatCount(parity.lineGeometryMismatches)}/${formatCount(parity.caseCount)} mismatches`,
+    ),
     "",
   );
 }
