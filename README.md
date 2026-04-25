@@ -173,10 +173,10 @@ only:
 
 Latest Maestro timing snapshot:
 
-| Platform       | Target                               | RN `<Text>` median | Pretext visible surface median | Delta vs RN | Pretext hot layout median | Prepare once |
-| -------------- | ------------------------------------ | -----------------: | -----------------------------: | ----------: | ------------------------: | -----------: |
-| iOS            | iPhone 16 simulator, iOS 18.5, debug |        `234.94 ms` |                    `228.76 ms` |  `-6.18 ms` |                 `0.19 ms` |   `55.62 ms` |
-| Android API 36 | Pixel_9_Pro AVD, API 36, debug       |         `70.65 ms` |                     `86.33 ms` | `+15.68 ms` |                 `0.10 ms` |  `155.28 ms` |
+| Platform       | Target                                 | RN `<Text>` median | Pretext visible surface median | Delta vs RN | Pretext hot layout median | Prepare once |
+| -------------- | -------------------------------------- | -----------------: | -----------------------------: | ----------: | ------------------------: | -----------: |
+| iOS            | iPhone 16 simulator, iOS 18.5, Release |        `188.11 ms` |                    `197.40 ms` |  `+9.29 ms` |                 `0.02 ms` |   `44.72 ms` |
+| Android API 36 | Pixel_9_Pro AVD, API 36, release APK   |         `23.80 ms` |                     `22.43 ms` |  `-1.37 ms` |                 `0.03 ms` |   `50.46 ms` |
 
 Negative delta means the Pretext visible surface was faster in that run;
 positive delta means it was slower. The visible-surface number includes the
@@ -187,16 +187,16 @@ Hot relayout compute improvement:
 
 | Platform       | Hot layout compute vs RN `<Text>` median | Relative compute speedup |
 | -------------- | ---------------------------------------: | -----------------------: |
-| iOS            |                                  `99.9%` |                `1236.5x` |
-| Android API 36 |                                  `99.9%` |                 `706.5x` |
+| iOS            |                                 `99.99%` |                `9405.5x` |
+| Android API 36 |                                  `99.9%` |                 `793.3x` |
 
 The measured-layout case study is the render optimization claim: Pretext
 removes the hidden measurement `<Text>` surface, so the screen does not need a
 measurement render followed by a corrected visible render. The Maestro timing
 suite is a different contract: it includes the final visible RN `<Text>`
-surface. On the Android API 36 run above, the hot layout path was `0.10 ms`, but
-the full visible-surface median was slower than RN by `15.68 ms`; that visible
-surface number is reported as context, not as the layout-only gate.
+surface. On the Android API 36 run above, the hot layout path was `0.03 ms`, and
+the full visible-surface median was faster than RN by `1.37 ms`; that visible
+surface number is still reported as context, not as the layout-only gate.
 
 Strict parity contract:
 
@@ -214,8 +214,8 @@ gap containment. The line-text comparison does not trim, normalize, or collapse
 newline, trailing whitespace, tab, or NBSP characters; display output may
 JSON-escape raw values, but comparison uses the unmodified RN payload.
 
-The latest iOS and Android API 36 runs completed the 260-case gate on
-April 26, 2026.
+The latest iOS Release simulator app and Android API 36 release APK runs
+completed the 260-case gate on April 26, 2026.
 
 Current benchmark details and gate thresholds are in the
 [Benchmark Report](docs/benchmark-improvement-report.md).

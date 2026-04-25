@@ -98,10 +98,30 @@ yarn workspace react-native-nitro-pretext-example build:android
 For iOS device signing, see the scripts in `example/package.json`. Simulator
 runs default to `iPhone 16`; set `IOS_SIMULATOR` when you need another target.
 
+For release Maestro snapshots, install a release app before running the flows:
+
+```sh
+xcodebuild -workspace example/ios/PretextExample.xcworkspace \
+  -scheme PretextExample \
+  -configuration Release \
+  -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  -derivedDataPath example/ios/build \
+  build
+xcrun simctl install <simulator-udid> \
+  example/ios/build/Build/Products/Release-iphonesimulator/PretextExample.app
+
+(cd example/android && ./gradlew assembleRelease --no-daemon --console=plain \
+  -PreactNativeArchitectures=arm64-v8a)
+adb -s <adb-serial> install -r \
+  example/android/app/build/outputs/apk/release/app-release.apk
+```
+
 ## Benchmarks
 
 The benchmark scripts are Maestro drivers. They expect the example app to
 already be installed and, for debug builds, Metro to already be running.
+Release builds do not use Metro.
 
 ```sh
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:ios
@@ -130,15 +150,15 @@ artifact files are for display only.
 
 Latest benchmark runs:
 
-- iOS `benchmark` suite: April 25, 2026 on iPhone 16 simulator, iOS 18.5.
-  RN median `234.94 ms`, Pretext visible median `228.76 ms`, layout-only
-  median `0.19 ms`.
-- Android `benchmark` suite: April 25, 2026 on Pixel_9_Pro AVD, API 36.
-  RN median `70.65 ms`, Pretext visible median `86.33 ms`, layout-only median
-  `0.10 ms`.
-- RN `<Text>`/`shapeSlices` parity suite: April 26, 2026 on iOS and Android
-  API 36 with 260 Maestro cases and `0/260` line-count, line-text, and
-  geometry mismatches.
+- iOS `benchmark` suite: April 26, 2026 on iPhone 16 simulator, iOS 18.5,
+  Release app. RN median `188.11 ms`, Pretext visible median `197.40 ms`,
+  layout-only median `0.02 ms`.
+- Android `benchmark` suite: April 26, 2026 on Pixel_9_Pro AVD, API 36,
+  release APK. RN median `23.80 ms`, Pretext visible median `22.43 ms`,
+  layout-only median `0.03 ms`.
+- RN `<Text>`/`shapeSlices` parity suite: April 26, 2026 on the same Release
+  iOS app and Android release APK with 260 Maestro cases and `0/260`
+  line-count, line-text, and geometry mismatches.
 
 ## Example Verification
 
@@ -158,6 +178,13 @@ state outside the obstacle (`intrudingLineCount: 0`,
 maestro --platform ios test example/maestro/flows/examples/pretext-react-native-example.yaml
 maestro --platform android test example/maestro/flows/examples/pretext-react-native-example.yaml
 ```
+
+Latest Release run on April 26, 2026 passed on iOS and Android:
+
+| Platform | Moves | Visited grid cells  | Final intrusions | Motion max intrusions | Motion min clearance |
+| -------- | ----: | ------------------- | ---------------: | --------------------: | -------------------: |
+| iOS      |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |                 `20` |
+| Android  |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |              `19.99` |
 
 That gate checks `docs/api.md`, `apiExampleManifest`, navigation types, linking
 config, registered stack screens, example index cards, and automation report

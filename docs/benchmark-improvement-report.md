@@ -6,15 +6,15 @@ are not part of the package.
 
 ## Current Benchmark Status
 
-| Platform                    | Status                                  | Notes                                                                     |
-| --------------------------- | --------------------------------------- | ------------------------------------------------------------------------- |
-| iOS                         | benchmark suite and parity run recorded | Current suite gate expects `ios_text_kit`.                                |
-| Android API 36              | benchmark suite and parity run recorded | Current Android suite uses the RN-compatible StaticLayout path.           |
-| Android API 24+ support     | normal-wrap StaticLayout path supported | Rerun the target device/API before making device-specific claims.         |
-| RN `<Text>` / `shapeSlices` | dedicated parity contract               | `benchmark:parity:*` requires 260 completed cases and `0/260` mismatches. |
+| Platform                    | Status                                          | Notes                                                                     |
+| --------------------------- | ----------------------------------------------- | ------------------------------------------------------------------------- |
+| iOS                         | release benchmark suite and parity run recorded | Current suite gate expects `ios_text_kit`.                                |
+| Android API 36              | release benchmark suite and parity run recorded | Current Android suite uses the RN-compatible StaticLayout path.           |
+| Android API 24+ support     | normal-wrap StaticLayout path supported         | Rerun the target device/API before making device-specific claims.         |
+| RN `<Text>` / `shapeSlices` | dedicated parity contract                       | `benchmark:parity:*` requires 260 completed cases and `0/260` mismatches. |
 
-Do not extrapolate Android performance from iOS numbers. The Android numbers
-below are a debug AVD snapshot, not a release-device speedup claim.
+Do not extrapolate Android performance from iOS numbers. The numbers below are
+local release simulator/AVD snapshots, not physical-device speedup claims.
 
 ## Layout-Only Example Snapshot
 
@@ -74,6 +74,7 @@ Latest parity run:
 - Date: April 26, 2026
 - iOS target: iPhone 16 simulator, iOS 18.5
 - Android target: Pixel_9_Pro AVD, Android API 36
+- Build mode: iOS Release simulator app and Android release APK, Metro not running
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
 - Gate: pass on iOS and Android
@@ -110,9 +111,9 @@ git, so files there are caches from the most recent run. Raw Maestro logs remain
 
 Latest iOS benchmark suite:
 
-- Date: April 25, 2026
+- Date: April 26, 2026
 - Device target: iPhone 16 simulator, iOS 18.5
-- Build mode: debug app with Metro
+- Build mode: Release simulator app, Metro not running
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
@@ -121,11 +122,11 @@ Latest iOS benchmark suite:
 
 | Metric                 | RN baseline | Pretext layout + RN surface |      Delta |
 | ---------------------- | ----------: | --------------------------: | ---------: |
-| Interaction median     | `234.94 ms` |                 `228.76 ms` | `-6.18 ms` |
-| Interaction p95        | `396.98 ms` |                 `398.55 ms` | `+1.57 ms` |
-| Layout-only median     | RN internal |                   `0.19 ms` |        n/a |
-| Prepare once           |         n/a |                  `55.62 ms` |        n/a |
-| Measure inside prepare |         n/a |                  `52.87 ms` |        n/a |
+| Interaction median     | `188.11 ms` |                 `197.40 ms` | `+9.29 ms` |
+| Interaction p95        | `350.58 ms` |                 `357.65 ms` | `+7.07 ms` |
+| Layout-only median     | RN internal |                   `0.02 ms` |        n/a |
+| Prepare once           |         n/a |                  `44.72 ms` |        n/a |
+| Measure inside prepare |         n/a |                  `44.39 ms` |        n/a |
 
 Reported paths:
 
@@ -150,28 +151,28 @@ display only; the comparator stores and compares raw RN/Pretext line text.
 The visible RN surface is reported for context only. The layout-only API gates
 the hot native layout median, prepare cost, engine metadata, parity report
 presence, and diagnostic contracts; it does not require the final RN render
-pass to beat RN `<Text>` in every debug run.
+pass to beat RN `<Text>` in every local run.
 
 ## Android Maestro Suite Snapshot
 
 Latest Android benchmark suite:
 
-- Date: April 25, 2026
+- Date: April 26, 2026
 - Device target: Pixel_9_Pro AVD, Android API 36
-- Build mode: debug app with Metro
+- Build mode: release APK, Metro not running
 - React Native: `0.85.0`
 - Nitro Modules: `0.35.5`
 - Flow: `benchmark` suite
 - Maestro gate profile: default timing thresholds
 - Gate: pass
 
-| Metric                 | RN baseline | Pretext layout + RN surface |       Delta |
-| ---------------------- | ----------: | --------------------------: | ----------: |
-| Interaction median     |  `70.65 ms` |                  `86.33 ms` | `+15.68 ms` |
-| Interaction p95        |  `77.20 ms` |                 `123.54 ms` | `+46.34 ms` |
-| Layout-only median     | RN internal |                   `0.10 ms` |         n/a |
-| Prepare once           |         n/a |                 `155.28 ms` |         n/a |
-| Measure inside prepare |         n/a |                 `154.45 ms` |         n/a |
+| Metric                 | RN baseline | Pretext layout + RN surface |      Delta |
+| ---------------------- | ----------: | --------------------------: | ---------: |
+| Interaction median     |  `23.80 ms` |                  `22.43 ms` | `-1.37 ms` |
+| Interaction p95        |  `26.39 ms` |                  `24.36 ms` | `-2.03 ms` |
+| Layout-only median     | RN internal |                   `0.03 ms` |        n/a |
+| Prepare once           |         n/a |                  `50.46 ms` |        n/a |
+| Measure inside prepare |         n/a |                  `48.22 ms` |        n/a |
 
 Canonical paths in this run:
 
@@ -192,13 +193,33 @@ Dedicated RN Text parity contract:
 | Line-text parity     |    `0/260` |
 | Line-geometry parity |    `0/260` |
 
-The Android debug AVD run reports the current RN-compatible StaticLayout
+The Android release AVD run reports the current RN-compatible StaticLayout
 normal-wrap path, and it shows why platform-specific reporting matters.
-The layout-only hot path was `0.10 ms`; the full visible-surface median was
-slower than RN by `15.68 ms` because the final RN surface still dominates the
-render cost. The dedicated `benchmark:parity:android` flow is the blocking RN
+The layout-only hot path was `0.03 ms`; the full visible-surface median was
+faster than RN by `1.37 ms` in this run, while still including the final RN
+surface render. The dedicated `benchmark:parity:android` flow is the blocking RN
 Text parity contract and currently passes at `0/260` under strict raw line-text
 comparison, including the `shapeSlices` blocked-row structural case.
+
+## Draggable Shape Example Contract
+
+The `examples/pretext-react-native-example` Maestro flow verifies the
+user-facing draggable shape demo against the same release-installed apps. It
+uses stable 3x3 grid target ids and performs 20 circle moves across all grid
+cells. The exported report must show no final or sampled text intrusion into the
+circle obstacle.
+
+Latest release run:
+
+- Date: April 26, 2026
+- iOS target: iPhone 16 simulator, iOS 18.5, Release simulator app
+- Android target: Pixel_9_Pro AVD, Android API 36, release APK
+- Gate: pass on iOS and Android
+
+| Platform | Moves | Visited grid cells  | Final intrusions | Motion max intrusions | Motion min clearance | Shape slices |
+| -------- | ----: | ------------------- | ---------------: | --------------------: | -------------------: | -----------: |
+| iOS      |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |                 `20` |           10 |
+| Android  |    20 | `1,2,3,4,5,6,7,8,9` |                0 |                     0 |              `19.99` |           10 |
 
 ## Resolved RN Text Parity History
 
@@ -238,14 +259,34 @@ them too expensive and too brittle for every pull request. Use release builds on
 the same device class when comparing numbers.
 
 The benchmark scripts drive an already installed example app. They do not
-build, install, or boot Metro for you. Before running them, generate the Nitro
-bridge, start Metro for debug builds, and install the app on the target device:
+build, install, or boot Metro for you. Before running debug builds, generate the
+Nitro bridge, start Metro, and install the app on the target device:
 
 ```sh
 yarn nitrogen
 yarn workspace react-native-nitro-pretext-example start
 yarn example:ios
 yarn example:android
+```
+
+For release snapshots like the current report, install a release app instead of
+starting Metro:
+
+```sh
+xcodebuild -workspace example/ios/PretextExample.xcworkspace \
+  -scheme PretextExample \
+  -configuration Release \
+  -sdk iphonesimulator \
+  -destination 'platform=iOS Simulator,id=<simulator-udid>' \
+  -derivedDataPath example/ios/build \
+  build
+xcrun simctl install <simulator-udid> \
+  example/ios/build/Build/Products/Release-iphonesimulator/PretextExample.app
+
+(cd example/android && ./gradlew assembleRelease --no-daemon --console=plain \
+  -PreactNativeArchitectures=arm64-v8a)
+adb -s <adb-serial> install -r \
+  example/android/app/build/outputs/apk/release/app-release.apk
 ```
 
 Then run the target benchmark with an explicit device id:
@@ -256,6 +297,16 @@ MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:android
 MAESTRO_IOS_DEVICE_ID=<simulator-udid> yarn benchmark:parity:ios
 MAESTRO_ANDROID_DEVICE_ID=<adb-serial-api-29-or-newer> yarn benchmark:parity:android
 BENCHMARK_GATE_PROFILE=manual-debug yarn benchmark:ios
+```
+
+Run the draggable shape example contract against the installed app when changing
+`shapeSlices` or the example screen:
+
+```sh
+maestro --platform ios --device <simulator-udid> test \
+  example/maestro/flows/examples/pretext-react-native-example.yaml
+maestro --platform android --device <adb-serial> test \
+  example/maestro/flows/examples/pretext-react-native-example.yaml
 ```
 
 `BENCHMARK_GATE_PROFILE=manual-debug` relaxes timing thresholds for noisy debug
